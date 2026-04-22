@@ -1254,7 +1254,7 @@ async function submitRequest(btn) {
 
       </div>
 
-      <button onclick="copyRequest_${newId}()" style="
+      <button id="copybtn-${newId}" style="
         margin-top:12px;
         width:100%;
         padding:10px;
@@ -1266,14 +1266,19 @@ async function submitRequest(btn) {
         font-family:inherit;
         cursor:pointer;
         transition:background .15s;
-      " onmouseover="this.style.background='rgba(63,140,255,.2)'" onmouseout="this.style.background='rgba(63,140,255,.12)'">
+      ">
         📋 Скопировать заявку
       </button>
     </div>
     <span class="time">${now()}</span>`;
 
-  // Функция копирования для этой заявки
-  window['copyRequest_' + newId] = function() {
+  // Привязываем кнопку копирования после добавления в DOM
+  setTimeout(() => {
+    const copyBtn = document.getElementById('copybtn-' + newId);
+    if (copyBtn) copyBtn.addEventListener('click', doCopy);
+  }, 100);
+
+  function doCopy() {
     const techText = tech.length
       ? tech.map(t => {
           const tLine = '• ' + (typeof t==='object' ? t.name + ' — ' + t.qty + ' ед.' : t);
@@ -1300,7 +1305,7 @@ async function submitRequest(btn) {
       '──────────────────',
       'Нач. уч. Петровский А.М. · 8(985)197-31-33',
     ].join('\n');
-    const btn = document.querySelector('[onclick="copyRequest_' + newId + '()"]');
+    const btn = document.getElementById('copybtn-' + newId);
     function onSuccess() {
       if (btn) { btn.textContent = '✅ Скопировано!'; setTimeout(() => { btn.innerHTML = '📋 Скопировать заявку'; }, 2000); }
     }
