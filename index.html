@@ -392,6 +392,8 @@
     background: var(--bg-card-2);
   }
   .input::placeholder { color: var(--text-muted); }
+  input[type="date"] { color: var(--text); }
+  input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; position: absolute; right: 0; width: 40px; height: 100%; cursor: pointer; }
   .row-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; }
   .select {
     appearance: none;
@@ -561,20 +563,21 @@
   .site-ac-wrap { position: relative; }
   .site-ac-input {
     width: 100%;
-    background: var(--bg-card-2);
-    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 12px;
     color: var(--text);
-    font-size: 16px;
+    font-size: 14px;
     font-family: inherit;
-    padding: 12px 16px;
+    padding: 12px 14px;
     outline: none;
     -webkit-appearance: none;
     appearance: none;
-    transition: border-color .15s;
+    transition: border-color .15s, background .15s;
     box-sizing: border-box;
   }
-  .site-ac-input:focus { border-color: var(--accent); }
+  .site-ac-input:focus { border-color: var(--accent); background: var(--bg-card-2); }
+  .site-ac-input::placeholder { color: var(--text-muted); }
   .site-ac-drop {
     position: absolute;
     left: 0; right: 0;
@@ -963,8 +966,12 @@ async function renderNewRequestForm() {
     <div class="caption" style="margin-bottom:12px">Укажите материал и объект, затем выберите технику.</div>
     <form class="form" id="reqForm" autocomplete="off">
       <div class="form-field">
-        <label for="f-req-date">📅 Дата заявки</label>
-        <input class="input" id="f-req-date" type="date" required />
+        <label>📅 Дата заявки</label>
+        <div style="position:relative;">
+          <input class="input" id="f-req-date" type="date" required
+            style="padding-right:40px; color: var(--text); -webkit-appearance:none; appearance:none;" />
+          <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:15px;opacity:.5;">📅</div>
+        </div>
       </div>
       <div class="form-field">
         <label for="f-name">Наименование материала</label>
