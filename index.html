@@ -959,9 +959,13 @@ async function renderNewRequestForm() {
   const msg = document.createElement('div');
   msg.className = 'msg bot';
   msg.innerHTML = `
-    <div class="title">📝 Заявка от ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+    <div class="title">📝 Новая заявка</div>
     <div class="caption" style="margin-bottom:12px">Укажите материал и объект, затем выберите технику.</div>
     <form class="form" id="reqForm" autocomplete="off">
+      <div class="form-field">
+        <label for="f-req-date">📅 Дата заявки</label>
+        <input class="input" id="f-req-date" type="date" required />
+      </div>
       <div class="form-field">
         <label for="f-name">Наименование материала</label>
         <div style="position:relative;">
@@ -1068,6 +1072,10 @@ async function renderNewRequestForm() {
   chat.appendChild(msg);
   scrollChat();
 
+  // Проставляем сегодняшнюю дату по умолчанию
+  const reqDateEl = document.getElementById('f-req-date');
+  if (reqDateEl) reqDateEl.value = new Date().toISOString().split('T')[0];
+
   keyboard([
     { html: '➡️ Далее — выбрать технику', variant: 'primary', echo: false, onClick: (btn) => goToTechPicker(btn) },
     { html: '← Назад', variant: 'back', onClick: () => { history.pop(); go('material', false); }, echoText: '← Назад' },
@@ -1075,6 +1083,7 @@ async function renderNewRequestForm() {
 }
 
 async function goToTechPicker(btn) {
+  const reqDate = document.getElementById('f-req-date').value;
   const name  = document.getElementById('f-name').value.trim();
   const qty   = document.getElementById('f-qty').value.trim();
   const unit  = document.getElementById('f-unit').value;
@@ -1083,7 +1092,7 @@ async function goToTechPicker(btn) {
   const phone = document.getElementById('f-phone').value.trim();
 
   if (!name || !qty || !site || !resp || !phone) {
-    ['f-name','f-qty','f-site','f-resp','f-phone'].forEach(id => {
+    ['f-req-date','f-name','f-qty','f-site','f-resp','f-phone'].forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.value.trim()) {
         el.style.borderColor = 'var(--danger)';
@@ -1278,7 +1287,7 @@ async function submitRequest(btn) {
     ">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
         <div>
-          <div style="font-weight:700;font-size:14px;color:#d2f7dd;">Заявка на ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          <div style="font-weight:700;font-size:14px;color:#d2f7dd;">Заявка на ${reqDate ? new Date(reqDate + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <span class="pill new" style="margin-left:auto;"><span class="dot new"></span>Новая</span>
       </div>
