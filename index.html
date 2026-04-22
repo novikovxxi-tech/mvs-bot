@@ -1026,14 +1026,16 @@ async function renderNewRequestForm() {
       </div>
       <div class="form-field">
         <label for="f-site">Адрес объекта</label>
-        <div class="site-ac-wrap">
-          <input class="site-ac-input" id="f-site" type="text"
-            placeholder="Начните вводить название..."
+        <div class="site-ac-wrap" style="position:relative;">
+          <input class="input" id="f-site" type="text"
+            placeholder="Выберите или введите адрес"
             autocomplete="off" autocorrect="off" spellcheck="false"
+            style="padding-right:38px;"
             oninput="siteAcSearch(this.value)"
             onfocus="siteAcSearch(this.value)"
             onkeydown="siteAcKeydown(event)"
             required />
+          <div onclick="document.getElementById('f-site').focus();siteAcSearch(document.getElementById('f-site').value);" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);cursor:pointer;font-size:11px;">&#9660;</div>
           <div class="site-ac-drop" id="site-ac-drop"></div>
         </div>
       </div>
