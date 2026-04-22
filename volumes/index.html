@@ -132,6 +132,7 @@
   .badge.mzv { background: rgba(63,140,255,.15); color: #6aaeff; }
   .badge.pd { background: rgba(90,209,122,.15); color: #5ad17a; }
   .badge.mzb { background: rgba(255,180,50,.15); color: #ffb832; }
+  .badge.kzb { background: rgba(224,90,255,.15); color: #e05aff; }
 
   /* CHART */
   .chart-wrap { overflow-x: auto; padding-bottom: 8px; }
@@ -251,6 +252,7 @@
         <button class="type-btn active" onclick="setType('МЗВ', this)">МЗВ</button>
         <button class="type-btn" onclick="setType('ПД', this)">ПД</button>
         <button class="type-btn" onclick="setType('МЗБ', this)">МЗБ</button>
+        <button class="type-btn" onclick="setType('КЗБ', this)">КЗБ</button>
       </div>
     </div>
 
@@ -516,7 +518,7 @@
     periodEl.textContent = dateStr;
 
     // Список по объектам, сортируем по суммарному объёму
-    const typeColors = { МЗВ: 'mzv', ПД: 'pd', МЗБ: 'mzb' };
+    const typeColors = { МЗВ: 'mzv', ПД: 'pd', МЗБ: 'mzb', КЗБ: 'kzb' };
     const sorted = Object.entries(byStreet).sort((a, b) => {
       const sa = Object.values(a[1]).reduce((x,y)=>x+y,0);
       const sb = Object.values(b[1]).reduce((x,y)=>x+y,0);
@@ -602,7 +604,7 @@
     if (!entries.length) { list.innerHTML = '<div class="empty">Записей пока нет</div>'; return; }
     list.innerHTML = entries.slice(0, 50).map(e => `
       <div class="log-item">
-        <div class="log-dot" style="background:${e.type==='МЗВ'?'#3f8cff':e.type==='ПД'?'#5ad17a':'#ffb832'}"></div>
+        <div class="log-dot" style="background:${e.type==='МЗВ'?'#3f8cff':e.type==='ПД'?'#5ad17a':e.type==='МЗБ'?'#ffb832':'#e05aff'}"></div>
         <div class="log-info">
           <div class="log-street">${e.street}</div>
           <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.note ? ' · ' + e.note : ''}</div>
