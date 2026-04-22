@@ -510,6 +510,52 @@
     font-family: 'Inter', sans-serif;
     letter-spacing: .2px;
   }
+
+  /* ========= Mobile: full-screen mode ========= */
+  @media (max-width: 480px) {
+    body {
+      padding: 0;
+      display: block;
+      background: var(--bg-app);
+    }
+    .hint { display: none; }
+    .phone {
+      width: 100vw;
+      height: 100dvh;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
+    .notch { display: none; }
+    .statusbar { display: none; }
+    .navbar { height: 52px; padding: 0 8px; }
+    .chat { padding: 12px 8px 8px; gap: 8px; }
+    .msg {
+      max-width: 92%;
+      font-size: 15px;
+      padding: 10px 13px;
+    }
+    .kb-btn {
+      font-size: 15px;
+      padding: 16px 12px;
+      min-height: 52px;
+      border-radius: 16px;
+    }
+    .kb-btn.big { min-height: 72px; font-size: 16px; }
+    .input, .select {
+      font-size: 16px; /* prevents iOS zoom */
+      padding: 13px 14px;
+      border-radius: 14px;
+    }
+    .form-field label { font-size: 12px; }
+    .tech-qty-input { font-size: 16px !important; width: 58px !important; }
+    .tech-time-input { font-size: 15px !important; width: 100px !important; }
+    .composer { padding: 8px 8px env(safe-area-inset-bottom, 10px); }
+    .home-indicator { display: none; }
+    .card { padding: 12px; }
+    .card-title { font-size: 15px; }
+    .detail-row { font-size: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -1256,28 +1302,33 @@ async function submitRequest(btn) {
     ].join('\n');
     const btn = document.querySelector('[onclick="copyRequest_' + newId + '()"]');
     function onSuccess() {
-      if (btn) { btn.textContent = '✅ Скопировано!'; setTimeout(() => { btn.textContent = '📋 Скопировать заявку'; }, 2000); }
+      if (btn) { btn.textContent = '✅ Скопировано!'; setTimeout(() => { btn.innerHTML = '📋 Скопировать заявку'; }, 2000); }
     }
-    function onFail() {
-      // fallback — создаём textarea и копируем через execCommand
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try {
-        document.execCommand('copy');
-        onSuccess();
-      } catch(e) {
-        alert('Не удалось скопировать автоматически. Выделите текст вручную.');
-      }
-      document.body.removeChild(ta);
+    function showModal() {
+      // Показываем текст в модальном окне для ручного копирования
+      let overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;padding:12px;';
+      overlay.innerHTML = `
+        <div style="width:100%;background:#1d242f;border-radius:20px;padding:16px;max-height:70vh;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:13px;font-weight:600;color:#8b95a7;text-align:center;">Выделите и скопируйте текст</div>
+          <textarea readonly style="flex:1;min-height:200px;background:#151a22;border:1px solid #262f3d;border-radius:12px;color:#eef2f8;font-size:13px;font-family:inherit;padding:12px;resize:none;outline:none;">${text}</textarea>
+          <button onclick="this.closest('div').parentNode.remove()" style="background:#3f8cff;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">Закрыть</button>
+        </div>`;
+      document.body.appendChild(overlay);
+      // Авто-выделяем текст
+      setTimeout(() => { const ta = overlay.querySelector('textarea'); if(ta){ta.focus();ta.select();} }, 100);
     }
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);
+    // 1. Пробуем нативный Share (мобильные браузеры)
+    if (navigator.share) {
+      navigator.share({ text }).then(onSuccess).catch(() => {
+        // если отменил — ничего не делаем
+      });
+    // 2. Пробуем Clipboard API
+    } else if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(onSuccess).catch(showModal);
+    // 3. Fallback — показываем модальное окно
     } else {
-      onFail();
+      showModal();
     }
   };
 
