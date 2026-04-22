@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>МВС СТ АУК №1</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0b0d12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="МВС АУК" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ========= Reset / base ========= */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #1a2744 0%, transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, #2a1a44 0%, transparent 60%),
+      #0b0d12;
+    color: #e7ecf3;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    display: grid;
+    place-items: center;
+    padding: 24px 12px;
+    min-height: 100vh;
+  }
+
+  /* Design tokens inspired by MAX / VK dark */
+  :root {
+    --bg-app: #0f1116;            /* outer phone bg */
+    --bg-chat: #151a22;           /* chat canvas */
+    --bg-top: #1a2029;            /* nav bar */
+    --bg-bubble-bot: #222a36;     /* incoming bubble */
+    --bg-bubble-me:  #2f74ff;     /* outgoing bubble (MAX blue) */
+    --bg-card: #1d242f;
+    --bg-card-2: #242c39;
+    --border: #262f3d;
+    --border-soft: #1e2530;
+    --text: #eef2f8;
+    --text-dim: #8b95a7;
+    --text-muted: #6a7386;
+    --accent: #3f8cff;            /* MAX primary blue */
+    --accent-2: #6aa8ff;
+    --accent-ink: #ffffff;
+    --ok: #34c759;
+    --warn: #ffb020;
+    --danger: #ff4d5e;
+    --info: #4aa3ff;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    --shadow-phone: 0 40px 80px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  /* ========= Phone frame ========= */
+  .phone {
+    width: 390px;
+    height: 844px;                /* iPhone 14 Pro height */
+    background: var(--bg-app);
+    border-radius: 44px;
+    box-shadow: var(--shadow-phone), inset 0 0 0 1px #1a1f29;
+    position: relative;
+    overflow: hidden;
+    border: 10px solid #0a0c10;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Notch */
+  .notch {
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 28px;
+    background: #000;
+    border-radius: 18px;
+    z-index: 30;
+  }
+
+  /* Status bar */
+  .statusbar {
+    height: 44px;
+    padding: 0 24px;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 6px;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--bg-top);
+    position: relative;
+    z-index: 10;
+  }
+  .statusbar .time { letter-spacing: 0.2px; }
+  .statusbar .icons { display: flex; gap: 6px; align-items: center; }
+  .bar-icon { width: 16px; height: 11px; display: inline-block; }
+
+  /* Navigation bar (chat header) */
+  .navbar {
+    height: 56px;
+    padding: 0 12px;
+    background: var(--bg-top);
+    border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 9;
+  }
+  .nav-back {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 22px;
+    transition: background .15s;
+  }
+  .nav-back:hover { background: rgba(63,140,255,.12); }
+
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3f8cff, #7a5cff);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 14px;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(63,140,255,.35);
+    position: relative;
+  }
+  .avatar::after {
+    content: '';
+    position: absolute;
+    right: -2px; bottom: -2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #34c759;
+    border: 2px solid var(--bg-top);
+  }
+  .nav-title {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .nav-title .name { font-weight: 600; font-size: 15px; color: var(--text); }
+  .nav-title .status { font-size: 12px; color: var(--text-dim); }
+  .nav-actions { display: flex; gap: 4px; }
+  .nav-icon-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .nav-icon-btn:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .nav-icon-btn svg { width: 20px; height: 20px; }
+
+  /* Chat area */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px 12px 12px;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(63,140,255,.06), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(122,92,255,.05), transparent 40%),
+      var(--bg-chat);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .chat::-webkit-scrollbar { width: 0; }
+
+  /* Date chip */
+  .date-chip {
+    align-self: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: rgba(255,255,255,.06);
+    padding: 4px 10px;
+    border-radius: 10px;
+    margin: 4px 0 8px;
+    letter-spacing: .3px;
+  }
+
+  /* Message bubble */
+  .msg {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14.5px;
+    line-height: 1.4;
+    position: relative;
+    animation: slideIn .28s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg.bot {
+    align-self: flex-start;
+    background: var(--bg-bubble-bot);
+    color: var(--text);
+    border-bottom-left-radius: 6px;
+  }
+  .msg.me {
+    align-self: flex-end;
+    background: var(--bg-bubble-me);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+  .msg .time {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: block;
+    text-align: right;
+  }
+  .msg.me .time { color: rgba(255,255,255,.7); }
+  .msg .title { font-weight: 600; margin-bottom: 2px; }
+
+  /* Inline bot keyboard — big reply buttons, Telegram/MAX style */
+  .kb {
+    align-self: stretch;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 2px;
+  }
+  .kb.single { grid-template-columns: 1fr; }
+  .kb-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 12px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform .1s ease, background .15s, border-color .15s;
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    min-height: 48px;
+    text-align: center;
+  }
+  .kb-btn:hover {
+    background: var(--bg-card-2);
+    border-color: #334055;
+  }
+  .kb-btn:active { transform: scale(.98); }
+  .kb-btn.primary {
+    background: linear-gradient(180deg, #3f8cff, #2d74e6);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(63,140,255,.3);
+  }
+  .kb-btn.primary:hover { background: linear-gradient(180deg, #4e99ff, #3680ee); }
+  .kb-btn.ghost { background: transparent; color: var(--text-dim); }
+  .kb-btn.back { color: var(--accent); background: rgba(63,140,255,.08); border-color: rgba(63,140,255,.2); }
+  .kb-btn.big  { font-size: 15.5px; font-weight: 600; min-height: 64px; flex-direction: column; gap: 4px; }
+  .kb-btn.big .sub { font-size: 11.5px; color: var(--text-dim); font-weight: 500; }
+
+  /* Equipment / request cards inside a bot message */
+  .card-stack { display: flex; flex-direction: column; gap: 8px; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .1s;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .card:hover { border-color: #37455c; background: var(--bg-card-2); }
+  .card:active { transform: scale(.99); }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(63,140,255,.1);
+    display: grid; place-items: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .card-sub { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+  .card-chev { color: var(--text-muted); font-size: 18px; flex-shrink: 0; }
+
+  /* Status dot + pill */
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 8px rgba(52,199,89,.5); }
+  .dot.busy { background: var(--danger); box-shadow: 0 0 8px rgba(255,77,94,.5); }
+  .dot.repair { background: var(--warn); box-shadow: 0 0 8px rgba(255,176,32,.5); }
+  .dot.new { background: var(--info); }
+
+  .pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .pill.ok    { background: rgba(52,199,89,.14); color: #5ad17a; }
+  .pill.busy  { background: rgba(255,77,94,.15); color: #ff7985; }
+  .pill.repair{ background: rgba(255,176,32,.15); color: #ffc65c; }
+  .pill.new   { background: rgba(74,163,255,.15); color: #7ab9ff; }
+  .pill.work  { background: rgba(255,176,32,.15); color: #ffc65c; }
+  .pill.done  { background: rgba(52,199,89,.14); color: #5ad17a; }
+  .pill.rej   { background: rgba(255,77,94,.15); color: #ff7985; }
+
+  /* Equipment detail card (rich) */
+  .detail-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;
+  }
+  .detail-header {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .detail-header .card-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, rgba(63,140,255,.2), rgba(122,92,255,.15));
+  }
+  .detail-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+  .detail-header .type { font-size: 12px; color: var(--text-dim); }
+
+  .detail-rows { display: flex; flex-direction: column; gap: 8px; }
+  .detail-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.03);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .detail-row .label { color: var(--text-dim); }
+  .detail-row .value { color: var(--text); font-weight: 500; text-align: right; }
+
+  /* Form inputs */
+  .form {
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 100%;
+  }
+  .form-field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+  .input, .select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s, background .15s;
+  }
+  .input:focus, .select:focus {
+    border-color: var(--accent);
+    background: var(--bg-card-2);
+  }
+  .input::placeholder { color: var(--text-muted); }
+  .row-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; }
+  .select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%238b95a7' d='M6 8L0 0h12z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 32px;
+  }
+
+  /* Request list item */
+  .req-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .req-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .req-title { font-size: 14px; font-weight: 600; }
+  .req-meta { font-size: 12px; color: var(--text-dim); display: flex; gap: 8px; flex-wrap: wrap; }
+  .req-meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* Success banner */
+  .success {
+    background: linear-gradient(135deg, rgba(52,199,89,.12), rgba(52,199,89,.05));
+    border: 1px solid rgba(52,199,89,.3);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .success .tick {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(52,199,89,.2);
+    color: #5ad17a;
+    display: grid; place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .success .txt { font-size: 13px; line-height: 1.4; }
+  .success .txt strong { display: block; font-size: 14px; margin-bottom: 2px; color: #d2f7dd; }
+
+  /* Typing indicator */
+  .typing {
+    align-self: flex-start;
+    background: var(--bg-bubble-bot);
+    padding: 12px 14px;
+    border-radius: 18px;
+    border-bottom-left-radius: 6px;
+    display: flex; gap: 4px; align-items: center;
+  }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-muted);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* Composer (bottom input — disabled, bot-only feel) */
+  .composer {
+    padding: 8px 10px 14px;
+    background: var(--bg-top);
+    border-top: 1px solid var(--border-soft);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .composer .attach, .composer .mic {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    display: grid; place-items: center;
+    cursor: pointer;
+  }
+  .composer .attach:hover, .composer .mic:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .composer .input-fake {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 9px 14px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+
+  /* Home indicator */
+  .home-indicator {
+    position: absolute;
+    bottom: 6px; left: 50%;
+    transform: translateX(-50%);
+    width: 134px; height: 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.35);
+    z-index: 20;
+  }
+
+  /* Utility */
+  .hidden { display: none !important; }
+  .caption { font-size: 11.5px; color: var(--text-dim); line-height: 1.3; }
+
+  /* Hint badge outside phone */
+  .hint {
+    position: fixed;
+    top: 16px; left: 16px;
+    font-size: 12px;
+    color: #8b95a7;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.06);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: .2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hint">MAX · прототип бота «МВС СТ АУК №1»</div>
+
+<div class="phone" id="phone">
+  <div class="notch"></div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <div class="time">9:41</div>
+    <div class="icons">
+      <!-- signal -->
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="7" width="3" height="4" rx="0.5" fill="white"/><rect x="4.5" y="5" width="3" height="6" rx="0.5" fill="white"/><rect x="9" y="3" width="3" height="8" rx="0.5" fill="white"/><rect x="13.5" y="0" width="3" height="11" rx="0.5" fill="white"/></svg>
+      <!-- wifi -->
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 2.2C9.9 2.2 12.1 3.1 13.7 4.6L15 3.2C13 1.2 10.4 0 7.5 0S2 1.2 0 3.2l1.3 1.4C2.9 3.1 5.1 2.2 7.5 2.2z" fill="white"/><path d="M7.5 5.2C9 5.2 10.4 5.8 11.4 6.8L12.7 5.4C11.3 4 9.5 3.2 7.5 3.2s-3.8.8-5.2 2.2l1.3 1.4C4.6 5.8 6 5.2 7.5 5.2z" fill="white"/><circle cx="7.5" cy="9" r="1.5" fill="white"/></svg>
+      <!-- battery -->
+      <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="22" height="11" rx="2.5" stroke="white" stroke-opacity="0.5"/><rect x="2" y="2" width="19" height="8" rx="1" fill="white"/><rect x="23" y="4" width="2" height="4" rx="1" fill="white" fill-opacity="0.5"/></svg>
+    </div>
+  </div>
+
+  <!-- Navigation bar -->
+  <div class="navbar">
+    <button class="nav-back" id="navBack" aria-label="Назад" style="visibility:hidden">‹</button>
+    <div class="avatar">МВ</div>
+    <div class="nav-title">
+      <div class="name">МВС СТ АУК №1</div>
+      <div class="status" id="navStatus">в сети</div>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" aria-label="Поиск">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </button>
+      <button class="nav-icon-btn" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat" id="chat">
+    <!-- Messages injected by JS -->
+  </div>
+
+  <!-- Composer (decorative) -->
+  <div class="composer">
+    <button class="attach" aria-label="Прикрепить">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11l-9 9a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg>
+    </button>
+    <div class="input-fake">Сообщение</div>
+    <button class="mic" aria-label="Голос">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </button>
+  </div>
+
+  <div class="home-indicator"></div>
+</div>
+
+<script>
+/* ==================== Data ==================== */
+const equipment = [
+  { id: 'eks-01', name: 'Экскаватор Komatsu PC200', type: 'Гусеничный экскаватор', icon: '🚜', status: 'ok',     owner: 'Иванов А. В.',      site: 'Объект №4 · Восточный',   hours: '1 280 м/ч', plate: 'E742КТ 77' },
+  { id: 'km-02',  name: 'КамАЗ-65115',              type: 'Самосвал 15 т',         icon: '🚛', status: 'busy',   owner: 'Петров С. М.',      site: 'Объект №2 · Северный',    hours: '96 400 км',  plate: 'В129СО 50' },
+  { id: 'bul-03', name: 'Бульдозер Т-170',          type: 'Гусеничный бульдозер',  icon: '🚧', status: 'repair', owner: 'СТО «Механика»',    site: '—',                        hours: '8 920 м/ч', plate: '1438ХС 77' },
+  { id: 'kr-04',  name: 'Кран КС-45717',            type: 'Автокран 25 т',         icon: '🏗️', status: 'ok',     owner: 'Сидоров В. П.',     site: 'База №1',                  hours: '44 120 км', plate: 'Т521МК 50' },
+];
+
+const statusMap = {
+  ok:     { label: 'Свободна',     pill: 'ok',     emoji: '🟢' },
+  busy:   { label: 'Занята',       pill: 'busy',   emoji: '🔴' },
+  repair: { label: 'На ремонте',   pill: 'repair', emoji: '🟡' },
+};
+
+const reqStatusMap = {
+  new:  { label: 'Новая',    pill: 'new',  emoji: '🔵' },
+  work: { label: 'В работе', pill: 'work', emoji: '🟡' },
+  done: { label: 'Выдано',   pill: 'done', emoji: '🟢' },
+  rej:  { label: 'Отклонено',pill: 'rej',  emoji: '🔴' },
+};
+
+// Requests stored in memory — persist across all screen transitions within a session
+let myRequests = [];
+
+/* ==================== State / routing ==================== */
+const chat = document.getElementById('chat');
+const navBack = document.getElementById('navBack');
+const navStatus = document.getElementById('navStatus');
+
+const history = []; // nav stack of screen ids
+let autoscrollTimer;
+
+function now() {
+  const d = new Date();
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
+function scrollChat() {
+  clearTimeout(autoscrollTimer);
+  autoscrollTimer = setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 30);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ==================== Rendering helpers ==================== */
+function botMsg(html, opts = {}) {
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = html + (opts.noTime ? '' : `<span class="time">${now()}</span>`);
+  chat.appendChild(div);
+  scrollChat();
+  return div;
+}
+function meMsg(text) {
+  const div = document.createElement('div');
+  div.className = 'msg me';
+  div.innerHTML = `${escapeHtml(text)}<span class="time">${now()} ✓✓</span>`;
+  chat.appendChild(div);
+  scrollChat();
+  return div;
+}
+function keyboard(buttons, layout = 'grid') {
+  const kb = document.createElement('div');
+  kb.className = 'kb' + (layout === 'single' ? ' single' : '');
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'kb-btn' + (b.variant ? ' ' + b.variant : '');
+    btn.innerHTML = b.html || escapeHtml(b.label || '');
+    btn.addEventListener('click', () => {
+      if (b.echo !== false) meMsg(b.echoText || stripHtml(b.label || b.html || ''));
+      b.onClick && b.onClick(btn);
+    });
+    kb.appendChild(btn);
+  });
+  chat.appendChild(kb);
+  scrollChat();
+  return kb;
+}
+function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s; return d.textContent.trim(); }
+
+function dateChip(text) {
+  const el = document.createElement('div');
+  el.className = 'date-chip';
+  el.textContent = text;
+  chat.appendChild(el);
+}
+
+function typing(duration = 700) {
+  return new Promise(resolve => {
+    const t = document.createElement('div');
+    t.className = 'typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
+    chat.appendChild(t);
+    scrollChat();
+    setTimeout(() => { t.remove(); resolve(); }, duration);
+  });
+}
+
+/* Disable previous interactive keyboards so user can only act on latest */
+function freezePrevKeyboards() {
+  chat.querySelectorAll('.kb:not(.frozen)').forEach(kb => {
+    kb.classList.add('frozen');
+    kb.querySelectorAll('button').forEach(b => {
+      b.disabled = true;
+      b.style.opacity = '.55';
+      b.style.pointerEvents = 'none';
+    });
+  });
+  chat.querySelectorAll('.card:not(.frozen)').forEach(c => {
+    c.classList.add('frozen');
+    c.style.opacity = '.55';
+    c.style.pointerEvents = 'none';
+  });
+}
+
+/* ==================== Screens ==================== */
+function go(screen, pushHistory = true) {
+  if (pushHistory && history[history.length - 1] !== screen) history.push(screen);
+  updateBack();
+  freezePrevKeyboards();
+  switch (screen) {
+    case 'home':      return renderHome();
+    case 'tech':      return renderTech();
+    case 'techItem':  return null; // handled directly by renderTechDetail
+    case 'material':  return renderMaterial();
+    case 'newReq':    return renderNewRequestForm();
+    case 'myReqs':    return renderMyRequests();
+  }
+}
+function updateBack() {
+  navBack.style.visibility = history.length > 1 ? 'visible' : 'hidden';
+  navStatus.textContent = history.length > 1 ? 'отвечает мгновенно' : 'в сети';
+}
+navBack.addEventListener('click', () => {
+  if (history.length > 1) {
+    history.pop();
+    const prev = history[history.length - 1];
+    go(prev, false);
+  }
+});
+
+/* -------- Home -------- */
+async function renderHome() {
+  await typing(500);
+  botMsg(`<div class="title">👋 Добро пожаловать!</div>Я бот <b>«МВС СТ АУК №1»</b> — помогу с техникой и материалами на объектах.<br><br>Выберите раздел:`);
+  keyboard([
+    { html: '📦<div>Материал</div><div class="sub">заявки и снабжение</div>',   variant: 'big primary', onClick: () => go('material'), echoText: '📦 Материал' },
+    { html: '🚜<div>Техника</div><div class="sub">список техники</div>', variant: 'big',         onClick: () => go('tech'), echoText: '🚜 Техника' },
+  ]);
+}
+
+/* -------- Tech list -------- */
+const techList = [
+  'Экск. Погр.',
+  'Мини погрузчик',
+  'Полноповоротный экс.',
+  'Самосвал',
+  'Манипулятор',
+  'Каток',
+  'Асфальтоукладчик',
+  'Автогудронатор',
+  'Газель г/п',
+  'Автокран',
+  'Миниэкскаватор',
+  'КДМ',
+  'МТЗ',
+  'Автобус',
+];
+
+async function renderTech() {
+  await typing(600);
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+
+  const listHtml = techList.map((name, i) => `
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text);
+    ">
+      <span style="color:var(--text-muted);font-size:12px;min-width:20px;text-align:right;">${i + 1}.</span>
+      <span>${escapeHtml(name)}</span>
+    </div>
+  `).join('');
+
+  msg.innerHTML = `
+    <div class="title">🚜 Техника</div>
+    <div class="caption" style="margin-bottom:10px">Всего единиц: <b>${techList.length}</b></div>
+    <div>${listHtml}</div>
+    <span class="time">${now()}</span>`;
+  chat.appendChild(msg);
+  scrollChat();
+
+  keyboard([
+    { html: '← Назад в меню', variant: 'back', onClick: () => { history.pop(); go('home', false); }, echoText: '← Назад' },
+  ], 'single');
+}
+
+/* -------- Tech detail -------- */
+async function renderTechDetail(id) {
+  history.push('techItem:' + id);
+  updateBack();
+  freezePrevKeyboards();
+
+  const e = equipment.find(x => x.id === id);
+  const s = statusMap[e.status];
+  await typing(500);
+
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+  msg.innerHTML = `
+    <div class="detail-card">
+      <div class="detail-header">
+        <div class="card-icon">${e.icon}</div>
+        <div>
+          <h3>${e.name}</h3>
+          <div class="type">${e.type}</div>
+        </div>
+      </div>
+      <div class="detail-rows">
+        <div class="detail-row"><span class="label">Статус</span><span class="value"><span class="pill ${s.pill}"><span class="dot ${s.pill}"></span>${s.label}</span></span></div>
+        <div class="detail-row"><span class="label">Ответственный</span><span class="value">${e.owner}</span></div>
+        <div class="detail-row"><span class="label">Объект</span><span class="value">${e.site}</span></div>
+        <div class="detail-row"><span class="label">Наработка</span><span class="value">${e.hours}</span></div>
+        <div class="detail-row"><span class="label">Гос. номер</span><span class="value">${e.plate}</span></div>
+        <div class="detail-row"><span class="label">ID в парке</span><span class="value">#${e.id.toUpperCase()}</span></div>
+      </div>
+    </div>
+    <span class="time">${now()}</span>`;
+  chat.appendChild(msg);
+  scrollChat();
+
+  keyboard([
+    { html: '✏️ Изменить статус', variant: 'primary', onClick: () => openStatusPicker(e.id), echoText: '✏️ Изменить статус' },
+    { html: '← Назад',             variant: 'back',    onClick: () => { history.pop(); go('tech', false); }, echoText: '← Назад' },
+  ]);
+}
+
+async function openStatusPicker(id) {
+  await typing(400);
+  botMsg(`<div class="title">Новый статус</div>Выберите значение для этой единицы техники:`);
+  keyboard([
+    { html: '🟢 Свободна',     onClick: () => applyStatus(id, 'ok'),     echoText: '🟢 Свободна' },
+    { html: '🔴 Занята',       onClick: () => applyStatus(id, 'busy'),   echoText: '🔴 Занята' },
+    { html: '🟡 На ремонте',   onClick: () => applyStatus(id, 'repair'), echoText: '🟡 На ремонте' },
+    { html: '✕ Отмена',        variant: 'ghost', onClick: async () => { await typing(300); botMsg('Ок, статус не изменён.'); renderTechDetailKeyboardOnly(id); }, echoText: '✕ Отмена' },
+  ]);
+}
+
+async function applyStatus(id, newStatus) {
+  const e = equipment.find(x => x.id === id);
+  e.status = newStatus;
+  await typing(500);
+  const s = statusMap[newStatus];
+  botMsg(`<div class="success">
+    <div class="tick">✓</div>
+    <div class="txt"><strong>Статус обновлён</strong>${e.name} → <span class="pill ${s.pill}"><span class="dot ${s.pill}"></span>${s.label}</span></div>
+  </div>`, { noTime: true });
+  renderTechDetailKeyboardOnly(id);
+}
+
+function renderTechDetailKeyboardOnly(id) {
+  keyboard([
+    { html: '📄 Открыть карточку', variant: 'primary', onClick: () => renderTechDetail(id), echoText: '📄 Открыть карточку' },
+    { html: '← К списку техники',  variant: 'back',    onClick: () => { // jump back to tech list
+        // trim history until tech
+        while (history.length && history[history.length-1] !== 'tech') history.pop();
+        if (!history.includes('tech')) history.push('tech');
+        go('tech', false);
+      }, echoText: '← К списку техники' },
+  ]);
+}
+
+/* -------- Material menu -------- */
+async function renderMaterial() {
+  await typing(500);
+  botMsg(`<div class="title">📦 Материалы</div>Выберите действие:`);
+  keyboard([
+    { html: '📝 Подать заявку',  variant: 'primary', onClick: () => go('newReq'), echoText: '📝 Подать заявку' },
+    { html: '📋 Мои заявки',     onClick: () => go('myReqs'),                    echoText: '📋 Мои заявки' },
+    { html: '← Назад в меню',    variant: 'back',    onClick: () => { history.pop(); go('home', false); }, echoText: '← Назад' },
+  ], 'single');
+}
+
+/* -------- Request form: Step 1 — Material -------- */
+async function renderNewRequestForm() {
+  await typing(600);
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+  msg.innerHTML = `
+    <div class="title">📝 Заявка от ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+    <div class="caption" style="margin-bottom:12px">Укажите материал и объект, затем выберите технику.</div>
+    <form class="form" id="reqForm" autocomplete="off">
+      <div class="form-field">
+        <label for="f-name">Наименование материала</label>
+        <div style="position:relative;">
+          <input class="input" id="f-name" type="text" placeholder="Выберите или введите материал" required style="padding-right:38px;" onfocus="toggleMatDropdown()" />
+          <div onclick="toggleMatDropdown()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);cursor:pointer;font-size:11px;">&#9660;</div>
+          <div id="matDropdown" style="
+            display:none;
+            position:absolute;
+            top:calc(100% + 4px);
+            left:0; right:0;
+            background:var(--bg-card-2);
+            border:1px solid var(--border);
+            border-radius:12px;
+            overflow:hidden;
+            z-index:99;
+            box-shadow:0 8px 24px rgba(0,0,0,.35);
+          ">
+            <div class="mat-option" onclick="pickMat('Горячая мелкозернистая а/б смесь типа В марки II')"
+              style="padding:12px 14px;font-size:13.5px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border-soft);transition:background .12s;"
+              onmouseover="this.style.background='rgba(63,140,255,.1)'" onmouseout="this.style.background=''"
+            >Горячая мелкозернистая а/б смесь типа В марки II</div>
+            <div class="mat-option" onclick="pickMat('Горячая песчаная а/б смесь типа Д марки II')"
+              style="padding:12px 14px;font-size:13.5px;color:var(--text);cursor:pointer;transition:background .12s;"
+              onmouseover="this.style.background='rgba(63,140,255,.1)'" onmouseout="this.style.background=''"
+            >Горячая песчаная а/б смесь типа Д марки II</div>
+          </div>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="form-field">
+          <label for="f-qty">Количество</label>
+          <input class="input" id="f-qty" type="number" min="1" step="1" placeholder="50" required />
+        </div>
+        <div class="form-field">
+          <label for="f-unit">Ед.</label>
+          <select class="select" id="f-unit" required>
+            <option value="шт">шт</option>
+            <option value="м">м</option>
+            <option value="кг">кг</option>
+            <option value="л">л</option>
+            <option value="т">т</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="f-mat-time">⏰ Материал ко времени</label>
+        <input class="input" id="f-mat-time" type="time" placeholder="08:00" />
+      </div>
+      <div class="form-field">
+        <label for="f-site">Адрес объекта</label>
+        <input class="input" id="f-site" type="text" placeholder="Напр. Большая Спасская" required />
+      </div>
+      <div class="form-field">
+        <label for="f-resp">Ответственный</label>
+        <div style="position:relative;">
+          <input class="input" id="f-resp" type="text" placeholder="Выберите или введите имя" required style="padding-right:38px;" onfocus="toggleRespDropdown()" />
+          <div onclick="toggleRespDropdown()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);cursor:pointer;font-size:11px;">&#9660;</div>
+          <div id="respDropdown" style="
+            display:none;
+            position:absolute;
+            top:calc(100% + 4px);
+            left:0; right:0;
+            background:var(--bg-card-2);
+            border:1px solid var(--border);
+            border-radius:12px;
+            overflow:hidden;
+            z-index:99;
+            box-shadow:0 8px 24px rgba(0,0,0,.35);
+            max-height:220px;
+            overflow-y:auto;
+          "></div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="f-phone">Телефон</label>
+        <input class="input" id="f-phone" type="tel" placeholder="+7 (___) ___-__-__" required />
+      </div>
+      <div style="
+        margin-top: 4px;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px;
+        border-left: 3px solid var(--accent);
+        font-size: 12.5px;
+        color: var(--text-dim);
+        line-height: 1.5;
+      ">
+        👤 Нач. уч. Петровский А.М.&nbsp;&nbsp;8(985)197-31-33
+      </div>
+    </form>
+    <span class="time">${now()}</span>`;
+  chat.appendChild(msg);
+  scrollChat();
+
+  keyboard([
+    { html: '➡️ Далее — выбрать технику', variant: 'primary', echo: false, onClick: (btn) => goToTechPicker(btn) },
+    { html: '← Назад', variant: 'back', onClick: () => { history.pop(); go('material', false); }, echoText: '← Назад' },
+  ]);
+}
+
+async function goToTechPicker(btn) {
+  const name  = document.getElementById('f-name').value.trim();
+  const qty   = document.getElementById('f-qty').value.trim();
+  const unit  = document.getElementById('f-unit').value;
+  const site  = document.getElementById('f-site').value.trim();
+  const resp  = document.getElementById('f-resp').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+
+  if (!name || !qty || !site || !resp || !phone) {
+    ['f-name','f-qty','f-site','f-resp','f-phone'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value.trim()) {
+        el.style.borderColor = 'var(--danger)';
+        setTimeout(() => el.style.borderColor = '', 1500);
+      }
+    });
+    await typing(300);
+    botMsg('⚠️ Пожалуйста, заполните все поля.');
+    return;
+  }
+
+  meMsg(`${name} · ${qty} ${unit} · ${site} · ${resp}`);
+  btn.closest('.kb').querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '.55'; b.style.pointerEvents = 'none'; });
+
+  // Save step 1 data
+  const matTime = document.getElementById('f-mat-time').value;
+  window._reqDraft = { name, qty, unit, mat_time: matTime, site, resp, phone, tech: [] };
+  await renderTechPicker();
+}
+
+/* -------- Request form: Step 2 — Tech picker -------- */
+async function renderTechPicker() {
+  await typing(600);
+  const selected = window._reqDraft.tech;
+
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+  msg.id = 'techPickerMsg';
+
+  const itemsHtml = techList.map((name, i) => `
+    <div class="tech-pick-item" data-idx="${i}" style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all .15s;
+    ">
+      <div class="pick-check" style="
+        width: 20px; height: 20px;
+        border-radius: 6px;
+        border: 2px solid #3a4557;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px;
+        flex-shrink: 0;
+        transition: all .15s;
+      "></div>
+      <span style="font-size:14px;color:var(--text);flex:1;">${escapeHtml(name)}</span>
+      <input
+        class="tech-qty-input"
+        id="qty-${i}"
+        type="number" min="1" max="99" value="1"
+        onclick="event.stopPropagation()"
+        style="
+          width: 52px;
+          background: var(--bg-card);
+          border: 1px solid #3a4557;
+          border-radius: 8px;
+          color: var(--text);
+          font-size: 13px;
+          font-family: inherit;
+          text-align: center;
+          padding: 4px 6px;
+          outline: none;
+          display: none;
+        "
+      />
+      <input
+        class="tech-time-input"
+        id="time-${i}"
+        type="time"
+        onclick="event.stopPropagation()"
+        style="
+          width: 90px;
+          background: var(--bg-card);
+          border: 1px solid #3a4557;
+          border-radius: 8px;
+          color: var(--text);
+          font-size: 12px;
+          font-family: inherit;
+          padding: 4px 6px;
+          outline: none;
+          display: none;
+          flex-shrink: 0;
+        "
+      />
+    </div>
+  `).join('');
+
+  msg.innerHTML = `
+    <div class="title">🔧 Шаг 2 из 2 — Техника</div>
+    <div class="caption" style="margin-bottom:10px">Выберите одну или несколько единиц техники:</div>
+    <div id="techPickList">${itemsHtml}</div>
+    <div id="techPickCount" style="font-size:12px;color:var(--text-dim);margin-top:8px;">Выбрано: 0</div>
+    <span class="time">${now()}</span>`;
+  chat.appendChild(msg);
+  scrollChat();
+
+  // Attach click handlers
+  msg.querySelectorAll('.tech-pick-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.idx);
+      const techName = techList[idx];
+      const check = item.querySelector('.pick-check');
+      const qtyInput = item.querySelector('.tech-qty-input');
+      const timeInput = item.querySelector('.tech-time-input');
+      const already = selected.findIndex(t => t.name === techName);
+      if (already === -1) {
+        selected.push({ name: techName, qty: 1, time: '' });
+        item.style.background = 'rgba(63,140,255,0.12)';
+        item.style.borderColor = 'rgba(63,140,255,0.35)';
+        check.style.background = '#3f8cff';
+        check.style.borderColor = '#3f8cff';
+        check.innerHTML = '✓';
+        check.style.color = '#fff';
+        qtyInput.style.display = 'block';
+        timeInput.style.display = 'block';
+        qtyInput.focus();
+        qtyInput.addEventListener('input', () => {
+          const entry = selected.find(t => t.name === techName);
+          if (entry) entry.qty = parseInt(qtyInput.value) || 1;
+          updateCount();
+        });
+        timeInput.addEventListener('change', () => {
+          const entry = selected.find(t => t.name === techName);
+          if (entry) entry.time = timeInput.value;
+        });
+      } else {
+        selected.splice(already, 1);
+        item.style.background = 'rgba(255,255,255,0.03)';
+        item.style.borderColor = 'transparent';
+        check.style.background = 'transparent';
+        check.style.borderColor = '#3a4557';
+        check.innerHTML = '';
+        qtyInput.style.display = 'none';
+        qtyInput.value = 1;
+        timeInput.style.display = 'none';
+        timeInput.value = '';
+      }
+      updateCount();
+    });
+  });
+
+  function updateCount() {
+    const total = selected.reduce((s, t) => s + (t.qty || 1), 0);
+    msg.querySelector('#techPickCount').textContent = `Выбрано: ${selected.length} ед. (итого: ${total} ед.)`;
+  }
+
+  keyboard([
+    { html: '✅ Отправить заявку', variant: 'primary', echo: false, onClick: (btn) => submitRequest(btn) },
+    { html: '⏭ Без техники',      variant: 'ghost',   echo: false, onClick: (btn) => { window._reqDraft.tech = []; submitRequest(btn); } },
+    { html: '← Назад',             variant: 'back',    onClick: () => { history.pop(); go('newReq', false); }, echoText: '← Назад' },
+  ], 'single');
+}
+
+async function submitRequest(btn) {
+  const { name, qty, unit, mat_time, site, resp, phone, tech } = window._reqDraft;
+
+  const techLabel = tech.length ? tech.map(t => `${t.name} — ${t.qty} ед.`).join(', ') : 'не выбрана';
+  meMsg(`Заявка: ${name} · ${qty} ${unit} · ${site} · Техника: ${techLabel}`);
+  btn.closest('.kb').querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '.55'; b.style.pointerEvents = 'none'; });
+
+  await typing(900);
+
+  const newId = 'Z-' + (1043 + myRequests.length);
+  myRequests.unshift({ id: newId, name, qty, unit, site, tech, status: 'new', date: new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' }) });
+
+
+  const succ = document.createElement('div');
+  succ.className = 'msg bot';
+  const techLines = tech.length
+    ? tech.map(t => {
+        const tName = escapeHtml(typeof t==='object' ? t.name : t);
+        const tQty  = typeof t==='object' ? t.qty : 1;
+        const tTime = (typeof t==='object' && t.time) ? ` <span style="color:var(--accent);font-size:12px;">⏰ к ${t.time}</span>` : '';
+        return `<div style="padding-left:8px;color:var(--text);">• ${tName} — ${tQty} ед.${tTime}</div>`;
+      }).join('')
+    : '<div style="padding-left:8px;color:var(--text-dim);">не выбрана</div>';
+
+  succ.innerHTML = `
+    <div style="
+      background: linear-gradient(135deg, rgba(52,199,89,.08), rgba(52,199,89,.03));
+      border: 1px solid rgba(52,199,89,.25);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 13.5px;
+      line-height: 1.6;
+    ">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(52,199,89,.2);color:#5ad17a;display:grid;place-items:center;font-size:16px;flex-shrink:0">✓</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#d2f7dd;">Заявка принята</div>
+          <div style="font-size:11.5px;color:var(--text-dim);">#${newId} · ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+        </div>
+        <span class="pill new" style="margin-left:auto;"><span class="dot new"></span>Новая</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📦 Материал</div>
+          <div style="color:var(--text);font-weight:500;">${escapeHtml(name)}</div>
+          <div style="color:var(--text-dim);font-size:12.5px;">${escapeHtml(qty)} ${unit}${mat_time ? ' <span style="color:var(--accent);">⏰ к ' + mat_time + '</span>' : ''}</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📍 Адрес</div>
+          <div style="color:var(--text);font-weight:500;">${escapeHtml(site)}</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🚜 Техника</div>
+          <div style="font-size:13px;">${techLines}</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">👤 Ответственные</div>
+          <div style="color:var(--text);margin-bottom:2px;">${escapeHtml(resp)}<span style="color:var(--text-dim);font-size:12px;"> · ${escapeHtml(phone)}</span></div>
+          <div style="color:var(--text-dim);font-size:12.5px;border-top:1px solid rgba(255,255,255,.06);margin-top:6px;padding-top:6px;">Нач. уч. Петровский А.М. · 8(985)197-31-33</div>
+        </div>
+
+      </div>
+
+      <button onclick="copyRequest_${newId}()" style="
+        margin-top:12px;
+        width:100%;
+        padding:10px;
+        background:rgba(63,140,255,.12);
+        border:1px solid rgba(63,140,255,.3);
+        border-radius:10px;
+        color:var(--accent);
+        font-size:13.5px;
+        font-family:inherit;
+        cursor:pointer;
+        transition:background .15s;
+      " onmouseover="this.style.background='rgba(63,140,255,.2)'" onmouseout="this.style.background='rgba(63,140,255,.12)'">
+        📋 Скопировать заявку
+      </button>
+    </div>
+    <span class="time">${now()}</span>`;
+
+  // Функция копирования для этой заявки
+  window['copyRequest_' + newId] = function() {
+    const techText = tech.length
+      ? tech.map(t => {
+          const tLine = '• ' + (typeof t==='object' ? t.name + ' — ' + t.qty + ' ед.' : t);
+          const tTime = (typeof t==='object' && t.time) ? ' (к ' + t.time + ')' : '';
+          return tLine + tTime;
+        }).join('\n')
+      : 'не выбрана';
+    const matLine = qty + ' ' + unit + (mat_time ? ' (к ' + mat_time + ')' : '');
+    const text = [
+      'Заявка от ' + new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
+      '#' + newId,
+      '',
+      '📦 МАТЕРИАЛ',
+      name,
+      matLine,
+      '',
+      '📍 АДРЕС',
+      site,
+      '',
+      '🚜 ТЕХНИКА',
+      techText,
+      '',
+      '👤 ОТВЕТСТВЕННЫЙ',
+      resp + ' · ' + phone,
+      '──────────────────',
+      'Нач. уч. Петровский А.М. · 8(985)197-31-33',
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('[onclick="copyRequest_' + newId + '()"]');
+      if (btn) { btn.textContent = '✅ Скопировано!'; setTimeout(() => { btn.textContent = '📋 Скопировать заявку'; }, 2000); }
+    }).catch(() => {
+      alert('Не удалось скопировать. Попробуй вручную.');
+    });
+  };
+
+  chat.appendChild(succ);
+  scrollChat();
+
+  keyboard([
+    { html: '📋 Мои заявки',    variant: 'primary', onClick: () => go('myReqs'), echoText: '📋 Мои заявки' },
+    { html: '📝 Ещё одна',      onClick: () => go('newReq'),                    echoText: '📝 Ещё одна заявка' },
+    { html: '← В меню',         variant: 'back',    onClick: () => { history.length = 0; history.push('home'); go('home', false); }, echoText: '← В меню' },
+  ]);
+}
+
+/* -------- My requests -------- */
+async function renderMyRequests() {
+  await typing(650);
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+  msg.innerHTML = `
+    <div class="title">📋 Мои заявки</div>
+    <div class="caption" style="margin-bottom:10px">Всего: <b>${myRequests.length}</b> · последние сверху</div>
+    <div class="card-stack" id="reqStack"></div>
+    <span class="time">${now()}</span>`;
+  chat.appendChild(msg);
+  const stack = msg.querySelector('#reqStack');
+  myRequests.forEach(r => {
+    const s = reqStatusMap[r.status];
+    const item = document.createElement('div');
+    item.className = 'req-item';
+    const techStr = (r.tech && r.tech.length) ? r.tech.map(t => typeof t === 'object' ? `${t.name} — ${t.qty} ед.` : t).join(', ') : '—';
+    item.innerHTML = `
+      <div class="req-head">
+        <div class="req-title">${escapeHtml(r.name)}</div>
+        <span class="pill ${s.pill}"><span class="dot ${s.pill === 'new' ? 'new' : s.pill}"></span>${s.label}</span>
+      </div>
+      <div class="req-meta">
+        <span>#${r.id}</span>
+        <span>· ${escapeHtml(r.qty)} ${r.unit}</span>
+        <span>· ${escapeHtml(r.site)}</span>
+        <span>· ${r.date}</span>
+      </div>
+      <div class="req-meta" style="margin-top:2px;">
+        <span>🔧 ${escapeHtml(techStr)}</span>
+      </div>`;
+    stack.appendChild(item);
+  });
+  scrollChat();
+
+  keyboard([
+    { html: '📝 Новая заявка', variant: 'primary', onClick: () => go('newReq'), echoText: '📝 Новая заявка' },
+    { html: '← Назад',         variant: 'back',    onClick: () => { history.pop(); go('material', false); }, echoText: '← Назад' },
+  ]);
+}
+
+/* ==================== Responsible persons list ==================== */
+const respList = [
+  { name: 'Аллахвердиев Вугар Илгар Оглы', phone: '+7 (999) 877-77-61' },
+  { name: 'Герц Сергей Андреевич',           phone: '+7 (999) 982-98-88' },
+  { name: 'Данилов Владимир Владимирович',    phone: '+7 (996) 926-14-89' },
+  { name: 'Иванов Сергей Геннадьевич',       phone: '+7 (906) 515-95-06' },
+  { name: 'Карташов Артем Юрьевич',          phone: '+7 (977) 871-67-31' },
+  { name: 'Кушнерев Сергей Андреевич',       phone: '+7 (915) 966-35-35' },
+  { name: 'Новиков Денис Дмитриевич',        phone: '+7 (919) 222-19-86' },
+  { name: 'Сорокин Александр Евгеньевич',    phone: '+7 (965) 346-29-06' },
+];
+
+function toggleRespDropdown() {
+  const d = document.getElementById('respDropdown');
+  if (!d) return;
+  if (!d.innerHTML.trim()) {
+    d.innerHTML = respList.map((p, i) => `
+      <div onclick="pickResp(${i})"
+        style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-soft);transition:background .12s;"
+        onmouseover="this.style.background='rgba(63,140,255,.1)'" onmouseout="this.style.background=''"
+      >
+        <div style="font-size:13.5px;color:var(--text);">${p.name}</div>
+        <div style="font-size:11.5px;color:var(--text-muted);">${p.phone}</div>
+      </div>`).join('');
+  }
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+function pickResp(idx) {
+  const person = respList[idx];
+  const inp = document.getElementById('f-resp');
+  const ph  = document.getElementById('f-phone');
+  if (inp) inp.value = person.name;
+  if (ph)  ph.value  = person.phone;
+  const d = document.getElementById('respDropdown');
+  if (d) d.style.display = 'none';
+}
+document.addEventListener('click', (e) => {
+  const d = document.getElementById('respDropdown');
+  if (!d) return;
+  if (!e.target.closest('#f-resp') && !e.target.closest('#respDropdown') && !e.target.closest('[onclick="toggleRespDropdown()"]')) {
+    d.style.display = 'none';
+  }
+});
+
+/* ==================== Material dropdown ==================== */
+function toggleMatDropdown() {
+  const d = document.getElementById('matDropdown');
+  if (!d) return;
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+function pickMat(val) {
+  const input = document.getElementById('f-name');
+  if (input) { input.value = val; input.style.borderColor = ''; }
+  const d = document.getElementById('matDropdown');
+  if (d) d.style.display = 'none';
+}
+document.addEventListener('click', (e) => {
+  const d = document.getElementById('matDropdown');
+  if (!d) return;
+  if (!e.target.closest('#f-name') && !e.target.closest('#matDropdown') && !e.target.closest('[onclick="toggleMatDropdown()"]')) {
+    d.style.display = 'none';
+  }
+});
+
+/* ==================== Boot ==================== */
+window.addEventListener('load', () => {
+  dateChip('сегодня');
+  history.push('home');
+  updateBack();
+  renderHome();
+});
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
