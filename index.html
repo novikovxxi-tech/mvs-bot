@@ -1118,7 +1118,7 @@ async function goToTechPicker(btn) {
 
   // Save step 1 data
   const matTime = document.getElementById('f-mat-time').value;
-  window._reqDraft = { name, qty, unit, mat_time: matTime, site, resp, phone, tech: [] };
+  window._reqDraft = { name, qty, unit, mat_time: matTime, site, resp, phone, tech: [], req_date: reqDate };
   await renderTechPicker();
 }
 
@@ -1262,7 +1262,7 @@ async function renderTechPicker() {
 }
 
 async function submitRequest(btn) {
-  const { name, qty, unit, mat_time, site, resp, phone, tech } = window._reqDraft;
+  const { name, qty, unit, mat_time, site, resp, phone, tech, req_date } = window._reqDraft;
 
   const techLabel = tech.length ? tech.map(t => `${t.name} — ${t.qty} ед.`).join(', ') : 'не выбрана';
   meMsg(`Заявка: ${name} · ${qty} ${unit} · ${site} · Техника: ${techLabel}`);
@@ -1296,7 +1296,7 @@ async function submitRequest(btn) {
     ">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
         <div>
-          <div style="font-weight:700;font-size:14px;color:#d2f7dd;">Заявка на ${reqDate ? new Date(reqDate + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          <div style="font-weight:700;font-size:14px;color:#d2f7dd;">Заявка на ${req_date ? new Date(req_date + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <span class="pill new" style="margin-left:auto;"><span class="dot new"></span>Новая</span>
       </div>
@@ -1361,7 +1361,7 @@ async function submitRequest(btn) {
       : 'не выбрана';
     const matLine = qty + ' ' + unit + (mat_time ? ' (к ' + mat_time + ')' : '');
     const text = [
-      'Заявка от ' + new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
+      'Заявка от ' + (req_date ? new Date(req_date + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })),
       '',
       'МАТЕРИАЛ:',
       name,
