@@ -158,6 +158,37 @@
 
   .empty { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 14px; }
 
+  /* AUTOCOMPLETE */
+  .ac-wrap { position: relative; }
+  .ac-input {
+    width: 100%; background: var(--bg-input);
+    border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); font-size: 16px; font-family: inherit;
+    padding: 12px 14px; outline: none;
+    -webkit-appearance: none; appearance: none;
+    transition: border-color .15s;
+  }
+  .ac-input:focus { border-color: var(--accent); }
+  .ac-dropdown {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+    background: #1e2a3d; border: 1px solid var(--border);
+    border-radius: 12px; z-index: 200;
+    max-height: 220px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    display: none;
+  }
+  .ac-dropdown.open { display: block; }
+  .ac-item {
+    padding: 11px 14px; font-size: 14px; cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s; line-height: 1.3;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:active, .ac-item.hovered { background: rgba(63,140,255,.12); color: var(--accent); }
+  .ac-item mark { background: none; color: var(--accent); font-weight: 700; }
+  .ac-item.add-new { color: var(--accent2); font-weight: 600; }
+  .ac-item.add-new:active { background: rgba(90,209,122,.1); }
+
   /* DATE chip */
   .date-chip {
     display: inline-block; background: rgba(63,140,255,.12);
@@ -203,32 +234,14 @@
 
     <div class="field">
       <label>Улица / объект</label>
-      <div style="display:flex;gap:8px;">
-        <select id="f-street" style="flex:1;" onchange="onStreetSelect(this)">
-          <option value="">Выберите из списка</option>
-          <option>Нижняя Красносельская ул. ЦАО</option>
-          <option>Большая Спасская ул. ЦАО</option>
-          <option>Спасский тупик ЦАО</option>
-          <option>Кондрашёвский тупик ЦАО</option>
-          <option>3-й Донской пр-д ЮАО</option>
-          <option>Проектируемый пр-д №475 ЮАО</option>
-          <option>2-ой Донской проезд</option>
-          <option>Кутузовский проспект</option>
-          <option>ул. Большая Калитниковская</option>
-          <option>Говорово</option>
-          <option>ул. Серпуховский Вал.</option>
-          <option>Васильевский переулок</option>
-          <option>Улица Всеволода Вишневского</option>
-          <option>Доброслободская</option>
-          <option id="custom-opt" value="__custom__">✏️ Ввести вручную...</option>
-        </select>
-      </div>
-      <input type="text" id="f-street-custom" placeholder="Введите название улицы / объекта"
-        style="display:none;margin-top:8px;width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:16px;font-family:inherit;padding:12px 14px;outline:none;">
-      <div id="add-street-wrap" style="display:none;margin-top:6px;">
-        <button onclick="addCustomStreet()" style="background:rgba(63,140,255,.12);border:1px solid rgba(63,140,255,.3);border-radius:10px;color:var(--accent);font-size:13px;font-weight:600;font-family:inherit;padding:8px 14px;cursor:pointer;">
-          + Добавить в список
-        </button>
+      <div class="ac-wrap">
+        <input type="text" id="f-street" class="ac-input"
+          placeholder="Начните вводить название..."
+          autocomplete="off" autocorrect="off" spellcheck="false"
+          oninput="acSearch(this.value)"
+          onfocus="acSearch(this.value)"
+          onkeydown="acKeydown(event)">
+        <div class="ac-dropdown" id="ac-drop"></div>
       </div>
     </div>
 
@@ -395,21 +408,14 @@
 <script>
   const API_URL = 'https://comfortable-surprise-production-2bf0.up.railway.app';
 
+  let allStreets = [];  // все улицы с сервера
+  let acHighlight = -1;
+
   // Загружаем улицы с сервера
   async function loadStreets() {
     try {
       const res = await fetch(API_URL + '/api/streets');
-      const streets = await res.json();
-      const sel = document.getElementById('f-street');
-      // Очищаем кроме первой и последней опции
-      while (sel.options.length > 2) sel.remove(1);
-      const customOpt = document.getElementById('custom-opt');
-      streets.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        sel.insertBefore(opt, customOpt);
-      });
+      allStreets = await res.json();
     } catch(e) { console.warn('Не удалось загрузить улицы:', e); }
   }
   loadStreets();
@@ -419,52 +425,118 @@
   document.getElementById('f-date').value = today;
 
   let selectedType = 'МЗВ';
-  let entries = [];  // in-memory
-  let customStreets = [];  // дополнительные улицы
+  let entries = [];
 
-  function onStreetSelect(sel) {
-    const custom = document.getElementById('f-street-custom');
-    const addWrap = document.getElementById('add-street-wrap');
-    if (sel.value === '__custom__') {
-      custom.style.display = 'block';
-      addWrap.style.display = 'block';
-      custom.focus();
+  // ─── AUTOCOMPLETE ────────────────────────────────────
+  function acSearch(q) {
+    const drop = document.getElementById('ac-drop');
+    acHighlight = -1;
+    const query = q.trim().toLowerCase();
+
+    let matches;
+    if (query.length === 0) {
+      // Показываем весь список
+      matches = allStreets.slice(0, 60);
     } else {
-      custom.style.display = 'none';
-      addWrap.style.display = 'none';
+      // Фильтр по вхождению в любом месте названия
+      matches = allStreets.filter(s =>
+        s.toLowerCase().includes(query)
+      );
+    }
+
+    if (matches.length === 0 && query.length >= 2) {
+      // Предлагаем добавить новый
+      drop.innerHTML = `<div class="ac-item add-new" onclick="acAddNew()">+ Добавить «${escHtml(q.trim())}» в список</div>`;
+      drop.classList.add('open');
+      return;
+    }
+
+    if (matches.length === 0) { drop.classList.remove('open'); return; }
+
+    drop.innerHTML = matches.map((s, i) => {
+      const hi = query ? s.replace(new RegExp('(' + escRe(query) + ')', 'gi'), '<mark>$1</mark>') : escHtml(s);
+      return `<div class="ac-item" data-val="${escHtml(s)}" onmousedown="acSelect('${escHtml(s).replace(/'/g,"&#39;")}')"
+        onmouseover="acHover(${i})">${hi}</div>`;
+    }).join('');
+
+    // Если ввод не совпадает точно с одним из объектов, добавить кнопку
+    if (query.length >= 2 && !allStreets.some(s => s.toLowerCase() === query)) {
+      drop.innerHTML += `<div class="ac-item add-new" onmousedown="acAddNew()" style="border-top:1px solid var(--border);margin-top:2px;">+ Добавить «${escHtml(document.getElementById('f-street').value.trim())}»</div>`;
+    }
+
+    drop.classList.add('open');
+  }
+
+  function acSelect(val) {
+    document.getElementById('f-street').value = val;
+    document.getElementById('ac-drop').classList.remove('open');
+    acHighlight = -1;
+  }
+
+  function acHover(i) {
+    acHighlight = i;
+    document.querySelectorAll('#ac-drop .ac-item').forEach((el,j) =>
+      el.classList.toggle('hovered', j === i)
+    );
+  }
+
+  function acKeydown(e) {
+    const drop = document.getElementById('ac-drop');
+    const items = drop.querySelectorAll('.ac-item');
+    if (!drop.classList.contains('open')) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acHighlight = Math.min(acHighlight + 1, items.length - 1);
+      items.forEach((el,j) => el.classList.toggle('hovered', j === acHighlight));
+      if (items[acHighlight]) items[acHighlight].scrollIntoView({block:'nearest'});
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acHighlight = Math.max(acHighlight - 1, 0);
+      items.forEach((el,j) => el.classList.toggle('hovered', j === acHighlight));
+      if (items[acHighlight]) items[acHighlight].scrollIntoView({block:'nearest'});
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (acHighlight >= 0 && items[acHighlight]) {
+        items[acHighlight].dispatchEvent(new MouseEvent('mousedown'));
+      } else {
+        drop.classList.remove('open');
+      }
+    } else if (e.key === 'Escape') {
+      drop.classList.remove('open');
     }
   }
 
-  async function addCustomStreet() {
-    const custom = document.getElementById('f-street-custom');
-    const name = custom.value.trim();
+  async function acAddNew() {
+    const inp = document.getElementById('f-street');
+    const name = inp.value.trim();
     if (!name) return;
-    // Сохраняем на сервер
     try {
       await fetch(API_URL + '/api/streets', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({name})
       });
-    } catch(e) { console.warn('Ошибка сохранения улицы:', e); }
-    // Добавляем в select
-    const sel = document.getElementById('f-street');
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    sel.insertBefore(opt, document.getElementById('custom-opt'));
-    sel.value = name;
-    custom.style.display = 'none';
-    document.getElementById('add-street-wrap').style.display = 'none';
-    custom.value = '';
+      if (!allStreets.includes(name)) allStreets.push(name);
+    } catch(e) { console.warn('Ошибка сохранения:', e); }
+    document.getElementById('ac-drop').classList.remove('open');
+  }
+
+  // Закрываем при клике вне
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.ac-wrap')) {
+      document.getElementById('ac-drop').classList.remove('open');
+    }
+  });
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escRe(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   }
 
   function getStreetValue() {
-    const sel = document.getElementById('f-street');
-    if (sel.value === '__custom__') {
-      return document.getElementById('f-street-custom').value.trim();
-    }
-    return sel.value;
+    return document.getElementById('f-street').value.trim();
   }
 
   function setType(type, btn) {
