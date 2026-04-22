@@ -1177,7 +1177,7 @@ async function submitRequest(btn) {
         <div style="width:32px;height:32px;border-radius:50%;background:rgba(52,199,89,.2);color:#5ad17a;display:grid;place-items:center;font-size:16px;flex-shrink:0">✓</div>
         <div>
           <div style="font-weight:700;font-size:14px;color:#d2f7dd;">Заявка принята</div>
-          <div style="font-size:11.5px;color:var(--text-dim);">#${newId} · ${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          <div style="font-size:11.5px;color:var(--text-dim);">${new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
         </div>
         <span class="pill new" style="margin-left:auto;"><span class="dot new"></span>Новая</span>
       </div>
@@ -1238,7 +1238,6 @@ async function submitRequest(btn) {
     const matLine = qty + ' ' + unit + (mat_time ? ' (к ' + mat_time + ')' : '');
     const text = [
       'Заявка от ' + new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
-      '#' + newId,
       '',
       '📦 МАТЕРИАЛ',
       name,
