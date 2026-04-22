@@ -135,15 +135,19 @@
   .badge.kzb { background: rgba(224,90,255,.15); color: #e05aff; }
 
   /* CHART */
-  .chart-wrap { overflow-x: auto; padding-bottom: 8px; }
-  .chart { display: flex; align-items: flex-end; gap: 4px; height: 120px; min-width: 600px; }
-  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .chart-wrap { overflow-x: auto; padding-bottom: 4px; }
+  .chart { display: flex; align-items: flex-end; gap: 5px; height: 140px; padding: 0 2px; }
+  .bar-wrap { flex: 0 0 auto; width: 36px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .bar {
-    width: 100%; background: var(--accent);
-    border-radius: 4px 4px 0 0; min-height: 2px;
-    transition: opacity .15s;
+    width: 100%;
+    background: linear-gradient(180deg, #5aaeff 0%, #3f8cff 100%);
+    border-radius: 5px 5px 0 0; min-height: 4px;
+    transition: height .3s ease, opacity .2s;
+    box-shadow: 0 2px 8px rgba(63,140,255,.25);
   }
-  .bar-lbl { font-size: 9px; color: var(--text-dim); white-space: nowrap; }
+  .bar:hover { opacity: 0.85; }
+  .bar-val { font-size: 9px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .bar-lbl { font-size: 9.5px; color: var(--text-dim); white-space: nowrap; }
 
   /* LOG */
   .log-item {
@@ -622,7 +626,7 @@
   function renderChart() {
     const chart = document.getElementById('chart');
     if (!entries.length) {
-      chart.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px;">Нет данных</div>';
+      chart.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px 0;">Нет данных</div>';
       return;
     }
     // Группируем по дате
@@ -636,11 +640,11 @@
     chart.innerHTML = sorted.map(([date, vol]) => {
       const [y, m, day] = date.split('-');
       const lbl = `${day}.${m}`;
-      const h = Math.max(4, Math.round((vol / maxV) * 110));
-      const op = vol > maxV * 0.8 ? 1 : vol > maxV * 0.5 ? 0.8 : 0.6;
-      const valStr = vol % 1 === 0 ? vol : vol.toFixed(1);
+      const h = Math.max(8, Math.round((vol / maxV) * 115));
+      const valStr = vol >= 100 ? Math.round(vol) : vol.toFixed(1);
       return `<div class="bar-wrap">
-        <div class="bar" style="height:${h}px;opacity:${op};" title="${valStr} т"></div>
+        <div class="bar-val">${valStr}</div>
+        <div class="bar" style="height:${h}px;" title="${valStr} т"></div>
         <div class="bar-lbl">${lbl}</div>
       </div>`;
     }).join('');
