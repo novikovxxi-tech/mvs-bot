@@ -523,6 +523,7 @@
       return sb - sa;
     });
 
+    renderChart();
     listEl.innerHTML = sorted.map(([street, types]) => {
       const badges = Object.entries(types).map(([t, v]) => {
         const cls = typeColors[t] || '';
@@ -615,26 +616,33 @@
     return `${day}.${m}.${y}`;
   }
 
-  // Строим график из данных июля 2025
-  const chartData = [
-    {d:'02.07',v:57.38},{d:'03.07',v:53.26},{d:'04.07',v:45.24},
-    {d:'05.07',v:31.02},{d:'06.07',v:30.94},{d:'07.07',v:36.18},
-    {d:'08.07',v:25.58},{d:'09.07',v:35.78},{d:'10.07',v:27.36},
-    {d:'11.07',v:20.44},{d:'12.07',v:9.94},{d:'13.07',v:72.97},
-    {d:'14.07',v:81.24},{d:'15.07',v:35.93},{d:'17.07',v:75.04},
-    {d:'18.07',v:60.23},{d:'19.07',v:88.37},{d:'20.07',v:63.89},
-    {d:'22.07',v:42.6},{d:'23.07',v:42.8},{d:'24.07',v:53.08},
-    {d:'25.07',v:58.12},{d:'26.07',v:64.12},{d:'27.07',v:21.4},
-    {d:'28.07',v:69.6},{d:'29.07',v:172.03},{d:'30.07',v:82.76},{d:'31.07',v:81.3}
-  ];
-
-  const maxV = Math.max(...chartData.map(d => d.v));
-  const chart = document.getElementById('chart');
-  chart.innerHTML = chartData.map(d => `
-    <div class="bar-wrap">
-      <div class="bar" style="height:${Math.round((d.v/maxV)*110)}px;opacity:${d.v>80?1:d.v>50?.8:.6};" title="${d.v} т"></div>
-      <div class="bar-lbl">${d.d}</div>
-    </div>`).join('');
+  // График строится динамически из реальных данных в renderChart()
+  function renderChart() {
+    const chart = document.getElementById('chart');
+    if (!entries.length) {
+      chart.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px;">Нет данных</div>';
+      return;
+    }
+    // Группируем по дате
+    const byDate = {};
+    entries.forEach(e => {
+      byDate[e.date] = (byDate[e.date] || 0) + (parseFloat(e.vol) || 0);
+    });
+    // Сортируем по дате
+    const sorted = Object.entries(byDate).sort((a, b) => a[0].localeCompare(b[0]));
+    const maxV = Math.max(...sorted.map(d => d[1]));
+    chart.innerHTML = sorted.map(([date, vol]) => {
+      const [y, m, day] = date.split('-');
+      const lbl = `${day}.${m}`;
+      const h = Math.max(4, Math.round((vol / maxV) * 110));
+      const op = vol > maxV * 0.8 ? 1 : vol > maxV * 0.5 ? 0.8 : 0.6;
+      const valStr = vol % 1 === 0 ? vol : vol.toFixed(1);
+      return `<div class="bar-wrap">
+        <div class="bar" style="height:${h}px;opacity:${op};" title="${valStr} т"></div>
+        <div class="bar-lbl">${lbl}</div>
+      </div>`;
+    }).join('');
+  }
 
   function exportExcel() {
     if (!entries.length) {
