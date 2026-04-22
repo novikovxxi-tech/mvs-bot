@@ -280,110 +280,30 @@
 <!-- СТАТИСТИКА -->
 <div class="screen" id="screen-stats">
 
-  <div class="date-chip" id="stats-period">Июль 2025 (загруженные данные)</div>
+  <div class="date-chip" id="stats-period">Загрузка...</div>
 
   <div class="stat-grid">
     <div class="stat-box accent">
-      <div class="stat-val accent" id="s-total">1 483</div>
+      <div class="stat-val accent" id="s-total">—</div>
       <div class="stat-lbl">тонн всего</div>
     </div>
     <div class="stat-box green">
-      <div class="stat-val green" id="s-days">28</div>
+      <div class="stat-val green" id="s-days">—</div>
       <div class="stat-lbl">рабочих дней</div>
     </div>
     <div class="stat-box">
-      <div class="stat-val" id="s-avg">53</div>
+      <div class="stat-val" id="s-avg">—</div>
       <div class="stat-lbl">тонн в среднем/день</div>
     </div>
     <div class="stat-box">
-      <div class="stat-val" id="s-objects">12</div>
+      <div class="stat-val" id="s-objects">—</div>
       <div class="stat-lbl">объектов</div>
     </div>
   </div>
 
   <div class="card">
     <div class="card-title">По объектам</div>
-    <div id="street-list">
-      <div class="street-item">
-        <div class="street-name">Большая Спасская ул. ЦАО</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 201 т</span>
-          <span class="badge pd">ПД 285 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Нижняя Красносельская ул. ЦАО</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 246 т</span>
-          <span class="badge pd">ПД 167 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">ул. Серпуховский Вал.</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 173 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Васильевский переулок</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 76 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Спасский тупик ЦАО</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 36 т</span>
-          <span class="badge pd">ПД 31 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">2-ой Донской проезд</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 10 т</span>
-          <span class="badge pd">ПД 37 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">3-й Донской пр-д ЮАО</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 12 т</span>
-          <span class="badge pd">ПД 52 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Кондрашёвский тупик ЦАО</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 10 т</span>
-          <span class="badge pd">ПД 31 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Проектируемый пр-д №475 ЮАО</div>
-        <div class="street-badges">
-          <span class="badge mzv">МЗВ 20 т</span>
-          <span class="badge pd">ПД 10 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Говорово</div>
-        <div class="street-badges">
-          <span class="badge pd">ПД 38 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">Кутузовский проспект</div>
-        <div class="street-badges">
-          <span class="badge mzb">МЗБ 31 т</span>
-        </div>
-      </div>
-      <div class="street-item">
-        <div class="street-name">ул. Большая Калитниковская</div>
-        <div class="street-badges">
-          <span class="badge pd">ПД 16 т</span>
-        </div>
-      </div>
-    </div>
+    <div id="street-list"><div class="empty">Загрузка...</div></div>
   </div>
 
   <div class="card">
@@ -419,6 +339,7 @@
     } catch(e) { console.warn('Не удалось загрузить улицы:', e); }
   }
   loadStreets();
+  renderStats();
 
   // Установить сегодняшнюю дату
   const today = new Date().toISOString().split('T')[0];
@@ -545,12 +466,90 @@
     btn.classList.add('active');
   }
 
+
+  async function renderStats() {
+    // Загружаем свежие данные с сервера
+    try {
+      const res = await fetch(API_URL + '/api/entries');
+      entries = await res.json();
+    } catch(e) { console.warn('Ошибка загрузки:', e); }
+
+    const totalEl   = document.getElementById('s-total');
+    const daysEl    = document.getElementById('s-days');
+    const avgEl     = document.getElementById('s-avg');
+    const objsEl    = document.getElementById('s-objects');
+    const listEl    = document.getElementById('street-list');
+    const periodEl  = document.getElementById('stats-period');
+
+    if (!entries.length) {
+      totalEl.textContent = '0';
+      daysEl.textContent  = '0';
+      avgEl.textContent   = '0';
+      objsEl.textContent  = '0';
+      listEl.innerHTML    = '<div class="empty">Записей пока нет — добавьте первую на вкладке «Ввод»</div>';
+      periodEl.textContent = 'Нет данных';
+      return;
+    }
+
+    // Считаем итоги
+    const total = entries.reduce((s, e) => s + (parseFloat(e.vol) || 0), 0);
+    const days  = new Set(entries.map(e => e.date)).size;
+    const avg   = days > 0 ? Math.round(total / days) : 0;
+
+    // Группируем по объекту + типу
+    const byStreet = {};
+    entries.forEach(e => {
+      if (!byStreet[e.street]) byStreet[e.street] = {};
+      byStreet[e.street][e.type] = (byStreet[e.street][e.type] || 0) + (parseFloat(e.vol) || 0);
+    });
+
+    // Период: min..max дата
+    const dates = entries.map(e => e.date).sort();
+    const dateStr = dates[0] === dates[dates.length-1]
+      ? fmtDate(dates[0])
+      : fmtDate(dates[0]) + ' — ' + fmtDate(dates[dates.length-1]);
+
+    totalEl.textContent = total % 1 === 0 ? total.toLocaleString('ru') : total.toFixed(1);
+    daysEl.textContent  = days;
+    avgEl.textContent   = avg;
+    objsEl.textContent  = Object.keys(byStreet).length;
+    periodEl.textContent = dateStr;
+
+    // Список по объектам, сортируем по суммарному объёму
+    const typeColors = { МЗВ: 'mzv', ПД: 'pd', МЗБ: 'mzb' };
+    const sorted = Object.entries(byStreet).sort((a, b) => {
+      const sa = Object.values(a[1]).reduce((x,y)=>x+y,0);
+      const sb = Object.values(b[1]).reduce((x,y)=>x+y,0);
+      return sb - sa;
+    });
+
+    listEl.innerHTML = sorted.map(([street, types]) => {
+      const badges = Object.entries(types).map(([t, v]) => {
+        const cls = typeColors[t] || '';
+        const val = v % 1 === 0 ? v.toLocaleString('ru') : v.toFixed(1);
+        return `<span class="badge ${cls}">${t} ${val} т</span>`;
+      }).join('');
+      return `<div class="street-item">
+        <div class="street-name">${street}</div>
+        <div class="street-badges">${badges}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+  }
+
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     event.target.classList.add('active');
     document.getElementById('screen-' + tab).classList.add('active');
     if (tab === 'log') renderLog();
+    if (tab === 'stats') renderStats();
   }
 
   async function saveEntry() {
@@ -577,6 +576,7 @@
       });
       const data = await res.json();
       entries.unshift({ id: data.id, date, street, type: selectedType, vol, shift, note });
+      renderStats();
 
       btn.textContent = '✅ Сохранено!';
       btn.classList.add('success');
