@@ -1254,12 +1254,31 @@ async function submitRequest(btn) {
       '──────────────────',
       'Нач. уч. Петровский А.М. · 8(985)197-31-33',
     ].join('\n');
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.querySelector('[onclick="copyRequest_' + newId + '()"]');
+    const btn = document.querySelector('[onclick="copyRequest_' + newId + '()"]');
+    function onSuccess() {
       if (btn) { btn.textContent = '✅ Скопировано!'; setTimeout(() => { btn.textContent = '📋 Скопировать заявку'; }, 2000); }
-    }).catch(() => {
-      alert('Не удалось скопировать. Попробуй вручную.');
-    });
+    }
+    function onFail() {
+      // fallback — создаём textarea и копируем через execCommand
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        onSuccess();
+      } catch(e) {
+        alert('Не удалось скопировать автоматически. Выделите текст вручную.');
+      }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);
+    } else {
+      onFail();
+    }
   };
 
   chat.appendChild(succ);
