@@ -1,26 +1,28 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import sqlite3, os
+import psycopg2, psycopg2.extras, os
 
 app = Flask(__name__)
 CORS(app)
 
-DB = os.path.join(os.path.dirname(__file__), 'data.db')
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
 
 def get_db():
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
 
 def init_db():
     conn = get_db()
-    conn.executescript('''
+    cur = conn.cursor()
+    cur.execute('''
         CREATE TABLE IF NOT EXISTS streets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT UNIQUE NOT NULL
         );
+    ''')
+    cur.execute('''
         CREATE TABLE IF NOT EXISTS entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             date TEXT NOT NULL,
             street TEXT NOT NULL,
             type TEXT NOT NULL,
@@ -47,7 +49,7 @@ def init_db():
         'Корабельная улица',
         'Подольских курсантов ул., д.1 (парковка)',
         'Подъезд к заводу (в границах Ступинской улицы)',
-        'Пр-д от Железнодорожного проезда к д.8а (завод \'Стройдеталь\')',
+        "Пр-д от Железнодорожного проезда к д.8а (завод 'Стройдеталь')",
         'Пр-д от Хлебозаводского проезда до проектируемого проезда №3716 (проезд вдоль домов 7 и 7а по Каширскому шоссе)',
         'Проезд от Варшавского ш. д.146 до Кировоградской улицы (подъездная дорога к универсаму № 70)',
         'Проезды Варшавского шоссе',
@@ -57,7 +59,7 @@ def init_db():
         'улица Братьев Рябушинских',
         '8-я улица Текстильщиков',
         'Донецкая улица, д.40',
-        'Подъездная дорога к \'ул. Кубанская д. 27\'',
+        "Подъездная дорога к 'ул. Кубанская д. 27'",
         'Проезд от ул. Перерва до Иловайской ул. (ул. Перерва 1с.1)',
         'Проезд № 2263',
         'Проезд № 5113',
@@ -68,10 +70,11 @@ def init_db():
     ]
     for s in streets:
         try:
-            conn.execute('INSERT INTO streets (name) VALUES (?)', (s,))
-        except:
+            cur.execute('INSERT INTO streets (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (s,))
+        except Exception:
             pass
     conn.commit()
+    cur.close()
     conn.close()
 
 init_db()
@@ -81,8 +84,10 @@ init_db()
 @app.route('/api/streets/reset', methods=['POST'])
 def reset_streets():
     conn = get_db()
-    conn.execute('DELETE FROM streets')
+    cur = conn.cursor()
+    cur.execute('DELETE FROM streets')
     conn.commit()
+    cur.close()
     conn.close()
     init_db()
     return jsonify({'ok': True})
@@ -90,9 +95,12 @@ def reset_streets():
 @app.route('/api/streets', methods=['GET'])
 def get_streets():
     conn = get_db()
-    rows = conn.execute('SELECT name FROM streets ORDER BY id').fetchall()
+    cur = conn.cursor()
+    cur.execute('SELECT name FROM streets ORDER BY id')
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
-    return jsonify([r['name'] for r in rows])
+    return jsonify([r[0] for r in rows])
 
 @app.route('/api/streets', methods=['POST'])
 def add_street():
@@ -100,22 +108,22 @@ def add_street():
     if not name:
         return jsonify({'error': 'name required'}), 400
     conn = get_db()
-    try:
-        conn.execute('INSERT INTO streets (name) VALUES (?)', (name,))
-        conn.commit()
-        return jsonify({'ok': True, 'name': name}), 201
-    except sqlite3.IntegrityError:
-        return jsonify({'ok': True, 'name': name})  # уже есть
-    finally:
-        conn.close()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO streets (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (name,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'name': name}), 201
 
 # ── Записи ─────────────────────────────────────────
+
 @app.route('/api/entries', methods=['GET'])
 def get_entries():
     conn = get_db()
-    rows = conn.execute(
-        'SELECT * FROM entries ORDER BY date DESC, created_at DESC'
-    ).fetchall()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute('SELECT * FROM entries ORDER BY date DESC, created_at DESC')
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
@@ -125,29 +133,37 @@ def add_entry():
     if not all([d.get('date'), d.get('street'), d.get('type'), d.get('vol')]):
         return jsonify({'error': 'missing fields'}), 400
     conn = get_db()
-    cur = conn.execute(
-        'INSERT INTO entries (date, street, type, vol, shift, note) VALUES (?,?,?,?,?,?)',
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO entries (date, street, type, vol, shift, note) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id',
         (d['date'], d['street'], d['type'], float(d['vol']),
          d.get('shift', 'День'), d.get('note', ''))
     )
+    entry_id = cur.fetchone()[0]
     conn.commit()
-    entry_id = cur.lastrowid
+    cur.close()
     conn.close()
     return jsonify({'ok': True, 'id': entry_id}), 201
 
 @app.route('/api/entries/<int:entry_id>', methods=['DELETE'])
 def delete_entry(entry_id):
     conn = get_db()
-    conn.execute('DELETE FROM entries WHERE id = ?', (entry_id,))
+    cur = conn.cursor()
+    cur.execute('DELETE FROM entries WHERE id = %s', (entry_id,))
     conn.commit()
+    cur.close()
     conn.close()
     return jsonify({'ok': True})
 
 # ── Статистика ─────────────────────────────────────
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     conn = get_db()
-    rows = conn.execute('SELECT * FROM entries').fetchall()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute('SELECT * FROM entries')
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     entries = [dict(r) for r in rows]
 
@@ -155,15 +171,13 @@ def get_stats():
     days = len(set(e['date'] for e in entries))
     avg = round(total / days, 2) if days else 0
 
-    # По улицам
     by_street = {}
     for e in entries:
         s = e['street']
         if s not in by_street:
-            by_street[s] = {'МЗВ': 0, 'ПД': 0, 'МЗБ': 0, 'total': 0}
-        t = e['type'] if e['type'] in by_street[s] else 'МЗВ'
-        by_street[s][t] = round(by_street[s][t] + e['vol'], 2)
-        by_street[s]['total'] = round(by_street[s]['total'] + e['vol'], 2)
+            by_street[s] = {}
+        t = e['type']
+        by_street[s][t] = round(by_street[s].get(t, 0) + e['vol'], 2)
 
     return jsonify({
         'total': round(total, 2),
