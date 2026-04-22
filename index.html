@@ -556,6 +556,51 @@
     .card-title { font-size: 15px; }
     .detail-row { font-size: 14px; }
   }
+
+  /* ─── SITE AUTOCOMPLETE ─────────────────────────── */
+  .site-ac-wrap { position: relative; }
+  .site-ac-input {
+    width: 100%;
+    background: var(--bg-card-2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+    padding: 12px 16px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color .15s;
+    box-sizing: border-box;
+  }
+  .site-ac-input:focus { border-color: var(--accent); }
+  .site-ac-drop {
+    position: absolute;
+    left: 0; right: 0;
+    top: calc(100% + 4px);
+    background: var(--bg-card-2);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    z-index: 300;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    display: none;
+  }
+  .site-ac-drop.open { display: block; }
+  .site-ac-item {
+    padding: 12px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.35;
+    transition: background .1s;
+  }
+  .site-ac-item:last-child { border-bottom: none; }
+  .site-ac-item.hov,
+  .site-ac-item:active { background: rgba(var(--accent-rgb, 99,102,241), .12); color: var(--accent); }
+  .site-ac-item mark { background: none; color: var(--accent); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -970,7 +1015,16 @@ async function renderNewRequestForm() {
       </div>
       <div class="form-field">
         <label for="f-site">Адрес объекта</label>
-        <input class="input" id="f-site" type="text" placeholder="Напр. Большая Спасская" required />
+        <div class="site-ac-wrap">
+          <input class="site-ac-input" id="f-site" type="text"
+            placeholder="Начните вводить название..."
+            autocomplete="off" autocorrect="off" spellcheck="false"
+            oninput="siteAcSearch(this.value)"
+            onfocus="siteAcSearch(this.value)"
+            onkeydown="siteAcKeydown(event)"
+            required />
+          <div class="site-ac-drop" id="site-ac-drop"></div>
+        </div>
       </div>
       <div class="form-field">
         <label for="f-resp">Ответственный</label>
@@ -1388,6 +1442,128 @@ async function renderMyRequests() {
     { html: '← Назад',         variant: 'back',    onClick: () => { history.pop(); go('material', false); }, echoText: '← Назад' },
   ]);
 }
+
+
+/* ==================== Site Autocomplete ==================== */
+const siteObjects = [
+  'Библиотечная ул.',
+  'Калитниковский М. пр-д',
+  'Машкова ул.',
+  'Проезд вдоль Сахаровского центра',
+  'Проезд от Новорогожской ул. до Рабочей ул, вл.93',
+  'Проезд от улицы Радио до набережной Академика Туполева',
+  'Стремянный пер.',
+  'Сосинская ул',
+  '2-й Варшавский проезд',
+  '6-я линия Варшавского шоссе',
+  'Варшавское ш., 37',
+  'Колобашкина улица',
+  'Корабельная улица',
+  'Подольских курсантов ул., д.1 (парковка)',
+  'Подъезд к заводу (в границах Ступинской улицы)',
+  "Пр-д от Железнодорожного проезда к д.8а (завод 'Стройдеталь')",
+  'Пр-д от Хлебозаводского проезда до проектируемого проезда №3716 (проезд вдоль домов 7 и 7а по Каширскому шоссе)',
+  'Проезд от Варшавского ш. д.146 до Кировоградской улицы (подъездная дорога к универсаму № 70)',
+  'Проезды Варшавского шоссе',
+  'Проектируемый проезд №7024',
+  'Ряжская улица',
+  'улица Бехтерева',
+  'улица Братьев Рябушинских',
+  '8-я улица Текстильщиков',
+  'Донецкая улица, д.40',
+  "Подъездная дорога к 'ул. Кубанская д. 27'",
+  'Проезд от ул. Перерва до Иловайской ул. (ул. Перерва 1с.1)',
+  'Проезд № 2263',
+  'Проезд № 5113',
+  'Проезд №1481',
+  'Ставропольский проезд',
+  'проспект 40 лет Октября',
+  'Железнодорожный проезд',
+];
+
+let siteAcHi = -1;
+
+function siteEscHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function siteEscRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+}
+
+function siteAcSearch(q) {
+  const drop = document.getElementById('site-ac-drop');
+  siteAcHi = -1;
+  const query = q.trim().toLowerCase();
+
+  let matches;
+  if (query.length === 0) {
+    matches = siteObjects;
+  } else {
+    matches = siteObjects.filter(s => s.toLowerCase().includes(query));
+  }
+
+  if (matches.length === 0) {
+    drop.classList.remove('open');
+    return;
+  }
+
+  drop.innerHTML = matches.map((s, i) => {
+    const hi = query
+      ? s.replace(new RegExp('(' + siteEscRe(query) + ')', 'gi'), '<mark>$1</mark>')
+      : siteEscHtml(s);
+    return `<div class="site-ac-item" data-val="${siteEscHtml(s)}"
+      onmousedown="siteAcSelect('${siteEscHtml(s).replace(/'/g,'&#39;')}')"
+      onmouseover="siteAcHover(${i})">${hi}</div>`;
+  }).join('');
+
+  drop.classList.add('open');
+}
+
+function siteAcSelect(val) {
+  document.getElementById('f-site').value = val;
+  document.getElementById('site-ac-drop').classList.remove('open');
+  siteAcHi = -1;
+}
+
+function siteAcHover(i) {
+  siteAcHi = i;
+  document.querySelectorAll('#site-ac-drop .site-ac-item').forEach((el, j) =>
+    el.classList.toggle('hov', j === i)
+  );
+}
+
+function siteAcKeydown(e) {
+  const drop = document.getElementById('site-ac-drop');
+  const items = drop.querySelectorAll('.site-ac-item');
+  if (!drop.classList.contains('open')) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    siteAcHi = Math.min(siteAcHi + 1, items.length - 1);
+    items.forEach((el, j) => el.classList.toggle('hov', j === siteAcHi));
+    if (items[siteAcHi]) items[siteAcHi].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    siteAcHi = Math.max(siteAcHi - 1, 0);
+    items.forEach((el, j) => el.classList.toggle('hov', j === siteAcHi));
+    if (items[siteAcHi]) items[siteAcHi].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (siteAcHi >= 0 && items[siteAcHi]) {
+      items[siteAcHi].dispatchEvent(new MouseEvent('mousedown'));
+    } else {
+      drop.classList.remove('open');
+    }
+  } else if (e.key === 'Escape') {
+    drop.classList.remove('open');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.site-ac-wrap')) {
+    const drop = document.getElementById('site-ac-drop');
+    if (drop) drop.classList.remove('open');
+  }
+});
 
 /* ==================== Responsible persons list ==================== */
 const respList = [
