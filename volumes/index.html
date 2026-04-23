@@ -305,16 +305,6 @@
       </select>
     </div>
     <div class="field">
-      <label>Вид работ</label>
-      <select id="edit-worktype" class="placeholder" onchange="this.classList.toggle('placeholder', this.value === '')">
-        <option value="">— не указан —</option>
-        <option>Устройство нижнего слоя покрытия тротуара</option>
-        <option>Устройство верхнего слоя покрытия тротуара</option>
-        <option>Устройство выравнивающего слоя на тротуаре</option>
-      </select>
-    </div>
-
-    <div class="field">
       <label>Примечание</label>
       <input type="text" id="edit-note" placeholder="Необязательно">
     </div>
@@ -346,16 +336,6 @@
           onkeydown="acKeydown(event)">
         <div class="ac-dropdown" id="ac-drop"></div>
       </div>
-    </div>
-
-    <div class="field">
-      <label>Вид работ</label>
-      <select id="f-worktype" class="placeholder" onchange="this.classList.toggle('placeholder', this.value === '')">
-        <option value="">— не указан —</option>
-        <option>Устройство нижнего слоя покрытия тротуара</option>
-        <option>Устройство верхнего слоя покрытия тротуара</option>
-        <option>Устройство выравнивающего слоя на тротуаре</option>
-      </select>
     </div>
 
     <div class="field">
@@ -817,7 +797,7 @@
     const shift = document.getElementById('f-shift').value;
     const note = document.getElementById('f-note').value;
     const responsible = document.getElementById('f-responsible').value;
-    const worktype = document.getElementById('f-worktype').value;
+    const worktype = '';
 
     if (!date || !street || !vol || vol <= 0) {
       alert('Заполните дату, объект и объём');
@@ -878,7 +858,7 @@
         <div class="log-dot" style="background:${dotColor(e.type)}"></div>
         <div class="log-info">
           <div class="log-street">${escHtml(e.street)}</div>
-          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.worktype ? ' · <span style="color:var(--accent2);">' + escHtml(e.worktype) + '</span>' : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
+          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
         </div>
         <div class="log-val">${e.vol} т</div>
         <div class="log-actions">
@@ -903,9 +883,7 @@
     const editResp = document.getElementById('edit-responsible');
     editResp.value = e.responsible || '';
     editResp.classList.toggle('placeholder', !e.responsible);
-    const editWt = document.getElementById('edit-worktype');
-    editWt.value = e.worktype || '';
-    editWt.classList.toggle('placeholder', !e.worktype);
+
     document.getElementById('edit-modal').classList.add('open');
   }
 
@@ -923,7 +901,7 @@
     const shift = document.getElementById('edit-shift').value;
     const note  = document.getElementById('edit-note').value.trim();
     const responsible = document.getElementById('edit-responsible').value;
-    const worktype = document.getElementById('edit-worktype').value;
+    const worktype = '';
     if (!date || !vol || vol <= 0) { alert('Заполните дату и объём'); return; }
     try {
       await fetch(API_URL + '/api/entries/' + editingId, {
@@ -1274,7 +1252,7 @@
 `;
     xml += `      <Row>
 `;
-    ['Дата','Вид работ','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
+    ['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
 `;
     });
@@ -1469,7 +1447,7 @@
     xml += `      </Row>\n`;
 
     xml += `      <Row>\n`;
-    ['Дата','Улица / Объект','Вид работ','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
+    ['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>\n`;
     });
     xml += `      </Row>\n`;
@@ -1480,8 +1458,6 @@
       xml += `      <Row>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.street}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.worktype||''}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.worktype||''}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>\n`;
@@ -1662,7 +1638,7 @@
 `;
     xml += `      <Row>
 `;
-    ['Улица / Объект','Дата','Вид работ','Тип смеси','Объём, т','Смена','Ответственный'].forEach(h => {
+    ['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
 `;
     });
