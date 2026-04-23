@@ -364,6 +364,7 @@
     <div class="stat-box accent">
       <div class="stat-val accent" id="s-total">—</div>
       <div class="stat-lbl">тонн всего</div>
+      <div id="s-total-breakdown" style="margin-top:6px;display:flex;flex-direction:column;gap:3px;"></div>
     </div>
     <div class="stat-box green">
       <div class="stat-val green" id="s-days">—</div>
@@ -377,6 +378,12 @@
       <div class="stat-val" id="s-objects">—</div>
       <div class="stat-lbl">объектов</div>
     </div>
+  </div>
+
+  <!-- Блок по типам смеси -->
+  <div class="card" id="types-card" style="display:none;">
+    <div class="card-title">По типам смеси</div>
+    <div id="types-list"></div>
   </div>
 
   <div class="card">
@@ -599,6 +606,42 @@
     avgEl.textContent   = avg;
     objsEl.textContent  = Object.keys(byStreet).length;
     periodEl.textContent = dateStr;
+
+    // Разбивка по типам в карточке «тонн всего»
+    const TYPE_COLORS_STAT = { 'МЗВ':'#3f8cff', 'ПД':'#5ad17a', 'МЗБ':'#ffb832', 'КЗБ':'#e05aff' };
+    const byType = {};
+    entries.forEach(e => { byType[e.type] = (byType[e.type] || 0) + (parseFloat(e.vol) || 0); });
+    const breakdownEl = document.getElementById('s-total-breakdown');
+    breakdownEl.innerHTML = ['МЗВ','ПД','МЗБ','КЗБ'].filter(t => byType[t]).map(t => {
+      const v = byType[t];
+      const vStr = v % 1 === 0 ? v.toLocaleString('ru') : v.toFixed(1);
+      return `<div style="font-size:11px;color:${TYPE_COLORS_STAT[t]};font-weight:600;">${t}: ${vStr} т</div>`;
+    }).join('');
+
+    // Блок «По типам смеси»
+    const typesCard = document.getElementById('types-card');
+    const typesList = document.getElementById('types-list');
+    const typeKeys = ['МЗВ','ПД','МЗБ','КЗБ'].filter(t => byType[t]);
+    if (typeKeys.length) {
+      typesCard.style.display = '';
+      typesList.innerHTML = typeKeys.map(t => {
+        const v = byType[t];
+        const vStr = v % 1 === 0 ? v.toLocaleString('ru') : v.toFixed(1);
+        const pct = Math.round(v / total * 100);
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:14px;font-weight:700;color:${TYPE_COLORS_STAT[t]}">${t}</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text)">${vStr} т</span>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${TYPE_COLORS_STAT[t]};border-radius:3px;"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:3px;">${pct}% от общего объёма</div>
+        </div>`;
+      }).join('');
+    } else {
+      typesCard.style.display = 'none';
+    }
 
     // Список по объектам, сортируем по суммарному объёму
     const typeColors = { МЗВ: 'mzv', ПД: 'pd', МЗБ: 'mzb', КЗБ: 'kzb' };
