@@ -1268,13 +1268,13 @@
 `;
     xml += `      <Row ss:Height="22">
 `;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="5"><Data ss:Type="String">Журнал — ${logFilterStreet}</Data></Cell>
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="6"><Data ss:Type="String">Журнал — ${logFilterStreet}</Data></Cell>
 `;
     xml += `      </Row>
 `;
     xml += `      <Row>
 `;
-    ['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
+    ['Дата','Вид работ','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
 `;
     });
@@ -1462,14 +1462,14 @@
 
     // ══ ЛИСТ 3: Журнал записей ═══════════════════════════════════
     xml += `  <Worksheet ss:Name="Журнал">\n    <Table>\n`;
-    xml += `      <Column ss:Width="90"/><Column ss:Width="220"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/><Column ss:Width="150"/>\n`;
+    xml += `      <Column ss:Width="90"/><Column ss:Width="200"/><Column ss:Width="180"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/><Column ss:Width="150"/>\n`;
 
     xml += `      <Row ss:Height="22">\n`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="6"><Data ss:Type="String">Журнал записей — ${monthName}</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="7"><Data ss:Type="String">Журнал записей — ${monthName}</Data></Cell>\n`;
     xml += `      </Row>\n`;
 
     xml += `      <Row>\n`;
-    ['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
+    ['Дата','Улица / Объект','Вид работ','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>\n`;
     });
     xml += `      </Row>\n`;
@@ -1480,6 +1480,8 @@
       xml += `      <Row>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.street}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.worktype||''}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.worktype||''}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>\n`;
@@ -1490,6 +1492,7 @@
 
     xml += `      <Row>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>\n`;
@@ -1653,13 +1656,13 @@
 
     xml += `      <Row ss:Height="22">
 `;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="5"><Data ss:Type="String">Детализация — ${monthName}</Data></Cell>
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="6"><Data ss:Type="String">Детализация — ${monthName}</Data></Cell>
 `;
     xml += `      </Row>
 `;
     xml += `      <Row>
 `;
-    ['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный'].forEach(h => {
+    ['Улица / Объект','Дата','Вид работ','Тип смеси','Объём, т','Смена','Ответственный'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
 `;
     });
