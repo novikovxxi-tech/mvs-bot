@@ -587,38 +587,8 @@ function renderNewRequestForm() {
       </div>
       <div class="field">
         <label>Наименование материала</label>
-        <div class="field-wrap" style="position:relative;">
-          <input id="f-name" type="text" placeholder="Выберите или введите материал" required
-            style="padding-right:38px;" onfocus="toggleMatDropdown()" />
-          <span class="field-arrow" onclick="toggleMatDropdown()">&#9660;</span>
-          <div id="matDropdown" class="dropdown-list">
-            <div class="dropdown-option" onclick="pickMat('Горячая мелкозернистая а/б смесь типа В марки II')">Горячая мелкозернистая а/б смесь типа В марки II</div>
-            <div class="dropdown-option" onclick="pickMat('Горячая песчаная а/б смесь типа Д марки II')">Горячая песчаная а/б смесь типа Д марки II</div>
-          </div>
-        </div>
-      </div>
-      <div class="row-2">
-        <div class="field">
-          <label>Количество</label>
-          <input id="f-qty" type="number" min="1" step="1" placeholder="50" required />
-        </div>
-        <div class="field">
-          <label>Ед.</label>
-          <select id="f-unit" required>
-            <option value="т">т</option>
-            <option value="шт">шт</option>
-            <option value="м">м</option>
-            <option value="м.п">м.п</option>
-            <option value="м³">м³</option>
-            <option value="м²">м²</option>
-            <option value="кг">кг</option>
-            <option value="л">л</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label>⏰ Материал ко времени</label>
-        <input id="f-mat-time" type="time" value="08:00" style="max-width:160px;" />
+        <div id="mat-rows-wrap"></div>
+        <button type="button" class="btn-add-mat" onclick="addMatRow()">+ Добавить позицию</button>
       </div>
       <div class="field">
         <label>Адрес объекта</label>
@@ -655,6 +625,7 @@ function renderNewRequestForm() {
 
   const reqDateEl = document.getElementById('f-req-date');
   if (reqDateEl) reqDateEl.value = new Date().toISOString().split('T')[0];
+  setTimeout(initMatRows, 0);
 
   addBtnGroup([
     { label: '➡️ Далее — выбрать технику', variant: 'primary', onClick: (btn) => goToTechPicker(btn) },
@@ -664,29 +635,28 @@ function renderNewRequestForm() {
 
 async function goToTechPicker(btn) {
   const reqDate = document.getElementById('f-req-date').value;
-  const name  = document.getElementById('f-name').value.trim();
-  const qty   = document.getElementById('f-qty').value.trim();
-  const unit  = document.getElementById('f-unit').value;
+  // Собираем все позиции материала
+  const matItems = collectMatRows();
   const site  = document.getElementById('f-site').value.trim();
   const resp  = document.getElementById('f-resp').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
 
-  if (!name || !qty || !site || !resp) {
-    ['f-req-date','f-name','f-qty','f-site','f-resp'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el && !el.value.trim()) {
-        el.style.borderColor = 'var(--red)';
-        setTimeout(() => el.style.borderColor = '', 1500);
-      }
-    });
+  if (!matItems.length || !matItems[0].name || !site || !resp) {
+    if (!site) { const el = document.getElementById('f-site'); if(el){el.style.borderColor='var(--red)'; setTimeout(()=>el.style.borderColor='',1500);} }
+    if (!resp) { const el = document.getElementById('f-resp'); if(el){el.style.borderColor='var(--red)'; setTimeout(()=>el.style.borderColor='',1500);} }
+    if (!matItems.length || !matItems[0].name) {
+      const first = document.querySelector('.mat-name-input');
+      if(first){first.style.borderColor='var(--red)'; setTimeout(()=>first.style.borderColor='',1500);}
+    }
     addCard('⚠️ Пожалуйста, заполните все поля.');
     return;
   }
 
   btn.disabled = true; btn.style.opacity = '.55';
 
-  const matTime = document.getElementById('f-mat-time').value;
-  window._reqDraft = { name, qty, unit, mat_time: matTime, site, resp, phone, tech: [], req_date: reqDate };
+  // Для совместимости оставляем name/qty/unit/mat_time от первой позиции
+  const { name, qty, unit, mat_time } = matItems[0];
+  window._reqDraft = { name, qty, unit, mat_time, matItems, site, resp, phone, tech: [], req_date: reqDate };
   renderTechPicker();
 }
 
@@ -768,7 +738,8 @@ function renderTechPicker() {
 }
 
 function submitRequest(btn) {
-  const { name, qty, unit, mat_time, site, resp, phone, tech, req_date } = window._reqDraft;
+  const { name, qty, unit, mat_time, matItems, site, resp, phone, tech, req_date } = window._reqDraft;
+  const _matItems = matItems || [{ name, qty, unit, mat_time }];
 
   if (btn && btn.closest) {
     btn.closest('.btn-group').querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '.55'; });
@@ -801,7 +772,7 @@ function submitRequest(btn) {
 
     <div>
       <div class="succ-section-label">Материал:</div>
-      <div class="succ-section-val">${escapeHtml(name)} — ${escapeHtml(qty)} ${unit}${mat_time ? ` <span style="color:var(--accent);">⏰ к ${mat_time}</span>` : ''}</div>
+      ${_matItems.map(m => `<div class="succ-section-val" style="margin-bottom:4px;">${escapeHtml(m.name)} — ${escapeHtml(m.qty)} ${m.unit}${m.mat_time ? ` <span style="color:var(--accent);">⏰ к ${m.mat_time}</span>` : ''}</div>`).join('')}
     </div>
 
     <div class="succ-section">
@@ -837,12 +808,11 @@ function submitRequest(btn) {
           return tLine + tTime;
         }).join('\n')
       : 'не выбрана';
-    const matLine = qty + ' ' + unit + (mat_time ? ' (к ' + mat_time + ')' : '');
     const text = [
       'Заявка от ' + dateStr,
       '',
       'МАТЕРИАЛ:',
-      name,
+      ..._matItems.map(m => m.name + ' — ' + m.qty + ' ' + m.unit + (m.mat_time ? ' (к ' + m.mat_time + ')' : '')),
       matLine,
       '',
       '📍 АДРЕС',
@@ -1076,25 +1046,132 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ==================== Material dropdown ==================== */
-function toggleMatDropdown() {
-  const d = document.getElementById('matDropdown');
-  if (!d) return;
-  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+/* ==================== Multi-material rows ==================== */
+const MAT_LIST = [
+  'Горячая мелкозернистая а/б смесь типа В марки II',
+  'Горячая песчаная а/б смесь типа Д марки II',
+  'Холодный асфальт',
+  'Щебень',
+  'Песок',
+  'Цемент',
+  'Бордюрный камень',
+  'Тротуарная плитка',
+  'Геотекстиль',
+  'Водосточная труба',
+];
+
+let matRowCount = 0;
+
+function addMatRow(prefill) {
+  matRowCount++;
+  const idx = matRowCount;
+  const wrap = document.getElementById('mat-rows-wrap');
+  if (!wrap) return;
+  const div = document.createElement('div');
+  div.className = 'mat-row';
+  div.dataset.idx = idx;
+  div.innerHTML = \`
+    <button type="button" class="mat-remove" onclick="removeMatRow(\${idx})" title="Удалить">×</button>
+    <div style="position:relative;">
+      <input class="mat-name-input" type="text" placeholder="Выберите или введите материал"
+        style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;outline:none;"
+        oninput="matAcSearch(this, \${idx})"
+        onfocus="matAcSearch(this, \${idx})"
+        autocomplete="off"
+        value="\${prefill ? prefill.name : ''}"
+      />
+      <div class="mat-ac-drop" id="mat-ac-\${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:180px;overflow-y:auto;margin-top:2px;"></div>
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label>Количество</label>
+        <input class="mat-qty-input" type="number" min="1" step="1" placeholder="50"
+          style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;"
+          value="\${prefill ? prefill.qty : ''}" />
+      </div>
+      <div class="field">
+        <label>Ед.</label>
+        <select class="mat-unit-select"
+          style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;appearance:none;">
+          \${['т','шт','м','м.п','м³','м²','кг','л'].map(u => \`<option\${prefill && prefill.unit===u?' selected':''}>\${u}</option>\`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>⏰ Ко времени</label>
+      <input class="mat-time-input" type="time" value="\${prefill ? (prefill.mat_time||'08:00') : '08:00'}" style="max-width:140px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;" />
+    </div>
+  \`;
+  wrap.appendChild(div);
+  // Убираем кнопку удаления если строка одна
+  updateRemoveBtns();
 }
-function pickMat(val) {
-  const input = document.getElementById('f-name');
-  if (input) { input.value = val; input.style.borderColor = ''; }
-  const d = document.getElementById('matDropdown');
-  if (d) d.style.display = 'none';
+
+function removeMatRow(idx) {
+  const wrap = document.getElementById('mat-rows-wrap');
+  const row = wrap.querySelector('[data-idx="'+idx+'"]');
+  if (row) row.remove();
+  updateRemoveBtns();
 }
+
+function updateRemoveBtns() {
+  const wrap = document.getElementById('mat-rows-wrap');
+  if (!wrap) return;
+  const rows = wrap.querySelectorAll('.mat-row');
+  rows.forEach(r => {
+    const btn = r.querySelector('.mat-remove');
+    if (btn) btn.style.display = rows.length > 1 ? 'block' : 'none';
+  });
+}
+
+function collectMatRows() {
+  const wrap = document.getElementById('mat-rows-wrap');
+  if (!wrap) return [];
+  const rows = wrap.querySelectorAll('.mat-row');
+  const result = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.mat-name-input').value.trim();
+    const qty  = row.querySelector('.mat-qty-input').value.trim();
+    const unit = row.querySelector('.mat-unit-select').value;
+    const mat_time = row.querySelector('.mat-time-input').value;
+    if (name) result.push({ name, qty: qty || '1', unit, mat_time });
+  });
+  return result;
+}
+
+function matAcSearch(input, idx) {
+  const val = input.value.trim().toLowerCase();
+  const drop = document.getElementById('mat-ac-' + idx);
+  if (!drop) return;
+  if (val.length < 2) { drop.style.display = 'none'; return; }
+  const matches = MAT_LIST.filter(m => m.toLowerCase().includes(val));
+  if (!matches.length) { drop.style.display = 'none'; return; }
+  drop.innerHTML = matches.map(m =>
+    \`<div style="padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);"
+      onmousedown="pickMatAc(this, '\${m.replace(/'/g, "\\'")}')">\${m}</div>\`
+  ).join('');
+  drop.style.display = 'block';
+}
+
+function pickMatAc(el, val) {
+  const row = el.closest('.mat-row');
+  if (!row) return;
+  const input = row.querySelector('.mat-name-input');
+  if (input) input.value = val;
+  el.closest('.mat-ac-drop').style.display = 'none';
+}
+
 document.addEventListener('click', (e) => {
-  const d = document.getElementById('matDropdown');
-  if (!d) return;
-  if (!e.target.closest('#f-name') && !e.target.closest('#matDropdown') && !e.target.closest('[onclick="toggleMatDropdown()"]')) {
-    d.style.display = 'none';
-  }
+  document.querySelectorAll('.mat-ac-drop').forEach(drop => {
+    if (!e.target.closest('.mat-row')) drop.style.display = 'none';
+  });
 });
+
+// Инициализация первой строки после рендера формы
+function initMatRows() {
+  const wrap = document.getElementById('mat-rows-wrap');
+  if (wrap && wrap.children.length === 0) addMatRow();
+}
 
 /* ==================== Boot ==================== */
 window.addEventListener('load', () => {
