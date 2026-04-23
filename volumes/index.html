@@ -343,8 +343,8 @@
     <div class="field">
       <label>Тип смеси</label>
       <select id="edit-type">
-        <option>МЗВ</option>
-        <option>ПД</option>
+        <option>МЗВ II</option>
+        <option>ПД II</option>
         <option>МЗБ</option>
         <option>КЗБ</option>
       </select>
@@ -407,8 +407,8 @@
     <div class="field">
       <label>Тип смеси</label>
       <div class="type-btns">
-        <button class="type-btn active" onclick="setType('МЗВ', this)">МЗВ</button>
-        <button class="type-btn" onclick="setType('ПД', this)">ПД</button>
+        <button class="type-btn active" onclick="setType('МЗВ II', this)">МЗВ II</button>
+        <button class="type-btn" onclick="setType('ПД II', this)">ПД II</button>
         <button class="type-btn" onclick="setType('МЗБ', this)">МЗБ</button>
         <button class="type-btn" onclick="setType('КЗБ', this)">КЗБ</button>
       </div>
@@ -504,8 +504,8 @@
     <div class="card-title">График по дням (тонны)</div>
     <!-- Легенда -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#3f8cff;"></div><span style="font-size:11px;color:var(--text-dim);">МЗВ</span></div>
-      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#5ad17a;"></div><span style="font-size:11px;color:var(--text-dim);">ПД</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#3f8cff;"></div><span style="font-size:11px;color:var(--text-dim);">МЗВ II</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#5ad17a;"></div><span style="font-size:11px;color:var(--text-dim);">ПД II</span></div>
       <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#ffb832;"></div><span style="font-size:11px;color:var(--text-dim);">МЗБ</span></div>
       <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#e05aff;"></div><span style="font-size:11px;color:var(--text-dim);">КЗБ</span></div>
     </div>
@@ -567,7 +567,7 @@
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('f-date').value = today;
 
-  let selectedType = 'МЗВ';
+  let selectedType = 'МЗВ II';
   let entries = [];
   let allEntries = []; // все записи без фильтра
 
@@ -783,11 +783,11 @@
     periodEl.textContent = dateStr;
 
     // Разбивка по типам в карточке «тонн всего»
-    const TYPE_COLORS_STAT = { 'МЗВ':'#3f8cff', 'ПД':'#5ad17a', 'МЗБ':'#ffb832', 'КЗБ':'#e05aff' };
+    const TYPE_COLORS_STAT = { 'МЗВ II':'#3f8cff', 'ПД II':'#5ad17a', 'МЗБ':'#ffb832', 'КЗБ':'#e05aff' };
     const byType = {};
     entries.forEach(e => { byType[e.type] = (byType[e.type] || 0) + (parseFloat(e.vol) || 0); });
     const breakdownEl = document.getElementById('s-total-breakdown');
-    breakdownEl.innerHTML = ['МЗВ','ПД','МЗБ','КЗБ'].filter(t => byType[t]).map(t => {
+    breakdownEl.innerHTML = ['МЗВ II','ПД II','МЗБ','КЗБ'].filter(t => byType[t]).map(t => {
       const v = byType[t];
       const vStr = v % 1 === 0 ? v.toLocaleString('ru') : v.toFixed(1);
       return `<div style="font-size:11px;color:${TYPE_COLORS_STAT[t]};font-weight:600;">${t}: ${vStr} т</div>`;
@@ -796,7 +796,7 @@
     // Блок «По типам смеси»
     const typesCard = document.getElementById('types-card');
     const typesList = document.getElementById('types-list');
-    const typeKeys = ['МЗВ','ПД','МЗБ','КЗБ'].filter(t => byType[t]);
+    const typeKeys = ['МЗВ II','ПД II','МЗБ','КЗБ'].filter(t => byType[t]);
     if (typeKeys.length) {
       typesCard.style.display = '';
       typesList.innerHTML = typeKeys.map(t => {
@@ -819,7 +819,7 @@
     }
 
     // Список по объектам, сортируем по суммарному объёму
-    const typeColors = { МЗВ: 'mzv', ПД: 'pd', МЗБ: 'mzb', КЗБ: 'kzb' };
+    const typeColors = { 'МЗВ II': 'mzv', 'ПД II': 'pd', 'МЗБ': 'mzb', 'КЗБ': 'kzb' };
     const sorted = Object.entries(byStreet).sort((a, b) => {
       const sa = Object.values(a[1]).reduce((x,y)=>x+y,0);
       const sb = Object.values(b[1]).reduce((x,y)=>x+y,0);
@@ -918,7 +918,7 @@
     countEl.textContent = filtered.length ? `(${filtered.length})` : '';
 
     if (!filtered.length) { list.innerHTML = '<div class="empty">Записей не найдено</div>'; return; }
-    const dotColor = t => t==='МЗВ'?'#3f8cff':t==='ПД'?'#5ad17a':t==='МЗБ'?'#ffb832':'#e05aff';
+    const dotColor = t => t==='МЗВ II'?'#3f8cff':t==='ПД II'?'#5ad17a':t==='МЗБ'?'#ffb832':'#e05aff';
     list.innerHTML = filtered.slice(0, 200).map(e => `
       <div class="log-item">
         <div class="log-dot" style="background:${dotColor(e.type)}"></div>
@@ -1005,10 +1005,10 @@
       return;
     }
 
-    const TYPES = ['МЗВ', 'ПД', 'МЗБ', 'КЗБ'];
+    const TYPES = ['МЗВ II', 'ПД II', 'МЗБ', 'КЗБ'];
     const TYPE_COLORS = {
-      'МЗВ': ['#5aaeff', '#3f8cff'],
-      'ПД':  ['#7be89a', '#5ad17a'],
+      'МЗВ II': ['#5aaeff', '#3f8cff'],
+      'ПД II':  ['#7be89a', '#5ad17a'],
       'МЗБ': ['#ffd070', '#ffb832'],
       'КЗБ': ['#f07aff', '#e05aff']
     };
@@ -1030,7 +1030,7 @@
       const totalStr = total >= 100 ? Math.round(total) : total.toFixed(1);
       const totalH = Math.max(8, Math.round((total / maxV) * 115));
 
-      // Строим сегменты снизу вверх (порядок: КЗБ, МЗБ, ПД, МЗВ — нижний первый)
+      // Строим сегменты снизу вверх (порядок: КЗБ, МЗБ, ПД II, МЗВ II — нижний первый)
       const segments = [...TYPES].reverse().map(t => {
         const v = types[t] || 0;
         if (!v) return '';
@@ -1116,8 +1116,8 @@
     card.style.display = '';
     document.getElementById('street-stat-title').textContent = street;
 
-    const TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
-    const TYPE_COLORS = {'МЗВ':'#3f8cff','ПД':'#5ad17a','МЗБ':'#ffb832','КЗБ':'#e05aff'};
+    const TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
+    const TYPE_COLORS = {'МЗВ II':'#3f8cff','ПД II':'#5ad17a','МЗБ':'#ffb832','КЗБ':'#e05aff'};
 
     // Группируем по месяцу
     const byMonth = {};
@@ -1199,10 +1199,10 @@
     const streetEntries = allEntries.filter(e => e.street === logFilterStreet).sort((a,b)=>a.date.localeCompare(b.date));
     if (!streetEntries.length) return;
 
-    const FIXED_TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
+    const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
     const usedTypes = FIXED_TYPES.filter(t => streetEntries.some(e => e.type === t));
-    const typeStyleMap = {'МЗВ':'mzv','ПД':'pd','МЗБ':'mzb','КЗБ':'kzb'};
-    const typeTotalStyleMap = {'МЗВ':'total_mzv','ПД':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
+    const typeStyleMap = {'МЗВ II':'mzv','ПД II':'pd','МЗБ':'mzb','КЗБ':'kzb'};
+    const typeTotalStyleMap = {'МЗВ II':'total_mzv','ПД II':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
     const grandTotal = streetEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
 
     // Группируем по месяцу
@@ -1371,13 +1371,13 @@
       return;
     }
 
-    const FIXED_TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
+    const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
     const usedTypes = FIXED_TYPES.filter(t => xlsEntries.some(e => e.type === t));
     const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
     const grandTotal = xlsEntries.reduce((a,e)=>a+e.vol,0);
 
-    const typeStyleMap = {'МЗВ':'mzv','ПД':'pd','МЗБ':'mzb','КЗБ':'kzb'};
-    const typeTotalStyleMap = {'МЗВ':'total_mzv','ПД':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
+    const typeStyleMap = {'МЗВ II':'mzv','ПД II':'pd','МЗБ':'mzb','КЗБ':'kzb'};
+    const typeTotalStyleMap = {'МЗВ II':'total_mzv','ПД II':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -1569,11 +1569,11 @@
       return;
     }
 
-    const FIXED_TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
+    const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
     const usedTypes = FIXED_TYPES.filter(t => xlsEntries.some(e => e.type === t));
     const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
-    const typeStyleMap = {'МЗВ':'mzv','ПД':'pd','МЗБ':'mzb','КЗБ':'kzb'};
-    const typeTotalStyleMap = {'МЗВ':'total_mzv','ПД':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
+    const typeStyleMap = {'МЗВ II':'mzv','ПД II':'pd','МЗБ':'mzb','КЗБ':'kzb'};
+    const typeTotalStyleMap = {'МЗВ II':'total_mzv','ПД II':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
 
     // Группируем по улице
     const byStreet = {};
