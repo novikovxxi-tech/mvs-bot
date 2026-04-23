@@ -386,6 +386,13 @@
 
   <div class="card">
     <div class="card-title">График по дням (тонны)</div>
+    <!-- Легенда -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#3f8cff;"></div><span style="font-size:11px;color:var(--text-dim);">МЗВ</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#5ad17a;"></div><span style="font-size:11px;color:var(--text-dim);">ПД</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#ffb832;"></div><span style="font-size:11px;color:var(--text-dim);">МЗБ</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;border-radius:3px;background:#e05aff;"></div><span style="font-size:11px;color:var(--text-dim);">КЗБ</span></div>
+    </div>
     <div class="chart-wrap">
       <div class="chart" id="chart"></div>
     </div>
@@ -757,22 +764,45 @@
       chart.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px 0;">Нет данных</div>';
       return;
     }
-    // Группируем по дате
+
+    const TYPES = ['МЗВ', 'ПД', 'МЗБ', 'КЗБ'];
+    const TYPE_COLORS = {
+      'МЗВ': ['#5aaeff', '#3f8cff'],
+      'ПД':  ['#7be89a', '#5ad17a'],
+      'МЗБ': ['#ffd070', '#ffb832'],
+      'КЗБ': ['#f07aff', '#e05aff']
+    };
+
+    // Группируем по дате + тип
     const byDate = {};
     entries.forEach(e => {
-      byDate[e.date] = (byDate[e.date] || 0) + (parseFloat(e.vol) || 0);
+      if (!byDate[e.date]) byDate[e.date] = {};
+      byDate[e.date][e.type] = (byDate[e.date][e.type] || 0) + (parseFloat(e.vol) || 0);
     });
-    // Сортируем по дате
+
     const sorted = Object.entries(byDate).sort((a, b) => a[0].localeCompare(b[0]));
-    const maxV = Math.max(...sorted.map(d => d[1]));
-    chart.innerHTML = sorted.map(([date, vol]) => {
+    const maxV = Math.max(...sorted.map(([, types]) => Object.values(types).reduce((s,v)=>s+v,0)));
+
+    chart.innerHTML = sorted.map(([date, types]) => {
       const [y, m, day] = date.split('-');
       const lbl = `${day}.${m}`;
-      const h = Math.max(8, Math.round((vol / maxV) * 115));
-      const valStr = vol >= 100 ? Math.round(vol) : vol.toFixed(1);
+      const total = Object.values(types).reduce((s,v)=>s+v,0);
+      const totalStr = total >= 100 ? Math.round(total) : total.toFixed(1);
+      const totalH = Math.max(8, Math.round((total / maxV) * 115));
+
+      // Строим сегменты снизу вверх (порядок: КЗБ, МЗБ, ПД, МЗВ — нижний первый)
+      const segments = [...TYPES].reverse().map(t => {
+        const v = types[t] || 0;
+        if (!v) return '';
+        const segH = Math.max(2, Math.round((v / maxV) * 115));
+        const [c1, c2] = TYPE_COLORS[t];
+        const tipStr = v >= 100 ? Math.round(v) : v.toFixed(1);
+        return `<div style="width:100%;height:${segH}px;background:linear-gradient(180deg,${c1} 0%,${c2} 100%);" title="${t}: ${tipStr} т"></div>`;
+      }).join('');
+
       return `<div class="bar-wrap">
-        <div class="bar-val">${valStr}</div>
-        <div class="bar" style="height:${h}px;" title="${valStr} т"></div>
+        <div class="bar-val" style="font-size:9px;color:var(--text-dim)">${totalStr}</div>
+        <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${totalH}px;border-radius:5px 5px 0 0;overflow:hidden;box-shadow:0 2px 8px rgba(63,140,255,.2)">${segments}</div>
         <div class="bar-lbl">${lbl}</div>
       </div>`;
     }).join('');
