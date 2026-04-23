@@ -647,6 +647,10 @@ function renderNewRequestForm() {
           <div id="respDropdown" class="dropdown-list"></div>
         </div>
       </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input id="f-phone" type="tel" placeholder="+7 (___) ___-__-__" />
+      </div>
       <div class="info-note">👤 Нач. уч. Петровский А.М.&nbsp;&nbsp;8(985)197-31-33</div>
     </form>
   `;
@@ -669,6 +673,7 @@ async function goToTechPicker(btn) {
   const unit  = document.getElementById('f-unit').value;
   const site  = document.getElementById('f-site').value.trim();
   const resp  = document.getElementById('f-resp').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
 
   if (!name || !qty || !site || !resp) {
     ['f-req-date','f-name','f-qty','f-site','f-resp'].forEach(id => {
@@ -685,7 +690,7 @@ async function goToTechPicker(btn) {
   btn.disabled = true; btn.style.opacity = '.55';
 
   const matTime = document.getElementById('f-mat-time').value;
-  window._reqDraft = { name, qty, unit, mat_time: matTime, site, resp, tech: [], req_date: reqDate };
+  window._reqDraft = { name, qty, unit, mat_time: matTime, site, resp, phone, tech: [], req_date: reqDate };
   renderTechPicker();
 }
 
@@ -767,7 +772,7 @@ function renderTechPicker() {
 }
 
 function submitRequest(btn) {
-  const { name, qty, unit, mat_time, site, resp, tech, req_date } = window._reqDraft;
+  const { name, qty, unit, mat_time, site, resp, phone, tech, req_date } = window._reqDraft;
 
   if (btn && btn.closest) {
     btn.closest('.btn-group').querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '.55'; });
@@ -816,7 +821,7 @@ function submitRequest(btn) {
 
     <div class="succ-section">
       <div class="succ-section-label">👤 Ответственный:</div>
-      <div class="succ-section-val" style="margin-bottom:2px;">${escapeHtml(resp)}</div>
+      <div class="succ-section-val" style="margin-bottom:2px;">${escapeHtml(resp)}${phone ? ' <span style="color:var(--text-dim);font-size:12px;">· ' + escapeHtml(phone) + '</span>' : ''}</div>
       <div class="succ-section-sub">Нач. уч. Петровский А.М. · 8(985)197-31-33</div>
     </div>
 
@@ -853,7 +858,7 @@ function submitRequest(btn) {
       techText,
       '',
       '👤 ОТВЕТСТВЕННЫЙ',
-      resp,
+      resp + (phone ? ' · ' + phone : ''),
       '──────────────────',
       'Нач. уч. Петровский А.М. · 8(985)197-31-33',
     ].join('\n');
@@ -1063,7 +1068,9 @@ function toggleRespDropdown() {
 function pickResp(idx) {
   const person = respList[idx];
   const inp = document.getElementById('f-resp');
+  const ph  = document.getElementById('f-phone');
   if (inp) inp.value = person.name;
+  if (ph)  ph.value  = person.phone;
   const d = document.getElementById('respDropdown');
   if (d) d.style.display = 'none';
 }
