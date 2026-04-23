@@ -446,13 +446,35 @@
 
 <!-- ИСТОРИЯ -->
 <div class="screen" id="screen-log">
+  <!-- Фильтр по улице -->
+  <div class="card" style="padding:12px 14px;">
+    <div class="field" style="margin-bottom:0;">
+      <label>Фильтр по улице / объекту</label>
+      <div class="ac-wrap">
+        <input type="text" id="log-filter" class="ac-input"
+          placeholder="Все улицы..."
+          autocomplete="off" autocorrect="off" spellcheck="false"
+          oninput="logFilterSearch(this.value)"
+          onfocus="logFilterSearch(this.value)">
+        <div class="ac-dropdown" id="log-filter-drop"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Статистика по выбранной улице -->
+  <div class="card" id="street-stat-card" style="display:none;">
+    <div class="card-title" id="street-stat-title">По улице</div>
+    <div id="street-stat-body"></div>
+    <button class="btn-export" style="margin-top:10px;" onclick="exportStreetExcel()">📥 Выгрузить отчёт по улице</button>
+  </div>
+
   <div class="card">
-    <div class="card-title">Записи</div>
+    <div class="card-title">Записи <span id="log-count" style="color:var(--text-dim);font-weight:400;font-size:12px;"></span></div>
     <div id="log-list">
       <div class="empty">Новые записи появятся здесь</div>
     </div>
   </div>
-  <button class="btn-export" onclick="exportExcel()">📥 Выгрузить в Excel</button>
+  <button class="btn-export" onclick="exportExcel()">📥 Выгрузить в Excel (месяц)</button>
 </div>
 
 <script>
@@ -803,9 +825,21 @@
       allEntries = await res.json();
       entries = allEntries;
     } catch(e) { /* используем кэш */ }
-    if (!entries.length) { list.innerHTML = '<div class="empty">Записей пока нет</div>'; return; }
+
+    // Фильтр по улице
+    const filtered = logFilterStreet
+      ? allEntries.filter(e => e.street === logFilterStreet)
+      : allEntries;
+
+    // Статистика по выбранной улице
+    renderStreetStat(logFilterStreet);
+
+    const countEl = document.getElementById('log-count');
+    countEl.textContent = filtered.length ? `(${filtered.length})` : '';
+
+    if (!filtered.length) { list.innerHTML = '<div class="empty">Записей не найдено</div>'; return; }
     const dotColor = t => t==='МЗВ'?'#3f8cff':t==='ПД'?'#5ad17a':t==='МЗБ'?'#ffb832':'#e05aff';
-    list.innerHTML = entries.slice(0, 100).map(e => `
+    list.innerHTML = filtered.slice(0, 200).map(e => `
       <div class="log-item">
         <div class="log-dot" style="background:${dotColor(e.type)}"></div>
         <div class="log-info">
@@ -821,6 +855,7 @@
   }
 
   let editingId = null;
+  let logFilterStreet = ''; // текущий фильтр истории
 
   function openEditModal(id) {
     const e = entries.find(x => x.id === id);
@@ -929,6 +964,308 @@
         <div class="bar-lbl">${lbl}</div>
       </div>`;
     }).join('');
+  }
+
+  // ─── Фильтр истории по улице ─────────────────────────
+  function logFilterSearch(q) {
+    const drop = document.getElementById('log-filter-drop');
+    const query = q.trim().toLowerCase();
+    const streets = [...new Set(allEntries.map(e => e.street))].sort();
+
+    let matches = query.length === 0
+      ? streets
+      : streets.filter(s => s.toLowerCase().includes(query));
+
+    if (!matches.length) {
+      drop.classList.remove('open');
+      // Сбросить если очищено
+      if (!q.trim() && logFilterStreet) {
+        logFilterStreet = '';
+        renderLog();
+      }
+      return;
+    }
+
+    // Добавить "Все" если идёт поиск
+    const allOption = query.length === 0 ? [] : [];
+    drop.innerHTML = [
+      `<div class="ac-item" style="color:var(--accent2);font-weight:600;" onmousedown="logSelectStreet('')">✕ Показать все</div>`,
+      ...matches.map(s => {
+        const hi = query ? s.replace(new RegExp('(' + escRe(query) + ')', 'gi'), '<mark>$1</mark>') : escHtml(s);
+        return `<div class="ac-item" onmousedown="logSelectStreet('${escHtml(s).replace(/'/g,"&#39;")}')">${hi}</div>`;
+      })
+    ].join('');
+    drop.classList.add('open');
+  }
+
+  function logSelectStreet(street) {
+    logFilterStreet = street;
+    document.getElementById('log-filter').value = street;
+    document.getElementById('log-filter-drop').classList.remove('open');
+    renderLog();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#log-filter') && !e.target.closest('#log-filter-drop')) {
+      document.getElementById('log-filter-drop').classList.remove('open');
+    }
+  });
+
+  // ─── Статистика по улице ──────────────────────────────
+  function renderStreetStat(street) {
+    const card = document.getElementById('street-stat-card');
+    if (!street) { card.style.display = 'none'; return; }
+
+    const streetEntries = allEntries.filter(e => e.street === street);
+    if (!streetEntries.length) { card.style.display = 'none'; return; }
+
+    card.style.display = '';
+    document.getElementById('street-stat-title').textContent = street;
+
+    const TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
+    const TYPE_COLORS = {'МЗВ':'#3f8cff','ПД':'#5ad17a','МЗБ':'#ffb832','КЗБ':'#e05aff'};
+
+    // Группируем по месяцу
+    const byMonth = {};
+    streetEntries.forEach(e => {
+      const [y, m] = e.date.split('-');
+      const key = `${y}-${m}`;
+      if (!byMonth[key]) byMonth[key] = {};
+      byMonth[key][e.type] = (byMonth[key][e.type] || 0) + (parseFloat(e.vol) || 0);
+    });
+
+    const months = Object.keys(byMonth).sort();
+    const usedTypes = TYPES.filter(t => streetEntries.some(e => e.type === t));
+    const grandTotal = streetEntries.reduce((s,e) => s + (parseFloat(e.vol)||0), 0);
+
+    // Итого по типам
+    const byTypeTotal = {};
+    streetEntries.forEach(e => { byTypeTotal[e.type] = (byTypeTotal[e.type]||0) + (parseFloat(e.vol)||0); });
+
+    let html = '';
+
+    // Итого по типам — мини-блоки
+    html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">`;
+    usedTypes.forEach(t => {
+      const v = byTypeTotal[t] || 0;
+      html += `<div style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:8px 12px;min-width:70px;">
+        <div style="font-size:15px;font-weight:800;color:${TYPE_COLORS[t]}">${v%1===0?v.toLocaleString('ru'):v.toFixed(1)}</div>
+        <div style="font-size:10px;color:var(--text-dim)">${t}, т</div>
+      </div>`;
+    });
+    html += `<div style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:8px 12px;min-width:70px;">
+      <div style="font-size:15px;font-weight:800;color:var(--text)">${grandTotal%1===0?grandTotal.toLocaleString('ru'):grandTotal.toFixed(1)}</div>
+      <div style="font-size:10px;color:var(--text-dim)">Всего, т</div>
+    </div>`;
+    html += `</div>`;
+
+    // Таблица по месяцам
+    html += `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">`;
+    html += `<tr style="border-bottom:1px solid var(--border);">`;
+    html += `<th style="text-align:left;padding:6px 8px;color:var(--text-dim);font-weight:600;">Месяц</th>`;
+    usedTypes.forEach(t => {
+      html += `<th style="text-align:right;padding:6px 8px;color:${TYPE_COLORS[t]};font-weight:700;">${t}</th>`;
+    });
+    html += `<th style="text-align:right;padding:6px 8px;color:var(--text-dim);font-weight:600;">Итого</th>`;
+    html += `</tr>`;
+
+    months.forEach((mk, i) => {
+      const [y, m] = mk.split('-');
+      const mName = MONTHS_RU[parseInt(m)-1] + ' ' + y;
+      const types = byMonth[mk];
+      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
+      const bg = i%2===0 ? 'rgba(255,255,255,.02)' : 'transparent';
+      html += `<tr style="background:${bg};border-bottom:1px solid rgba(255,255,255,.04);">`;
+      html += `<td style="padding:6px 8px;color:var(--text);">${mName}</td>`;
+      usedTypes.forEach(t => {
+        const v = types[t] || 0;
+        const col = v ? TYPE_COLORS[t] : 'var(--text-dim)';
+        html += `<td style="text-align:right;padding:6px 8px;color:${col};font-weight:${v?'700':'400'}">${v ? (v%1===0?v:v.toFixed(1)) : '—'}</td>`;
+      });
+      html += `<td style="text-align:right;padding:6px 8px;color:var(--text);font-weight:700;">${rowTotal%1===0?rowTotal.toLocaleString('ru'):rowTotal.toFixed(1)}</td>`;
+      html += `</tr>`;
+    });
+
+    // Итого
+    html += `<tr style="border-top:2px solid var(--border);">`;
+    html += `<td style="padding:6px 8px;color:var(--text);font-weight:700;">ИТОГО</td>`;
+    usedTypes.forEach(t => {
+      const v = byTypeTotal[t] || 0;
+      html += `<td style="text-align:right;padding:6px 8px;color:${TYPE_COLORS[t]};font-weight:800;">${v ? (v%1===0?v.toLocaleString('ru'):v.toFixed(1)) : '—'}</td>`;
+    });
+    html += `<td style="text-align:right;padding:6px 8px;color:var(--text);font-weight:800;">${grandTotal%1===0?grandTotal.toLocaleString('ru'):grandTotal.toFixed(1)}</td>`;
+    html += `</tr></table></div>`;
+
+    document.getElementById('street-stat-body').innerHTML = html;
+  }
+
+  // ─── Excel по улице ───────────────────────────────────
+  function exportStreetExcel() {
+    if (!logFilterStreet) return;
+    const streetEntries = allEntries.filter(e => e.street === logFilterStreet).sort((a,b)=>a.date.localeCompare(b.date));
+    if (!streetEntries.length) return;
+
+    const FIXED_TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
+    const usedTypes = FIXED_TYPES.filter(t => streetEntries.some(e => e.type === t));
+    const typeStyleMap = {'МЗВ':'mzv','ПД':'pd','МЗБ':'mzb','КЗБ':'kzb'};
+    const typeTotalStyleMap = {'МЗВ':'total_mzv','ПД':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
+    const grandTotal = streetEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
+
+    // Группируем по месяцу
+    const byMonth = {};
+    streetEntries.forEach(e => {
+      const [y, m] = e.date.split('-');
+      const key = `${y}-${m}`;
+      if (!byMonth[key]) byMonth[key] = {};
+      byMonth[key][e.type] = (byMonth[key][e.type] || 0) + (parseFloat(e.vol)||0);
+    });
+    const months = Object.keys(byMonth).sort();
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="title"><Font ss:Bold="1" ss:Size="13" ss:Color="#FFFFFF"/><Interior ss:Color="#0F2D6B" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="even"><Interior ss:Color="#F4F7FF" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="odd"><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="mzv"><Font ss:Color="#1a5fa8" ss:Bold="1"/><Interior ss:Color="#dceeff" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="pd"><Font ss:Color="#1a7a3a" ss:Bold="1"/><Interior ss:Color="#d4f5e0" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="mzb"><Font ss:Color="#8a6000" ss:Bold="1"/><Interior ss:Color="#fff3cc" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="kzb"><Font ss:Color="#7a1a9a" ss:Bold="1"/><Interior ss:Color="#f5d4ff" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_mzv"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a5fa8" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_pd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a7a3a" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_mzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#8a6000" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_kzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7a1a9a" ss:Pattern="Solid"/></Style>
+  </Styles>
+`;
+
+    // Лист 1 — По месяцам
+    xml += `  <Worksheet ss:Name="По месяцам">
+    <Table>
+`;
+    xml += `      <Column ss:Width="140"/>
+`;
+    usedTypes.forEach(() => { xml += `      <Column ss:Width="80"/>
+`; });
+    xml += `      <Column ss:Width="90"/>
+`;
+
+    xml += `      <Row ss:Height="22">
+`;
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="${usedTypes.length+1}"><Data ss:Type="String">${logFilterStreet}</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+    xml += `      <Row>
+`;
+    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">Месяц</Data></Cell>
+`;
+    usedTypes.forEach(t => { xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${t}, т</Data></Cell>
+`; });
+    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">ИТОГО, т</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+
+    months.forEach((mk, i) => {
+      const [y, m] = mk.split('-');
+      const mName = MONTHS_RU[parseInt(m)-1] + ' ' + y;
+      const types = byMonth[mk];
+      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
+      const style = i%2===0 ? 'even' : 'odd';
+      xml += `      <Row>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${mName}</Data></Cell>
+`;
+      usedTypes.forEach(t => {
+        const v = types[t] || 0;
+        const st = v ? typeStyleMap[t] : style;
+        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*10)/10}</Data></Cell>
+`;
+      });
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*10)/10}</Data></Cell>
+`;
+      xml += `      </Row>
+`;
+    });
+
+    // Итого
+    xml += `      <Row>
+`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>
+`;
+    usedTypes.forEach(t => {
+      const s = streetEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
+      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*10)/10}</Data></Cell>
+`;
+    });
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+    xml += `    </Table>
+  </Worksheet>
+`;
+
+    // Лист 2 — Журнал по улице
+    xml += `  <Worksheet ss:Name="Журнал">
+    <Table>
+`;
+    xml += `      <Column ss:Width="90"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/><Column ss:Width="150"/>
+`;
+    xml += `      <Row ss:Height="22">
+`;
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="5"><Data ss:Type="String">Журнал — ${logFilterStreet}</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+    xml += `      <Row>
+`;
+    ['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
+      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
+`;
+    });
+    xml += `      </Row>
+`;
+
+    streetEntries.forEach((e, i) => {
+      const style = i%2===0 ? 'even' : 'odd';
+      const [y, m, d] = e.date.split('-');
+      xml += `      <Row>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>
+`;
+      xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.responsible||''}</Data></Cell>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.note||''}</Data></Cell>
+`;
+      xml += `      </Row>
+`;
+    });
+    xml += `    </Table>
+  </Worksheet>
+`;
+    xml += `</Workbook>`;
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = logFilterStreet.replace(/[^а-яёa-z0-9 ._-]/gi, '_').substring(0, 40);
+    a.download = `Улица_${safeName}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function exportExcel() {
