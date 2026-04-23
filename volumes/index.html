@@ -560,13 +560,22 @@
 
     drop.innerHTML = matches.map((s, i) => {
       const hi = query ? s.replace(new RegExp('(' + escRe(query) + ')', 'gi'), '<mark>$1</mark>') : escHtml(s);
-      return `<div class="ac-item" data-val="${escHtml(s)}" onmousedown="acSelect('${escHtml(s).replace(/'/g,"&#39;")}')"
-        onmouseover="acHover(${i})">${hi}</div>`;
+      return `<div class="ac-item" data-val="${escHtml(s)}" data-idx="${i}" onmouseover="acHover(${i})">${hi}</div>`;
     }).join('');
+
+    // Вешаем обработчики через JS (избегаем проблем с кавычками в названиях)
+    drop.querySelectorAll('.ac-item[data-val]').forEach(el => {
+      el.addEventListener('mousedown', () => acSelect(el.dataset.val));
+    });
 
     // Если ввод не совпадает точно с одним из объектов, добавить кнопку
     if (query.length >= 2 && !allStreets.some(s => s.toLowerCase() === query)) {
-      drop.innerHTML += `<div class="ac-item add-new" onmousedown="acAddNew()" style="border-top:1px solid var(--border);margin-top:2px;">+ Добавить «${escHtml(document.getElementById('f-street').value.trim())}»</div>`;
+      const addEl = document.createElement('div');
+      addEl.className = 'ac-item add-new';
+      addEl.style.cssText = 'border-top:1px solid var(--border);margin-top:2px;';
+      addEl.textContent = '+ Добавить «' + document.getElementById('f-street').value.trim() + '»';
+      addEl.addEventListener('mousedown', acAddNew);
+      drop.appendChild(addEl);
     }
 
     drop.classList.add('open');
@@ -992,13 +1001,25 @@
 
     // Добавить "Все" если идёт поиск
     const allOption = query.length === 0 ? [] : [];
-    drop.innerHTML = [
-      `<div class="ac-item" style="color:var(--accent2);font-weight:600;" onmousedown="logSelectStreet('')">✕ Показать все</div>`,
-      ...matches.map(s => {
-        const hi = query ? s.replace(new RegExp('(' + escRe(query) + ')', 'gi'), '<mark>$1</mark>') : escHtml(s);
-        return `<div class="ac-item" onmousedown="logSelectStreet('${escHtml(s).replace(/'/g,"&#39;")}')">${hi}</div>`;
-      })
-    ].join('');
+    // Строим элементы через DOM — без проблем со спецсимволами
+    drop.innerHTML = '';
+
+    const allBtn = document.createElement('div');
+    allBtn.className = 'ac-item';
+    allBtn.style.cssText = 'color:var(--accent2);font-weight:600;';
+    allBtn.textContent = '✕ Показать все';
+    allBtn.addEventListener('mousedown', () => logSelectStreet(''));
+    drop.appendChild(allBtn);
+
+    matches.forEach(s => {
+      const hi = query ? s.replace(new RegExp('(' + escRe(query) + ')', 'gi'), '<mark>$1</mark>') : escHtml(s);
+      const el = document.createElement('div');
+      el.className = 'ac-item';
+      el.innerHTML = hi;
+      el.addEventListener('mousedown', () => logSelectStreet(s));
+      drop.appendChild(el);
+    });
+
     drop.classList.add('open');
   }
 
