@@ -946,17 +946,38 @@ function siteAcSearch(q) {
   if (!drop) return;
   siteAcHi = -1;
   const query = q.trim().toLowerCase();
-  let matches = query.length === 0 ? siteObjects : siteObjects.filter(s => s.toLowerCase().includes(query));
-  if (matches.length === 0) { drop.classList.remove('open'); return; }
-  drop.innerHTML = matches.map((s, i) => {
-    const hi = query
-      ? s.replace(new RegExp('(' + siteEscRe(query) + ')', 'gi'), '<mark>$1</mark>')
-      : siteEscHtml(s);
-    return `<div class="site-ac-item" data-val="${siteEscHtml(s)}"
-      onmousedown="siteAcSelect('${siteEscHtml(s).replace(/'/g,'&#39;')}')"
-      onmouseover="siteAcHover(${i})">${hi}</div>`;
-  }).join('');
+  const raw   = q.trim();
+
+  // Показываем список только от 2 символов (или если поле пустое — скрываем)
+  if (query.length < 2) { drop.classList.remove('open'); return; }
+
+  let matches = siteObjects.filter(function(s) { return s.toLowerCase().includes(query); });
+
+  var rows = matches.map(function(s, i) {
+    var hi = s.replace(new RegExp('(' + siteEscRe(query) + ')', 'gi'), '<mark>$1</mark>');
+    return '<div class="site-ac-item" data-val="' + siteEscHtml(s) + '"' +
+      ' onmousedown="siteAcSelect(\'' + siteEscHtml(s).replace(/'/g,'&#39;') + '\')"' +
+      ' onmouseover="siteAcHover(' + i + ')">' + hi + '</div>';
+  });
+
+  // Если нет совпадений или введённого нет точно в списке — предлагаем добавить
+  var exactMatch = siteObjects.some(function(s) { return s.toLowerCase() === query; });
+  if (!exactMatch && raw.length >= 2) {
+    rows.push(
+      '<div class="site-ac-item" style="color:var(--accent);border-top:1px solid var(--border);"' +
+      ' onmousedown="siteAcAdd(\'' + siteEscHtml(raw).replace(/'/g,'&#39;') + '\')">' +
+      '+ Добавить «' + siteEscHtml(raw) + '»</div>'
+    );
+  }
+
+  if (!rows.length) { drop.classList.remove('open'); return; }
+  drop.innerHTML = rows.join('');
   drop.classList.add('open');
+}
+
+function siteAcAdd(val) {
+  if (!siteObjects.includes(val)) siteObjects.push(val);
+  siteAcSelect(val);
 }
 
 function siteAcSelect(val) {
