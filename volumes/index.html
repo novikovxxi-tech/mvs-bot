@@ -429,7 +429,10 @@
     <div id="street-list"><div class="empty">Загрузка...</div></div>
   </div>
 
-  <button class="btn-export" onclick="exportSummaryExcel()" style="margin-bottom:12px;">📊 Сводный отчёт по улицам</button>
+  <div style="display:flex;gap:10px;margin-bottom:12px;">
+    <button class="btn-export" style="flex:1;" onclick="exportSummaryExcel()">📊 Сводный отчёт</button>
+    <button class="btn-export" style="flex:1;" onclick="exportExcel()">📥 Выгрузить журнал</button>
+  </div>
 
   <div class="card">
     <div class="card-title">График по дням (тонны)</div>
@@ -476,7 +479,6 @@
       <div class="empty">Новые записи появятся здесь</div>
     </div>
   </div>
-  <button class="btn-export" onclick="exportExcel()">📥 Выгрузить в Excel (месяц)</button>
 </div>
 
 <script>
