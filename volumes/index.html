@@ -349,6 +349,16 @@
     </div>
 
     <div class="field">
+      <label>Вид работ</label>
+      <select id="f-worktype" class="placeholder" onchange="this.classList.toggle('placeholder', this.value === '')">
+        <option value="">— не указан —</option>
+        <option>Устройство нижнего слоя покрытия тротуара</option>
+        <option>Устройство верхнего слоя покрытия тротуара</option>
+        <option>Устройство выравнивающего слоя на тротуаре</option>
+      </select>
+    </div>
+
+    <div class="field">
       <label>Тип смеси</label>
       <div class="type-btns">
         <button class="type-btn active" onclick="setType('МЗВ', this)">МЗВ</button>
@@ -384,16 +394,6 @@
         <option>Кушнерев Сергей Андреевич</option>
         <option>Новиков Денис Дмитриевич</option>
         <option>Сорокин Александр Евгеньевич</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label>Вид работ</label>
-      <select id="f-worktype" class="placeholder" onchange="this.classList.toggle('placeholder', this.value === '')">
-        <option value="">— не указан —</option>
-        <option>Устройство нижнего слоя покрытия тротуара</option>
-        <option>Устройство верхнего слоя покрытия тротуара</option>
-        <option>Устройство выравнивающего слоя на тротуаре</option>
       </select>
     </div>
 
