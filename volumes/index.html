@@ -289,6 +289,20 @@
       </select>
     </div>
     <div class="field">
+      <label>Ответственный</label>
+      <select id="edit-responsible">
+        <option value="">— не выбран —</option>
+        <option>Аллахвердиев Вугар Илгар Оглы</option>
+        <option>Герц Сергей Андреевич</option>
+        <option>Данилов Владимир Владимирович</option>
+        <option>Иванов Сергей Геннадьевич</option>
+        <option>Карташов Артем Юрьевич</option>
+        <option>Кушнерев Сергей Андреевич</option>
+        <option>Новиков Денис Дмитриевич</option>
+        <option>Сорокин Александр Евгеньевич</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Примечание</label>
       <input type="text" id="edit-note" placeholder="Необязательно">
     </div>
@@ -344,6 +358,21 @@
           <option>Ночь</option>
         </select>
       </div>
+    </div>
+
+    <div class="field">
+      <label>Ответственный</label>
+      <select id="f-responsible">
+        <option value="">— не выбран —</option>
+        <option>Аллахвердиев Вугар Илгар Оглы</option>
+        <option>Герц Сергей Андреевич</option>
+        <option>Данилов Владимир Владимирович</option>
+        <option>Иванов Сергей Геннадьевич</option>
+        <option>Карташов Артем Юрьевич</option>
+        <option>Кушнерев Сергей Андреевич</option>
+        <option>Новиков Денис Дмитриевич</option>
+        <option>Сорокин Александр Евгеньевич</option>
+      </select>
     </div>
 
     <div class="field">
@@ -730,6 +759,7 @@
     const vol = parseFloat(document.getElementById('f-vol').value);
     const shift = document.getElementById('f-shift').value;
     const note = document.getElementById('f-note').value;
+    const responsible = document.getElementById('f-responsible').value;
 
     if (!date || !street || !vol || vol <= 0) {
       alert('Заполните дату, объект и объём');
@@ -744,10 +774,10 @@
       const res = await fetch(API_URL + '/api/entries', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ date, street, type: selectedType, vol, shift, note })
+        body: JSON.stringify({ date, street, type: selectedType, vol, shift, note, responsible })
       });
       const data = await res.json();
-      entries.unshift({ id: data.id, date, street, type: selectedType, vol, shift, note });
+      entries.unshift({ id: data.id, date, street, type: selectedType, vol, shift, note, responsible });
       renderStats();
 
       btn.textContent = '✅ Сохранено!';
@@ -778,7 +808,7 @@
         <div class="log-dot" style="background:${dotColor(e.type)}"></div>
         <div class="log-info">
           <div class="log-street">${escHtml(e.street)}</div>
-          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
+          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
         </div>
         <div class="log-val">${e.vol} т</div>
         <div class="log-actions">
@@ -799,6 +829,7 @@
     document.getElementById('edit-type').value  = e.type;
     document.getElementById('edit-shift').value = e.shift;
     document.getElementById('edit-note').value  = e.note || '';
+    document.getElementById('edit-responsible').value = e.responsible || '';
     document.getElementById('edit-modal').classList.add('open');
   }
 
@@ -815,12 +846,13 @@
     const type  = document.getElementById('edit-type').value;
     const shift = document.getElementById('edit-shift').value;
     const note  = document.getElementById('edit-note').value.trim();
+    const responsible = document.getElementById('edit-responsible').value;
     if (!date || !vol || vol <= 0) { alert('Заполните дату и объём'); return; }
     try {
       await fetch(API_URL + '/api/entries/' + editingId, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ date, vol, type, shift, note })
+        body: JSON.stringify({ date, vol, type, shift, note, responsible })
       });
       document.getElementById('edit-modal').classList.remove('open');
       editingId = null;
@@ -1039,14 +1071,14 @@
 
     // ══ ЛИСТ 3: Журнал записей ═══════════════════════════════════
     xml += `  <Worksheet ss:Name="Журнал">\n    <Table>\n`;
-    xml += `      <Column ss:Width="90"/><Column ss:Width="220"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="150"/>\n`;
+    xml += `      <Column ss:Width="90"/><Column ss:Width="220"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/><Column ss:Width="150"/>\n`;
 
     xml += `      <Row ss:Height="22">\n`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="5"><Data ss:Type="String">Журнал записей — ${monthName}</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="6"><Data ss:Type="String">Журнал записей — ${monthName}</Data></Cell>\n`;
     xml += `      </Row>\n`;
 
     xml += `      <Row>\n`;
-    ['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Примечание'].forEach(h => {
+    ['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
       xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>\n`;
     });
     xml += `      </Row>\n`;
@@ -1060,6 +1092,7 @@
       xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.responsible||''}</Data></Cell>\n`;
       xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.note||''}</Data></Cell>\n`;
       xml += `      </Row>\n`;
     });
@@ -1069,6 +1102,7 @@
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `      </Row>\n`;
