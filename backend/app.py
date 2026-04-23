@@ -77,6 +77,21 @@ def init_db():
             cur.execute('INSERT INTO streets (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (s,))
         except Exception:
             pass
+
+    # Таблица адресов заявок
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS order_sites (
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL
+        );
+    ''')
+    # Таблица материалов заявок
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS order_materials (
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL
+        );
+    ''')
     conn.commit()
     cur.close()
     conn.close()
@@ -114,6 +129,56 @@ def add_street():
     conn = get_db()
     cur = conn.cursor()
     cur.execute('INSERT INTO streets (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (name,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'name': name}), 201
+
+# ── Адреса заявок ─────────────────────────────────
+
+@app.route('/api/order-sites', methods=['GET'])
+def get_order_sites():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT name FROM order_sites ORDER BY id')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([r[0] for r in rows])
+
+@app.route('/api/order-sites', methods=['POST'])
+def add_order_site():
+    name = (request.json or {}).get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'name required'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO order_sites (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (name,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'name': name}), 201
+
+# ── Материалы заявок ───────────────────────────────
+
+@app.route('/api/order-materials', methods=['GET'])
+def get_order_materials():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT name FROM order_materials ORDER BY id')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([r[0] for r in rows])
+
+@app.route('/api/order-materials', methods=['POST'])
+def add_order_material():
+    name = (request.json or {}).get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'name required'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO order_materials (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (name,))
     conn.commit()
     cur.close()
     conn.close()
