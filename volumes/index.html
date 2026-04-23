@@ -892,7 +892,8 @@
     });
     xml += `      </Row>\n`;
 
-    // Данные
+    // Данные (сортируем по дате от старых к новым)
+    entries.sort((a, b) => a.date.localeCompare(b.date));
     entries.forEach((e, i) => {
       const style = i % 2 === 0 ? 'even' : 'odd';
       const [y, m, d] = e.date.split('-');
