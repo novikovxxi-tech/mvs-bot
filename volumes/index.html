@@ -618,8 +618,11 @@
       daysEl.textContent  = '0';
       avgEl.textContent   = '0';
       objsEl.textContent  = '0';
-      listEl.innerHTML    = '<div class="empty">Записей пока нет — добавьте первую на вкладке «Ввод»</div>';
+      listEl.innerHTML    = '<div class="empty">Записей за этот месяц нет</div>';
       periodEl.textContent = 'Нет данных';
+      document.getElementById('s-total-breakdown').innerHTML = '';
+      document.getElementById('types-card').style.display = 'none';
+      renderChart();
       return;
     }
 
