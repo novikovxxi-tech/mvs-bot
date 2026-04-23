@@ -29,8 +29,10 @@ def init_db():
             vol REAL NOT NULL,
             shift TEXT NOT NULL,
             note TEXT,
+            responsible TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        ALTER TABLE entries ADD COLUMN IF NOT EXISTS responsible TEXT DEFAULT '';
     ''')
     # Объекты из файла ulitsy_i_proezdy_po_okrugam.xlsx
     streets = [
@@ -135,9 +137,9 @@ def add_entry():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        'INSERT INTO entries (date, street, type, vol, shift, note) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id',
+        'INSERT INTO entries (date, street, type, vol, shift, note, responsible) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id',
         (d['date'], d['street'], d['type'], float(d['vol']),
-         d.get('shift', 'День'), d.get('note', ''))
+         d.get('shift', 'День'), d.get('note', ''), d.get('responsible', ''))
     )
     entry_id = cur.fetchone()[0]
     conn.commit()
@@ -153,9 +155,9 @@ def update_entry(entry_id):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        'UPDATE entries SET date=%s, vol=%s, type=%s, shift=%s, note=%s WHERE id=%s',
+        'UPDATE entries SET date=%s, vol=%s, type=%s, shift=%s, note=%s, responsible=%s WHERE id=%s',
         (d['date'], float(d['vol']), d.get('type', 'МЗВ'),
-         d.get('shift', 'День'), d.get('note', ''), entry_id)
+         d.get('shift', 'День'), d.get('note', ''), d.get('responsible', ''), entry_id)
     )
     conn.commit()
     cur.close()
