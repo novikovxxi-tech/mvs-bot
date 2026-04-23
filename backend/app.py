@@ -145,6 +145,23 @@ def add_entry():
     conn.close()
     return jsonify({'ok': True, 'id': entry_id}), 201
 
+@app.route('/api/entries/<int:entry_id>', methods=['PUT'])
+def update_entry(entry_id):
+    d = request.json or {}
+    if not all([d.get('date'), d.get('vol')]):
+        return jsonify({'error': 'missing fields'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        'UPDATE entries SET date=%s, vol=%s, type=%s, shift=%s, note=%s WHERE id=%s',
+        (d['date'], float(d['vol']), d.get('type', 'МЗВ'),
+         d.get('shift', 'День'), d.get('note', ''), entry_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True})
+
 @app.route('/api/entries/<int:entry_id>', methods=['DELETE'])
 def delete_entry(entry_id):
     conn = get_db()
