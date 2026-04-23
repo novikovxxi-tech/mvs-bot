@@ -801,8 +801,7 @@ function submitRequest(btn) {
 
     <div>
       <div class="succ-section-label">Материал:</div>
-      <div class="succ-section-val">${escapeHtml(name)}</div>
-      <div class="succ-section-sub">${escapeHtml(qty)} ${unit}${mat_time ? ` <span style="color:var(--accent);">⏰ к ${mat_time}</span>` : ''}</div>
+      <div class="succ-section-val">${escapeHtml(name)} — ${escapeHtml(qty)} ${unit}${mat_time ? ` <span style="color:var(--accent);">⏰ к ${mat_time}</span>` : ''}</div>
     </div>
 
     <div class="succ-section">
