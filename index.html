@@ -934,6 +934,12 @@ const siteObjects = [
   'Железнодорожный проезд',
 ];
 
+// Загружаем добавленные пользователем адреса из localStorage
+(function() {
+  var saved = JSON.parse(localStorage.getItem('mvs_custom_sites') || '[]');
+  saved.forEach(function(s) { if (!siteObjects.includes(s)) siteObjects.push(s); });
+})();
+
 let siteAcHi = -1;
 
 function siteEscHtml(s) {
@@ -976,7 +982,13 @@ function siteAcSearch(q) {
 }
 
 function siteAcAdd(val) {
-  if (!siteObjects.includes(val)) siteObjects.push(val);
+  if (!siteObjects.includes(val)) {
+    siteObjects.push(val);
+    // Сохраняем в localStorage
+    var saved = JSON.parse(localStorage.getItem('mvs_custom_sites') || '[]');
+    if (!saved.includes(val)) saved.push(val);
+    localStorage.setItem('mvs_custom_sites', JSON.stringify(saved));
+  }
   siteAcSelect(val);
 }
 
@@ -1119,6 +1131,12 @@ const MAT_LIST = [
   'Известняковый щебень фр. 5-20',
   'Известняковый щебень фр. 20-40',
 ];
+
+// Загружаем добавленные пользователем материалы из localStorage
+(function() {
+  var saved = JSON.parse(localStorage.getItem('mvs_custom_mats') || '[]');
+  saved.forEach(function(s) { if (!MAT_LIST.includes(s)) MAT_LIST.push(s); });
+})();
 
 let matRowCount = 0;
 
