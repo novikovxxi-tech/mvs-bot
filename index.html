@@ -604,9 +604,75 @@
   .site-ac-item.hov,
   .site-ac-item:active { background: rgba(var(--accent-rgb, 99,102,241), .12); color: var(--accent); }
   .site-ac-item mark { background: none; color: var(--accent); font-weight: 700; }
+
+  /* PASSWORD SCREEN */
+  #pw-screen {
+    position: fixed; inset: 0; background: #0f1118;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  #pw-screen.hidden { display: none; }
+  .pw-card {
+    background: #1a1f2e; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px; padding: 32px 28px; width: 90%; max-width: 340px;
+    display: flex; flex-direction: column; gap: 18px; align-items: center;
+  }
+  .pw-logo { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; text-align: center; }
+  .pw-sub { font-size: 13px; color: rgba(255,255,255,.45); text-align: center; }
+  .pw-input {
+    width: 100%; padding: 13px 16px; border-radius: 10px;
+    background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.12);
+    color: #fff; font-size: 16px; text-align: center;
+    letter-spacing: 3px; outline: none;
+  }
+  .pw-input:focus { border-color: #6366f1; }
+  .pw-input.error { border-color: #ef4444; animation: pw-shake .3s; }
+  .pw-btn {
+    width: 100%; padding: 13px; border-radius: 10px;
+    background: #6366f1; color: #fff; font-size: 15px;
+    font-weight: 700; border: none; cursor: pointer;
+  }
+  .pw-err { font-size: 13px; color: #ef4444; min-height: 18px; }
+  @keyframes pw-shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+  }
 </style>
 </head>
 <body>
+
+<!-- ЭКРАН ПАРОЛЯ -->
+<div id="pw-screen">
+  <div class="pw-card">
+    <div class="pw-logo">МВС СТ АУК №1</div>
+    <div class="pw-sub">Введите пароль для доступа</div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')checkPw()" autocomplete="current-password">
+    <div class="pw-err" id="pw-err"></div>
+    <button class="pw-btn" onclick="checkPw()">Войти</button>
+  </div>
+</div>
+<script>
+  (function(){
+    var PW = 'mvs2026';
+    var KEY = 'mvs_auth';
+    if(localStorage.getItem(KEY) === PW){
+      document.getElementById('pw-screen').classList.add('hidden');
+    }
+    window.checkPw = function(){
+      var inp = document.getElementById('pw-input');
+      var err = document.getElementById('pw-err');
+      if(inp.value === PW){
+        localStorage.setItem(KEY, PW);
+        document.getElementById('pw-screen').classList.add('hidden');
+      } else {
+        err.textContent = 'Неверный пароль';
+        inp.classList.add('error');
+        setTimeout(function(){ inp.classList.remove('error'); }, 400);
+        inp.value = '';
+      }
+    };
+  })();
+</script>
 
 <div class="hint">MAX · прототип бота «МВС СТ АУК №1»</div>
 
