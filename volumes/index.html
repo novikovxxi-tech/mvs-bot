@@ -305,6 +305,16 @@
       </select>
     </div>
     <div class="field">
+      <label>Вид работ</label>
+      <select id="edit-worktype" class="placeholder" onchange="this.classList.toggle('placeholder', this.value === '')">
+        <option value="">— не указан —</option>
+        <option>Устройство нижнего слоя покрытия тротуара</option>
+        <option>Устройство верхнего слоя покрытия тротуара</option>
+        <option>Устройство выравнивающего слоя на тротуаре</option>
+      </select>
+    </div>
+
+    <div class="field">
       <label>Примечание</label>
       <input type="text" id="edit-note" placeholder="Необязательно">
     </div>
@@ -374,6 +384,16 @@
         <option>Кушнерев Сергей Андреевич</option>
         <option>Новиков Денис Дмитриевич</option>
         <option>Сорокин Александр Евгеньевич</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Вид работ</label>
+      <select id="f-worktype" class="placeholder" onchange="this.classList.toggle('placeholder', this.value === '')">
+        <option value="">— не указан —</option>
+        <option>Устройство нижнего слоя покрытия тротуара</option>
+        <option>Устройство верхнего слоя покрытия тротуара</option>
+        <option>Устройство выравнивающего слоя на тротуаре</option>
       </select>
     </div>
 
@@ -797,6 +817,7 @@
     const shift = document.getElementById('f-shift').value;
     const note = document.getElementById('f-note').value;
     const responsible = document.getElementById('f-responsible').value;
+    const worktype = document.getElementById('f-worktype').value;
 
     if (!date || !street || !vol || vol <= 0) {
       alert('Заполните дату, объект и объём');
@@ -811,10 +832,10 @@
       const res = await fetch(API_URL + '/api/entries', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ date, street, type: selectedType, vol, shift, note, responsible })
+        body: JSON.stringify({ date, street, type: selectedType, vol, shift, note, responsible, worktype })
       });
       const data = await res.json();
-      entries.unshift({ id: data.id, date, street, type: selectedType, vol, shift, note, responsible });
+      entries.unshift({ id: data.id, date, street, type: selectedType, vol, shift, note, responsible, worktype });
       renderStats();
 
       btn.textContent = '✅ Сохранено!';
@@ -857,7 +878,7 @@
         <div class="log-dot" style="background:${dotColor(e.type)}"></div>
         <div class="log-info">
           <div class="log-street">${escHtml(e.street)}</div>
-          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
+          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.worktype ? ' · <span style="color:var(--accent2);">' + escHtml(e.worktype) + '</span>' : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
         </div>
         <div class="log-val">${e.vol} т</div>
         <div class="log-actions">
@@ -882,6 +903,9 @@
     const editResp = document.getElementById('edit-responsible');
     editResp.value = e.responsible || '';
     editResp.classList.toggle('placeholder', !e.responsible);
+    const editWt = document.getElementById('edit-worktype');
+    editWt.value = e.worktype || '';
+    editWt.classList.toggle('placeholder', !e.worktype);
     document.getElementById('edit-modal').classList.add('open');
   }
 
@@ -899,12 +923,13 @@
     const shift = document.getElementById('edit-shift').value;
     const note  = document.getElementById('edit-note').value.trim();
     const responsible = document.getElementById('edit-responsible').value;
+    const worktype = document.getElementById('edit-worktype').value;
     if (!date || !vol || vol <= 0) { alert('Заполните дату и объём'); return; }
     try {
       await fetch(API_URL + '/api/entries/' + editingId, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ date, vol, type, shift, note, responsible })
+        body: JSON.stringify({ date, vol, type, shift, note, responsible, worktype })
       });
       document.getElementById('edit-modal').classList.remove('open');
       editingId = null;
