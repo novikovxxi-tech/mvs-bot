@@ -1067,43 +1067,43 @@ function addMatRow(prefill) {
   const idx = matRowCount;
   const wrap = document.getElementById('mat-rows-wrap');
   if (!wrap) return;
+  const units = ['т','шт','м','м.п','м³','м²','кг','л'];
+  const unitOpts = units.map(function(u) {
+    const sel = prefill && prefill.unit === u ? ' selected' : '';
+    return '<option' + sel + '>' + u + '</option>';
+  }).join('');
   const div = document.createElement('div');
   div.className = 'mat-row';
   div.dataset.idx = idx;
-  div.innerHTML = \`
-    <button type="button" class="mat-remove" onclick="removeMatRow(\${idx})" title="Удалить">×</button>
-    <div style="position:relative;">
-      <input class="mat-name-input" type="text" placeholder="Выберите или введите материал"
-        style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;outline:none;"
-        oninput="matAcSearch(this, \${idx})"
-        onfocus="matAcSearch(this, \${idx})"
-        autocomplete="off"
-        value="\${prefill ? prefill.name : ''}"
-      />
-      <div class="mat-ac-drop" id="mat-ac-\${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:180px;overflow-y:auto;margin-top:2px;"></div>
-    </div>
-    <div class="row-2">
-      <div class="field">
-        <label>Количество</label>
-        <input class="mat-qty-input" type="number" min="1" step="1" placeholder="50"
-          style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;"
-          value="\${prefill ? prefill.qty : ''}" />
-      </div>
-      <div class="field">
-        <label>Ед.</label>
-        <select class="mat-unit-select"
-          style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;appearance:none;">
-          \${['т','шт','м','м.п','м³','м²','кг','л'].map(u => \`<option\${prefill && prefill.unit===u?' selected':''}>\${u}</option>\`).join('')}
-        </select>
-      </div>
-    </div>
-    <div class="field">
-      <label>⏰ Ко времени</label>
-      <input class="mat-time-input" type="time" value="\${prefill ? (prefill.mat_time||'08:00') : '08:00'}" style="max-width:140px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;" />
-    </div>
-  \`;
+  div.innerHTML =
+    '<button type="button" class="mat-remove" onclick="removeMatRow(' + idx + ')" title="Удалить">\xd7</button>' +
+    '<div style="position:relative;">' +
+      '<input class="mat-name-input" type="text" placeholder="Выберите или введите материал"' +
+      ' style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;outline:none;"' +
+      ' oninput="matAcSearch(this,' + idx + ')"' +
+      ' onfocus="matAcSearch(this,' + idx + ')"' +
+      ' autocomplete="off"' +
+      ' value="' + (prefill ? prefill.name.replace(/"/g,'&quot;') : '') + '" />' +
+      '<div class="mat-ac-drop" id="mat-ac-' + idx + '" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:180px;overflow-y:auto;margin-top:2px;"></div>' +
+    '</div>' +
+    '<div class="row-2">' +
+      '<div class="field"><label>Количество</label>' +
+        '<input class="mat-qty-input" type="number" min="1" step="1" placeholder="50"' +
+        ' style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;"' +
+        ' value="' + (prefill ? prefill.qty : '') + '" />' +
+      '</div>' +
+      '<div class="field"><label>\u0415\u0434.</label>' +
+        '<select class="mat-unit-select"' +
+        ' style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;appearance:none;">' +
+        unitOpts +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+    '<div class="field"><label>\u23f0 \u041a\u043e \u0432\u0440\u0435\u043c\u0435\u043d\u0438</label>' +
+      '<input class="mat-time-input" type="time" value="' + (prefill ? (prefill.mat_time||'08:00') : '08:00') + '"' +
+      ' style="max-width:140px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;" />' +
+    '</div>';
   wrap.appendChild(div);
-  // Убираем кнопку удаления если строка одна
   updateRemoveBtns();
 }
 
@@ -1140,16 +1140,16 @@ function collectMatRows() {
 }
 
 function matAcSearch(input, idx) {
-  const val = input.value.trim().toLowerCase();
-  const drop = document.getElementById('mat-ac-' + idx);
+  var val = input.value.trim().toLowerCase();
+  var drop = document.getElementById('mat-ac-' + idx);
   if (!drop) return;
   if (val.length < 2) { drop.style.display = 'none'; return; }
-  const matches = MAT_LIST.filter(m => m.toLowerCase().includes(val));
+  var matches = MAT_LIST.filter(function(m) { return m.toLowerCase().indexOf(val) !== -1; });
   if (!matches.length) { drop.style.display = 'none'; return; }
-  drop.innerHTML = matches.map(m =>
-    \`<div style="padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);"
-      onmousedown="pickMatAc(this, '\${m.replace(/'/g, "\\'")}')">\${m}</div>\`
-  ).join('');
+  drop.innerHTML = matches.map(function(m) {
+    var safe = m.replace(/'/g, "\\'");
+    return '<div style="padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" onmousedown="pickMatAc(this,\'' + safe + '\')">' + m + '</div>';
+  }).join('');
   drop.style.display = 'block';
 }
 
