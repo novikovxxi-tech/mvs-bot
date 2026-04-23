@@ -809,11 +809,10 @@ function submitRequest(btn) {
       <div class="succ-section-val">${escapeHtml(site)}</div>
     </div>
 
-    <div class="succ-section">
+    ${tech.length ? `<div class="succ-section">
       <div class="succ-section-label">🚜 Техника:</div>
       <div style="font-size:13px;">${techLines}</div>
-    </div>
-
+    </div>` : ''}
     <div class="succ-section">
       <div class="succ-section-label">👤 Ответственный:</div>
       <div class="succ-section-val" style="margin-bottom:2px;">${escapeHtml(resp)}${phone ? ' <span style="color:var(--text-dim);font-size:12px;">· ' + escapeHtml(phone) + '</span>' : ''}</div>
@@ -849,8 +848,7 @@ function submitRequest(btn) {
       '📍 АДРЕС',
       site,
       '',
-      '🚜 ТЕХНИКА',
-      techText,
+      ...(tech.length ? ['🚜 ТЕХНИКА', techText] : []),
       '',
       '👤 ОТВЕТСТВЕННЫЙ',
       resp + (phone ? ' · ' + phone : ''),
