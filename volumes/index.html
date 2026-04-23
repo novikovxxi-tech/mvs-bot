@@ -429,6 +429,8 @@
     <div id="street-list"><div class="empty">Загрузка...</div></div>
   </div>
 
+  <button class="btn-export" onclick="exportSummaryExcel()" style="margin-bottom:12px;">📊 Сводный отчёт по улицам</button>
+
   <div class="card">
     <div class="card-title">График по дням (тонны)</div>
     <!-- Легенда -->
@@ -1463,6 +1465,200 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
+  // ─── Сводный отчёт по всем улицам ────────────────────
+  function exportSummaryExcel() {
+    const mm = String(filterMonth).padStart(2,'0');
+    const prefix = `${filterYear}-${mm}`;
+    const xlsEntries = allEntries.filter(e => e.date && e.date.startsWith(prefix));
+    if (!xlsEntries.length) {
+      alert(`Нет данных за ${MONTHS_RU[filterMonth-1]} ${filterYear}`);
+      return;
+    }
+
+    const FIXED_TYPES = ['МЗВ','ПД','МЗБ','КЗБ'];
+    const usedTypes = FIXED_TYPES.filter(t => xlsEntries.some(e => e.type === t));
+    const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
+    const typeStyleMap = {'МЗВ':'mzv','ПД':'pd','МЗБ':'mzb','КЗБ':'kzb'};
+    const typeTotalStyleMap = {'МЗВ':'total_mzv','ПД':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
+
+    // Группируем по улице
+    const byStreet = {};
+    xlsEntries.forEach(e => {
+      if (!byStreet[e.street]) byStreet[e.street] = {};
+      byStreet[e.street][e.type] = (byStreet[e.street][e.type] || 0) + (parseFloat(e.vol) || 0);
+    });
+
+    // Сортируем по итогу (по убыванию)
+    const streetsSorted = Object.entries(byStreet).sort((a,b) =>
+      Object.values(b[1]).reduce((s,v)=>s+v,0) - Object.values(a[1]).reduce((s,v)=>s+v,0)
+    );
+
+    const grandTotal = xlsEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="title"><Font ss:Bold="1" ss:Size="13" ss:Color="#FFFFFF"/><Interior ss:Color="#0F2D6B" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="even"><Interior ss:Color="#F4F7FF" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="odd"><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="mzv"><Font ss:Color="#1a5fa8" ss:Bold="1"/><Interior ss:Color="#dceeff" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="pd"><Font ss:Color="#1a7a3a" ss:Bold="1"/><Interior ss:Color="#d4f5e0" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="mzb"><Font ss:Color="#8a6000" ss:Bold="1"/><Interior ss:Color="#fff3cc" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="kzb"><Font ss:Color="#7a1a9a" ss:Bold="1"/><Interior ss:Color="#f5d4ff" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_mzv"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a5fa8" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_pd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a7a3a" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_mzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#8a6000" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="total_kzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7a1a9a" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="zero"><Font ss:Color="#BBBBBB"/><Interior ss:Color="#FAFAFA" ss:Pattern="Solid"/></Style>
+  </Styles>
+`;
+
+    // ══ ЛИСТ 1: Сводная таблица ══════════════════════════
+    xml += `  <Worksheet ss:Name="Сводная">
+    <Table>
+`;
+    xml += `      <Column ss:Width="260"/>
+`;
+    usedTypes.forEach(() => { xml += `      <Column ss:Width="80"/>
+`; });
+    xml += `      <Column ss:Width="90"/>
+`;
+
+    // Заголовок
+    xml += `      <Row ss:Height="24">
+`;
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="${usedTypes.length+1}"><Data ss:Type="String">Сводный отчёт по улицам — ${monthName}</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+
+    // Шапка
+    xml += `      <Row>
+`;
+    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">Улица / Объект</Data></Cell>
+`;
+    usedTypes.forEach(t => {
+      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${t}, т</Data></Cell>
+`;
+    });
+    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">ИТОГО, т</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+
+    // Строки по улицам
+    streetsSorted.forEach(([street, types], i) => {
+      const style = i % 2 === 0 ? 'even' : 'odd';
+      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
+      xml += `      <Row>
+`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${street}</Data></Cell>
+`;
+      usedTypes.forEach(t => {
+        const v = types[t] || 0;
+        const st = v ? typeStyleMap[t] : 'zero';
+        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*10)/10}</Data></Cell>
+`;
+      });
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*10)/10}</Data></Cell>
+`;
+      xml += `      </Row>
+`;
+    });
+
+    // Итоговая строка
+    xml += `      <Row>
+`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>
+`;
+    usedTypes.forEach(t => {
+      const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
+      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*10)/10}</Data></Cell>
+`;
+    });
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+    xml += `    </Table>
+  </Worksheet>
+`;
+
+    // ══ ЛИСТ 2: Детализация по дням для каждой улицы ════
+    // Группируем по улице + дата
+    const streetDays = {};
+    xlsEntries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e => {
+      if (!streetDays[e.street]) streetDays[e.street] = [];
+      streetDays[e.street].push(e);
+    });
+
+    xml += `  <Worksheet ss:Name="Детализация">
+    <Table>
+`;
+    xml += `      <Column ss:Width="260"/><Column ss:Width="90"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/>
+`;
+
+    xml += `      <Row ss:Height="22">
+`;
+    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="5"><Data ss:Type="String">Детализация — ${monthName}</Data></Cell>
+`;
+    xml += `      </Row>
+`;
+    xml += `      <Row>
+`;
+    ['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный'].forEach(h => {
+      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
+`;
+    });
+    xml += `      </Row>
+`;
+
+    let rowIdx = 0;
+    streetsSorted.forEach(([street]) => {
+      const rows = streetDays[street] || [];
+      rows.forEach(e => {
+        const style = rowIdx % 2 === 0 ? 'even' : 'odd';
+        const [y, m, d] = e.date.split('-');
+        xml += `      <Row>
+`;
+        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${street}</Data></Cell>
+`;
+        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>
+`;
+        xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>
+`;
+        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>
+`;
+        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>
+`;
+        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.responsible||''}</Data></Cell>
+`;
+        xml += `      </Row>
+`;
+        rowIdx++;
+      });
+    });
+    xml += `    </Table>
+  </Worksheet>
+`;
+    xml += `</Workbook>`;
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Сводный_${MONTHS_RU[filterMonth-1]}_${filterYear}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
 </script>
 </body>
 </html>
