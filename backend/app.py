@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import secrets
+import hashlib
 import psycopg2, psycopg2.extras, os
 
 app = Flask(__name__)
@@ -78,6 +80,18 @@ def init_db():
         except Exception:
             pass
 
+    # Таблица пользователей
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            login TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+    ''')
+
     # Таблица адресов заявок
     cur.execute('''
         CREATE TABLE IF NOT EXISTS order_sites (
@@ -133,6 +147,97 @@ def add_street():
     cur.close()
     conn.close()
     return jsonify({'ok': True, 'name': name}), 201
+
+# ── Авторизация ────────────────────────────────────
+
+ADMIN_PASSWORD = 'z3d4xi2s'
+
+def hash_pw(pw):
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def gen_password():
+    return secrets.token_urlsafe(6)
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    data = request.json or {}
+    login = data.get('login', '').strip().lower()
+    password = data.get('password', '').strip()
+    if not login or not password:
+        return jsonify({'ok': False, 'error': 'Заполните все поля'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT id, name, is_active FROM users WHERE login=%s AND password_hash=%s', (login, hash_pw(password)))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not row:
+        return jsonify({'ok': False, 'error': 'Неверный логин или пароль'}), 401
+    if not row[2]:
+        return jsonify({'ok': False, 'error': 'Доступ заблокирован'}), 403
+    return jsonify({'ok': True, 'name': row[1], 'login': login})
+
+@app.route('/api/auth/users', methods=['GET'])
+def auth_users():
+    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+        return jsonify({'error': 'Forbidden'}), 403
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT id, name, login, is_active, created_at FROM users ORDER BY id')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([{'id': r[0], 'name': r[1], 'login': r[2], 'is_active': r[3], 'created_at': str(r[4])} for r in rows])
+
+@app.route('/api/auth/users', methods=['POST'])
+def auth_create_user():
+    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+        return jsonify({'error': 'Forbidden'}), 403
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    login = data.get('login', '').strip().lower()
+    if not name or not login:
+        return jsonify({'error': 'name and login required'}), 400
+    password = gen_password()
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('INSERT INTO users (name, login, password_hash) VALUES (%s, %s, %s)',
+                    (name, login, hash_pw(password)))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        conn.close()
+        return jsonify({'error': 'Логин уже занят'}), 409
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'name': name, 'login': login, 'password': password}), 201
+
+@app.route('/api/auth/users/<int:uid>', methods=['DELETE'])
+def auth_delete_user(uid):
+    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+        return jsonify({'error': 'Forbidden'}), 403
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM users WHERE id=%s', (uid,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True})
+
+@app.route('/api/auth/users/<int:uid>/toggle', methods=['POST'])
+def auth_toggle_user(uid):
+    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+        return jsonify({'error': 'Forbidden'}), 403
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('UPDATE users SET is_active = NOT is_active WHERE id=%s RETURNING is_active', (uid,))
+    row = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'is_active': row[0] if row else None})
 
 # ── Адреса заявок ─────────────────────────────────
 
