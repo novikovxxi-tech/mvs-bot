@@ -830,21 +830,38 @@ function submitRequest(btn) {
       if (copyBtnEl) { copyBtnEl.textContent = '✅ Отправлено!'; setTimeout(() => { copyBtnEl.innerHTML = '📤 Отправить заявку'; }, 2000); }
     }
     function showModal() {
-      let overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;padding:12px;';
-      overlay.innerHTML = `
-        <div style="width:100%;background:#1a2030;border-radius:20px;padding:16px;max-height:70vh;display:flex;flex-direction:column;gap:12px;">
-          <div style="font-size:13px;font-weight:600;color:#8b95a7;text-align:center;">Выделите и скопируйте текст</div>
-          <textarea readonly style="flex:1;min-height:200px;background:#141b27;border:1px solid #2a3548;border-radius:12px;color:#eef2f8;font-size:13px;font-family:inherit;padding:12px;resize:none;outline:none;">${text}</textarea>
-          <button onclick="this.closest('div').parentNode.remove()" style="background:#3f8cff;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">Закрыть</button>
-        </div>`;
+      var encoded = encodeURIComponent(text);
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;padding:12px;';
+      overlay.innerHTML =
+        '<div style="width:100%;background:#1a2030;border-radius:20px;padding:16px;max-height:80vh;display:flex;flex-direction:column;gap:10px;">' +
+          '<div style="font-size:15px;font-weight:700;color:#eef2f8;text-align:center;margin-bottom:4px;">Отправить заявку</div>' +
+          '<a href="https://t.me/share/url?url=&text=' + encoded + '" target="_blank" style="display:flex;align-items:center;gap:10px;padding:13px 16px;background:#2AABEE22;border:1px solid #2AABEE44;border-radius:12px;color:#2AABEE;text-decoration:none;font-size:15px;font-weight:600;">'+
+            '<span style="font-size:22px;">✈️</span> Telegram</a>' +
+          '<a href="https://wa.me/?text=' + encoded + '" target="_blank" style="display:flex;align-items:center;gap:10px;padding:13px 16px;background:#25D36622;border:1px solid #25D36644;border-radius:12px;color:#25D366;text-decoration:none;font-size:15px;font-weight:600;">'+
+            '<span style="font-size:22px;">💬</span> WhatsApp</a>' +
+          '<button id="copy-text-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#eef2f8;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">' +
+            '<span style="font-size:20px;">📋</span> Скопировать текст</button>' +
+          '<textarea readonly style="max-height:140px;background:#141b27;border:1px solid #2a3548;border-radius:12px;color:#eef2f8;font-size:12px;font-family:inherit;padding:10px;resize:none;outline:none;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>' +
+          '<button onclick="this.closest(\'div\').parentNode.remove()" style="padding:13px;background:#3f8cff;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Закрыть</button>' +
+        '</div>';
       document.body.appendChild(overlay);
-      setTimeout(() => { const ta = overlay.querySelector('textarea'); if(ta){ta.focus();ta.select();} }, 100);
+      overlay.querySelector('#copy-text-btn').addEventListener('click', function() {
+        var ta = overlay.querySelector('textarea');
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(function() {
+            overlay.querySelector('#copy-text-btn').textContent = '✅ Скопировано!';
+            setTimeout(function(){ overlay.remove(); onSuccess(); }, 1000);
+          });
+        } else {
+          ta.select(); document.execCommand('copy');
+          overlay.querySelector('#copy-text-btn').textContent = '✅ Скопировано!';
+          setTimeout(function(){ overlay.remove(); onSuccess(); }, 1000);
+        }
+      });
     }
     if (navigator.share) {
-      navigator.share({ text }).then(onSuccess).catch(() => {});
-    } else if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(onSuccess).catch(showModal);
+      navigator.share({ text }).then(onSuccess).catch(function() { showModal(); });
     } else {
       showModal();
     }
