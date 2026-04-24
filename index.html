@@ -857,7 +857,9 @@ function submitRequest(btn) {
       overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
       document.body.appendChild(overlay);
     }
-    if (navigator.share) {
+    // На мобильных — нативный Share, на десктопе — сразу копируем
+    var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile && navigator.share) {
       navigator.share({ text }).then(onSuccess).catch(function() { showModal(); });
     } else {
       showModal();
