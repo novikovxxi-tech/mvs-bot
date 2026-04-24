@@ -281,36 +281,56 @@
 </head>
 <body>
 
-<!-- ЭКРАН ПАРОЛЯ -->
+<!-- ЭКРАН ВХОДА -->
 <div id="pw-screen">
   <div class="pw-card">
     <div class="pw-logo">МВС СТ АУК №1</div>
-    <div class="pw-sub">Введите пароль для доступа</div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="••••••••"
-      onkeydown="if(event.key==='Enter')checkPw()" autocomplete="current-password">
+    <div class="pw-sub">Введите логин и пароль для доступа</div>
+    <input class="pw-input" id="pw-login" type="text" placeholder="Логин"
+      style="letter-spacing:normal;" autocomplete="username"
+      onkeydown="if(event.key==='Enter')document.getElementById('pw-pass').focus()">
+    <input class="pw-input" id="pw-pass" type="password" placeholder="Пароль"
+      autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')checkPw()">
     <div class="pw-err" id="pw-err"></div>
     <button class="pw-btn" onclick="checkPw()">Войти</button>
   </div>
 </div>
 <script>
   (function(){
-    var PW = 'mvs2026';
-    var KEY = 'mvs_auth';
-    if(localStorage.getItem(KEY) === PW){
-      document.getElementById('pw-screen').classList.add('hidden');
+    var API_URL = 'https://comfortable-surprise-production-2bf0.up.railway.app';
+    var KEY = 'mvs_user';
+    var saved = localStorage.getItem(KEY);
+    if (saved) {
+      try { var u = JSON.parse(saved); if (u && u.login) document.getElementById('pw-screen').classList.add('hidden'); } catch(e) {}
     }
     window.checkPw = function(){
-      var inp = document.getElementById('pw-input');
-      var err = document.getElementById('pw-err');
-      if(inp.value === PW){
-        localStorage.setItem(KEY, PW);
-        document.getElementById('pw-screen').classList.add('hidden');
-      } else {
-        err.textContent = 'Неверный пароль';
-        inp.classList.add('error');
-        setTimeout(function(){ inp.classList.remove('error'); }, 400);
-        inp.value = '';
-      }
+      var login = document.getElementById('pw-login').value.trim();
+      var pass  = document.getElementById('pw-pass').value.trim();
+      var err   = document.getElementById('pw-err');
+      var btn   = document.querySelector('.pw-btn');
+      if (!login || !pass) { err.textContent = 'Заполните логин и пароль'; return; }
+      btn.disabled = true; btn.textContent = '...';
+      fetch(API_URL + '/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({login: login, password: pass})
+      }).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false; btn.textContent = 'Войти';
+        if (d.ok) {
+          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name}));
+          document.getElementById('pw-screen').classList.add('hidden');
+        } else {
+          err.textContent = d.error || 'Ошибка входа';
+          var inp = document.getElementById('pw-pass');
+          inp.value = '';
+          inp.classList.add('error');
+          setTimeout(function(){ inp.classList.remove('error'); }, 400);
+        }
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = 'Войти';
+        err.textContent = 'Ошибка соединения';
+      });
     };
   })();
 </script>
