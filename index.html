@@ -830,36 +830,32 @@ function submitRequest(btn) {
       if (copyBtnEl) { copyBtnEl.textContent = '✅ Отправлено!'; setTimeout(() => { copyBtnEl.innerHTML = '📤 Отправить заявку'; }, 2000); }
     }
     function showModal() {
-      var encoded = encodeURIComponent(text);
       var overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;padding:12px;';
-      overlay.innerHTML =
-        '<div style="width:100%;background:#1a2030;border-radius:20px;padding:16px;max-height:80vh;display:flex;flex-direction:column;gap:10px;">' +
-          '<div style="font-size:15px;font-weight:700;color:#eef2f8;text-align:center;margin-bottom:4px;">Отправить заявку</div>' +
-          '<a href="https://t.me/share/url?url=&text=' + encoded + '" target="_blank" style="display:flex;align-items:center;gap:10px;padding:13px 16px;background:#2AABEE22;border:1px solid #2AABEE44;border-radius:12px;color:#2AABEE;text-decoration:none;font-size:15px;font-weight:600;">'+
-            '<span style="font-size:22px;">✈️</span> Telegram</a>' +
-          '<a href="https://wa.me/?text=' + encoded + '" target="_blank" style="display:flex;align-items:center;gap:10px;padding:13px 16px;background:#25D36622;border:1px solid #25D36644;border-radius:12px;color:#25D366;text-decoration:none;font-size:15px;font-weight:600;">'+
-            '<span style="font-size:22px;">💬</span> WhatsApp</a>' +
-
-          '<button id="copy-text-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#eef2f8;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">' +
-            '<span style="font-size:20px;">📋</span> Скопировать текст</button>' +
-          '<textarea readonly style="max-height:140px;background:#141b27;border:1px solid #2a3548;border-radius:12px;color:#eef2f8;font-size:12px;font-family:inherit;padding:10px;resize:none;outline:none;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>' +
-          '<button onclick="this.closest(\'div\').parentNode.remove()" style="padding:13px;background:#3f8cff;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Закрыть</button>' +
-        '</div>';
-      document.body.appendChild(overlay);
-      overlay.querySelector('#copy-text-btn').addEventListener('click', function() {
-        var ta = overlay.querySelector('textarea');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+      var btn = document.createElement('button');
+      btn.textContent = '\ud83d\udccb \u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0437\u0430\u044f\u0432\u043a\u0443';
+      btn.style.cssText = 'padding:18px 32px;background:#3f8cff;border:none;border-radius:16px;color:#fff;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;';
+      btn.addEventListener('click', function() {
         if (navigator.clipboard && window.isSecureContext) {
           navigator.clipboard.writeText(text).then(function() {
-            overlay.querySelector('#copy-text-btn').textContent = '✅ Скопировано!';
+            btn.textContent = '\u2705 \u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e!';
             setTimeout(function(){ overlay.remove(); onSuccess(); }, 1000);
           });
         } else {
-          ta.select(); document.execCommand('copy');
-          overlay.querySelector('#copy-text-btn').textContent = '✅ Скопировано!';
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          btn.textContent = '\u2705 \u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e!';
           setTimeout(function(){ overlay.remove(); onSuccess(); }, 1000);
         }
       });
+      overlay.appendChild(btn);
+      overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+      document.body.appendChild(overlay);
     }
     if (navigator.share) {
       navigator.share({ text }).then(onSuccess).catch(function() { showModal(); });
