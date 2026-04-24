@@ -1211,15 +1211,23 @@ function collectMatRows() {
 
 function matAcSearch(input, idx) {
   var val = input.value.trim().toLowerCase();
+  var raw = input.value.trim();
   var drop = document.getElementById('mat-ac-' + idx);
   if (!drop) return;
   if (val.length < 2) { drop.style.display = 'none'; return; }
   var matches = MAT_LIST.filter(function(m) { return m.toLowerCase().indexOf(val) !== -1; });
-  if (!matches.length) { drop.style.display = 'none'; return; }
-  drop.innerHTML = matches.map(function(m) {
+  var rows = matches.map(function(m) {
     var safe = m.replace(/'/g, "\\'");
     return '<div style="padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" onmousedown="pickMatAc(this,\'' + safe + '\')">' + m + '</div>';
-  }).join('');
+  });
+  var exactMatch = MAT_LIST.some(function(m) { return m.toLowerCase() === val; });
+  if (!exactMatch && raw.length >= 2) {
+    var safeRaw = raw.replace(/'/g, "\\'");
+    rows.push('<div style="padding:10px 12px;cursor:pointer;font-size:13px;color:var(--accent);border-top:1px solid var(--border);" onmousedown="matAcAdd(this,\'' + safeRaw + '\')">' +
+      '+ \u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u00ab' + raw + '\u00bb</div>');
+  }
+  if (!rows.length) { drop.style.display = 'none'; return; }
+  drop.innerHTML = rows.join('');
   drop.style.display = 'block';
 }
 
