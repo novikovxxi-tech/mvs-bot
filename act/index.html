@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Акт выполненных работ — АНО МВС СТ</title>
+<style>
+:root {
+  --bg: #0f1318;
+  --bg-card: #1a2030;
+  --bg-input: #141b27;
+  --border: #2a3548;
+  --accent: #3f8cff;
+  --accent2: #5ad17a;
+  --text: #eef2f8;
+  --text-dim: #8b95a7;
+  --red: #ff5a5a;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Inter', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+/* HEADER */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px 10px;
+}
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.header-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* DATE BAR */
+.date-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.date-bar label {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.date-bar input[type="date"] {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+.date-bar input[type="date"]:focus {
+  border-color: var(--accent);
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+  position: sticky;
+  top: 71px;
+  z-index: 99;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.tab:hover { color: var(--text); border-color: #3a4a60; }
+.tab.active {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* TAB PANELS */
+.tab-panel { display: none; padding: 12px 16px; }
+.tab-panel.active { display: block; }
+
+/* WORK CARDS */
+.work-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 8px;
+}
+.work-num {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.work-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.work-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.work-field label {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.work-fact {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.work-fact:focus { border-color: var(--accent); }
+.work-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.work-select:focus { border-color: var(--accent); }
+.work-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+/* SECTION TITLE */
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 16px 0 8px;
+}
+
+/* DYNAMIC TABLE */
+.dyn-table { width: 100%; border-collapse: collapse; }
+.dyn-table th {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-align: left;
+  padding: 6px 8px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dyn-table td {
+  padding: 4px 4px;
+  vertical-align: middle;
+}
+.dyn-table tr + tr td { padding-top: 6px; }
+.dyn-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.dyn-input:focus { border-color: var(--accent); }
+.dyn-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.dyn-select:focus { border-color: var(--accent); }
+.btn-del {
+  background: none;
+  border: 1px solid #3a2020;
+  border-radius: 8px;
+  color: var(--red);
+  font-size: 16px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.btn-del:hover { background: #2a1515; }
+.btn-add {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-add:hover { background: #1e2d45; border-color: var(--accent); }
+
+/* PEOPLE FORM */
+.people-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  max-width: 360px;
+}
+.people-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.people-row:last-child { border-bottom: none; }
+.people-label {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+  min-width: 160px;
+}
+.people-total-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent2);
+  min-width: 160px;
+}
+.people-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  width: 90px;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.people-input:focus { border-color: var(--accent); }
+.people-total-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent2);
+  width: 90px;
+  text-align: center;
+}
+.people-unit {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+
+/* TECH ROWS */
+.tech-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+.tech-row .dyn-select,
+.tech-row .dyn-input {
+  flex: 1;
+}
+
+/* MECH ROWS */
+.mech-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+.mech-row .dyn-select,
+.mech-row .dyn-input {
+  flex: 1;
+}
+
+/* MAT ROWS */
+.mat-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+.mat-row .mat-name { flex: 3; }
+.mat-row .mat-vol { flex: 1; min-width: 70px; }
+.mat-row .mat-unit { flex: 1; min-width: 80px; }
+
+/* FOOTER */
+.footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+}
+.btn-submit {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.2px;
+}
+.btn-submit:hover { opacity: 0.9; }
+.btn-submit:active { transform: scale(0.98); }
+
+/* VERSION */
+.version-badge {
+  position: fixed;
+  bottom: 72px;
+  right: 12px;
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.5;
+  z-index: 201;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--accent2);
+  color: #0f1318;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 300;
+  white-space: nowrap;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* COL LABELS */
+.col-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .work-row { grid-template-columns: 1fr; }
+  .people-form { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">📋 Акт выполненных работ</div>
+  <div class="header-sub">АНО МВС СТ · ОБУ: Мазиловский пруд</div>
+</div>
+
+<!-- DATE BAR -->
+<div class="date-bar">
+  <label for="act-date">Дата:</label>
+  <input type="date" id="act-date">
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">🔨 Работы</button>
+  <button class="tab" onclick="switchTab(1)">🚜 Техника</button>
+  <button class="tab" onclick="switchTab(2)">👷 Люди</button>
+  <button class="tab" onclick="switchTab(3)">📦 Материалы</button>
+  <button class="tab" onclick="switchTab(4)">⚙️ Механизация</button>
+</div>
+
+<!-- TAB 1: РАБОТЫ -->
+<div class="tab-panel active" id="panel-0">
+  <div id="works-container"></div>
+</div>
+
+<!-- TAB 2: ТЕХНИКА -->
+<div class="tab-panel" id="panel-1">
+  <div class="section-title">Единицы техники на объекте</div>
+  <div id="tech-container"></div>
+  <button class="btn-add" onclick="addTechRow()">+ Добавить технику</button>
+</div>
+
+<!-- TAB 3: ЛЮДИ -->
+<div class="tab-panel" id="panel-2">
+  <div class="section-title">Численность персонала</div>
+  <div class="people-form">
+    <div class="people-row">
+      <span class="people-label">ИТР</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" class="people-input" id="itr-count" min="0" value="0" oninput="updateTotal()">
+        <span class="people-unit">чел</span>
+      </div>
+    </div>
+    <div class="people-row">
+      <span class="people-label">Дорожные рабочие</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" class="people-input" id="workers-count" min="0" value="0" oninput="updateTotal()">
+        <span class="people-unit">чел</span>
+      </div>
+    </div>
+    <div class="people-row">
+      <span class="people-total-label">Итого на выходе</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="people-total-val" id="total-people">0</span>
+        <span class="people-unit">чел</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: МАТЕРИАЛЫ -->
+<div class="tab-panel" id="panel-3">
+  <div class="section-title">Поступившие материалы</div>
+  <div id="mat-container"></div>
+  <button class="btn-add" onclick="addMatRow()">+ Добавить материал</button>
+</div>
+
+<!-- TAB 5: МЕХАНИЗАЦИЯ -->
+<div class="tab-panel" id="panel-4">
+  <div class="section-title">Малая механизация</div>
+  <div id="mech-container"></div>
+  <button class="btn-add" onclick="addMechRow()">+ Добавить оборудование</button>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-bar">
+  <button class="btn-submit" onclick="submitAct()">📄 Сформировать акт</button>
+</div>
+
+<div class="version-badge">v1.0</div>
+<div class="toast" id="toast">✓ Файл сформирован</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+var WORKS = [
+  { title: 'Очистка временной дороги и тротуаров от грязи ручным и механизированным способом', unit: 'м2' },
+  { title: 'Демонтаж бетонного замка бордюра садового', unit: 'м3' },
+  { title: 'Гидроизоляция плит перекрытия водосбросной камеры', unit: 'м2' },
+  { title: 'Планирование грунта на газонной части ручным и механизированным способом', unit: 'м2' },
+  { title: 'Установка бордюра садового', unit: 'м.п.' },
+  { title: 'Устройство бетонного замка из Бетона B 15 П2 F100 W4', unit: 'м3' },
+  { title: 'Устройство основания из щебня фр.20х40 под установку бордюра садового', unit: 'м3' },
+  { title: 'Укладка окатного гранитного камня фр.70-120 в ГСИ', unit: 'м3' },
+  { title: 'Устройство песчаного основания из песка карьерного на тротуаре', unit: 'м3' },
+  { title: 'Разработка грунта под установку бордюра садового', unit: 'м3' },
+  { title: 'Погрузка и вывоз непригодного грунта во временный накопитель', unit: 'м3' },
+  { title: 'Отсыпка окатного гранитного камня по береговой линии фр.70х120 в зуб упора', unit: 'м3' },
+  { title: 'Устройство покрытия из плитки на тротуаре', unit: 'м2' },
+  { title: 'Монтаж деревянного каркаса пирса на бетонный конструктив водосбросной камеры', unit: 'м3' },
+  { title: 'Восстановление КДО над ВПТ (устройство основания из щебня фр.20-40)', unit: 'м3' },
+  { title: 'Погрузка и вывоз непригодного грунта на полигон', unit: 'м3' },
+  { title: 'Засев газона', unit: 'м2' },
+  { title: 'Демонтаж деревянного ограждения деревьев', unit: 'м3' },
+  { title: 'Малярные работы', unit: 'м2' }
+];
+
+var RESPONSIBLES = [
+  'Иванов С.Г.',
+  'Карташов А.Ю.',
+  'Герц С.А.',
+  'Аллахвердиев В.И.О.',
+  'Данилов В.В.',
+  'Кушнерев С.А.',
+  'Новиков Д.Д.',
+  'Сорокин А.Е.'
+];
+
+var TECH_TYPES = [
+  'Полноповоротный экс. колесный',
+  'Экск. Погрузчик',
+  'Минипогрузчик',
+  'Миниэкскаватор',
+  'Самосвал КАМАЗ',
+  'Газель г/п',
+  'МТЗ (трактор)',
+  'Автобус',
+  'Манипулятор',
+  'Каток',
+  'Асфальтоукладчик',
+  'Автогудронатор',
+  'Автокран',
+  'КДМ',
+  'Другое'
+];
+
+var MATERIALS = [
+  'Щебень известняк 20х40',
+  'Песок карьерный',
+  'Бордюр садовый 1000х200х80 мм',
+  'Тротуарная плитка 200х100х60 мм красная',
+  'Бетон B 15 П2 F100 W4',
+  'Камень бутовый габбро-диабаз фр.70х120',
+  'Арматура ∅18',
+  'Другое'
+];
+
+var MAT_UNITS = ['м3', 'м2', 'т', 'шт', 'м.п.', 'кг'];
+
+var MECH_TYPES = [
+  'Генератор бензиновый',
+  'Трамбовка',
+  'Виброплита',
+  'Перфоратор',
+  'Болгарка',
+  'Другое'
+];
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Set today's date
+  var today = new Date();
+  var y = today.getFullYear();
+  var m = String(today.getMonth() + 1).padStart(2, '0');
+  var d = String(today.getDate()).padStart(2, '0');
+  document.getElementById('act-date').value = y + '-' + m + '-' + d;
+
+  buildWorks();
+  buildDefaultTech();
+  buildDefaultMat();
+  buildDefaultMech();
+});
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+
+function switchTab(idx) {
+  var tabs = document.querySelectorAll('.tab');
+  var panels = document.querySelectorAll('.tab-panel');
+  tabs.forEach(function(t, i) {
+    t.classList.toggle('active', i === idx);
+  });
+  panels.forEach(function(p, i) {
+    p.classList.toggle('active', i === idx);
+  });
+}
+
+// ─── TAB 1: WORKS ────────────────────────────────────────────────────────────
+
+function buildWorks() {
+  var container = document.getElementById('works-container');
+  var html = '';
+  for (var i = 0; i < WORKS.length; i++) {
+    var w = WORKS[i];
+    var respOptions = '<option value="">— не задан —</option>';
+    for (var r = 0; r < RESPONSIBLES.length; r++) {
+      respOptions += '<option value="' + RESPONSIBLES[r] + '">' + RESPONSIBLES[r] + '</option>';
+    }
+    html += '<div class="work-card">';
+    html += '<div class="work-num"># ' + (i + 1) + '</div>';
+    html += '<div class="work-title">' + escHtml(w.title) + '</div>';
+    html += '<div class="work-row">';
+    html += '<div class="work-field"><label>Факт (' + escHtml(w.unit) + ')</label>';
+    html += '<input type="number" class="work-fact" id="fact-' + i + '" min="0" step="any" placeholder="0"></div>';
+    html += '<div class="work-field"><label>Ответственный</label>';
+    html += '<select class="work-select" id="resp-' + i + '">' + respOptions + '</select></div>';
+    html += '</div>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+// ─── TAB 2: TECH ─────────────────────────────────────────────────────────────
+
+var techCounter = 0;
+
+function makeTechOptions() {
+  var s = '';
+  for (var i = 0; i < TECH_TYPES.length; i++) {
+    s += '<option value="' + TECH_TYPES[i] + '">' + TECH_TYPES[i] + '</option>';
+  }
+  return s;
+}
+
+function addTechRow(defaults) {
+  defaults = defaults || {};
+  var id = 'tech-' + (techCounter++);
+  var div = document.createElement('div');
+  div.className = 'tech-row';
+  div.id = id;
+
+  var cols = [
+    { label: 'Тип техники', type: 'select', opts: makeTechOptions(), key: 'type', flex: 2 },
+    { label: 'Ед', type: 'number', placeholder: '1', key: 'qty', min: '0', flex: 0.6 },
+    { label: 'Часы', type: 'number', placeholder: '0', key: 'hours', min: '0', step: '0.5', flex: 0.6 },
+    { label: 'Гос. номер', type: 'text', placeholder: 'А123ВС', key: 'plate', flex: 1 },
+    { label: 'Организация', type: 'text', placeholder: 'Подрядчик', key: 'org', flex: 1.4 }
+  ];
+
+  var inner = '';
+  for (var i = 0; i < cols.length; i++) {
+    var c = cols[i];
+    inner += '<div class="work-field" style="flex:' + c.flex + ';min-width:0">';
+    inner += '<label class="col-label">' + c.label + '</label>';
+    if (c.type === 'select') {
+      inner += '<select class="dyn-select" data-key="' + c.key + '">' + c.opts + '</select>';
+    } else {
+      inner += '<input type="' + c.type + '" class="dyn-input" data-key="' + c.key + '" placeholder="' + (c.placeholder || '') + '"' + (c.min !== undefined ? ' min="' + c.min + '"' : '') + (c.step ? ' step="' + c.step + '"' : '') + '>';
+    }
+    inner += '</div>';
+  }
+  inner += '<div style="padding-top:18px"><button class="btn-del" onclick="delRow(\'' + id + '\')" title="Удалить">×</button></div>';
+  div.innerHTML = inner;
+  document.getElementById('tech-container').appendChild(div);
+}
+
+function buildDefaultTech() {
+  addTechRow();
+  addTechRow();
+  addTechRow();
+}
+
+// ─── TAB 3: PEOPLE ───────────────────────────────────────────────────────────
+
+function updateTotal() {
+  var itr = parseInt(document.getElementById('itr-count').value) || 0;
+  var workers = parseInt(document.getElementById('workers-count').value) || 0;
+  document.getElementById('total-people').textContent = itr + workers;
+}
+
+// ─── TAB 4: MATERIALS ────────────────────────────────────────────────────────
+
+var matCounter = 0;
+
+function makeMatNameOptions() {
+  var s = '';
+  for (var i = 0; i < MATERIALS.length; i++) {
+    s += '<option value="' + MATERIALS[i] + '">' + MATERIALS[i] + '</option>';
+  }
+  return s;
+}
+
+function makeUnitOptions() {
+  var s = '';
+  for (var i = 0; i < MAT_UNITS.length; i++) {
+    s += '<option value="' + MAT_UNITS[i] + '">' + MAT_UNITS[i] + '</option>';
+  }
+  return s;
+}
+
+function addMatRow() {
+  var id = 'mat-' + (matCounter++);
+  var div = document.createElement('div');
+  div.className = 'mat-row';
+  div.id = id;
+
+  var inner = '';
+  inner += '<div class="work-field mat-name">';
+  inner += '<label class="col-label">Наименование</label>';
+  inner += '<select class="dyn-select" data-key="name">' + makeMatNameOptions() + '</select>';
+  inner += '</div>';
+  inner += '<div class="work-field mat-vol">';
+  inner += '<label class="col-label">Объём</label>';
+  inner += '<input type="number" class="dyn-input" data-key="vol" placeholder="0" min="0" step="any">';
+  inner += '</div>';
+  inner += '<div class="work-field mat-unit">';
+  inner += '<label class="col-label">Ед. изм.</label>';
+  inner += '<select class="dyn-select" data-key="unit">' + makeUnitOptions() + '</select>';
+  inner += '</div>';
+  inner += '<div style="padding-top:18px"><button class="btn-del" onclick="delRow(\'' + id + '\')" title="Удалить">×</button></div>';
+  div.innerHTML = inner;
+  document.getElementById('mat-container').appendChild(div);
+}
+
+function buildDefaultMat() {
+  addMatRow();
+}
+
+// ─── TAB 5: MECH ─────────────────────────────────────────────────────────────
+
+var mechCounter = 0;
+
+function makeMechOptions() {
+  var s = '';
+  for (var i = 0; i < MECH_TYPES.length; i++) {
+    s += '<option value="' + MECH_TYPES[i] + '">' + MECH_TYPES[i] + '</option>';
+  }
+  return s;
+}
+
+function addMechRow() {
+  var id = 'mech-' + (mechCounter++);
+  var div = document.createElement('div');
+  div.className = 'mech-row';
+  div.id = id;
+
+  var inner = '';
+  inner += '<div class="work-field" style="flex:2;min-width:0">';
+  inner += '<label class="col-label">Наименование</label>';
+  inner += '<select class="dyn-select" data-key="name">' + makeMechOptions() + '</select>';
+  inner += '</div>';
+  inner += '<div class="work-field" style="flex:1;min-width:0">';
+  inner += '<label class="col-label">Инв. номер</label>';
+  inner += '<input type="text" class="dyn-input" data-key="inv" placeholder="ИН-001">';
+  inner += '</div>';
+  inner += '<div class="work-field" style="flex:0.8;min-width:0">';
+  inner += '<label class="col-label">Часы</label>';
+  inner += '<input type="number" class="dyn-input" data-key="hours" placeholder="0" min="0" step="0.5">';
+  inner += '</div>';
+  inner += '<div style="padding-top:18px"><button class="btn-del" onclick="delRow(\'' + id + '\')" title="Удалить">×</button></div>';
+  div.innerHTML = inner;
+  document.getElementById('mech-container').appendChild(div);
+}
+
+function buildDefaultMech() {
+  addMechRow();
+  addMechRow();
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+
+function delRow(id) {
+  var el = document.getElementById(id);
+  if (el) el.parentNode.removeChild(el);
+}
+
+function escHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function formatDate(val) {
+  if (!val) return '';
+  var parts = val.split('-');
+  if (parts.length === 3) return parts[2] + '.' + parts[1] + '.' + parts[0];
+  return val;
+}
+
+// ─── COLLECT DATA ────────────────────────────────────────────────────────────
+
+function collectWorks() {
+  var result = [];
+  for (var i = 0; i < WORKS.length; i++) {
+    var factEl = document.getElementById('fact-' + i);
+    var respEl = document.getElementById('resp-' + i);
+    var fact = factEl ? parseFloat(factEl.value) : 0;
+    var resp = respEl ? respEl.value : '';
+    result.push({
+      num: i + 1,
+      title: WORKS[i].title,
+      unit: WORKS[i].unit,
+      fact: isNaN(fact) ? 0 : fact,
+      resp: resp
+    });
+  }
+  return result;
+}
+
+function collectRowsByContainer(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return [];
+  var rows = container.children;
+  var result = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var inputs = row.querySelectorAll('[data-key]');
+    var obj = {};
+    for (var j = 0; j < inputs.length; j++) {
+      obj[inputs[j].getAttribute('data-key')] = inputs[j].value;
+    }
+    result.push(obj);
+  }
+  return result;
+}
+
+// ─── EXCEL GENERATION ────────────────────────────────────────────────────────
+
+function xmlEsc(s) {
+  s = String(s || '');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function cell(val, type) {
+  type = type || 'String';
+  return '<Cell><Data ss:Type="' + type + '">' + xmlEsc(val) + '</Data></Cell>';
+}
+
+function cellNum(val) {
+  var n = parseFloat(val);
+  if (isNaN(n)) return cell('');
+  return '<Cell><Data ss:Type="Number">' + n + '</Data></Cell>';
+}
+
+function cellBold(val) {
+  return '<Cell ss:StyleID="sBold"><Data ss:Type="String">' + xmlEsc(val) + '</Data></Cell>';
+}
+
+function row() {
+  var cells = [];
+  for (var i = 0; i < arguments.length; i++) cells.push(arguments[i]);
+  return '<Row>' + cells.join('') + '</Row>\n';
+}
+
+function emptyRow() {
+  return '<Row><Cell><Data ss:Type="String"></Data></Cell></Row>\n';
+}
+
+function headerRow(vals) {
+  var cells = vals.map(function(v) { return cellBold(v); });
+  return '<Row>' + cells.join('') + '</Row>\n';
+}
+
+function submitAct() {
+  var dateVal = document.getElementById('act-date').value;
+  var dateStr = formatDate(dateVal);
+  var itr = parseInt(document.getElementById('itr-count').value) || 0;
+  var workers = parseInt(document.getElementById('workers-count').value) || 0;
+  var total = itr + workers;
+
+  var works = collectWorks();
+  var techRows = collectRowsByContainer('tech-container');
+  var matRows = collectRowsByContainer('mat-container');
+  var mechRows = collectRowsByContainer('mech-container');
+
+  // Filter works with fact > 0
+  var activeWorks = works.filter(function(w) { return w.fact > 0; });
+
+  var xml = '';
+  xml += '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<?mso-application progid="Excel.Sheet"?>\n';
+  xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+  xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+  xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel">\n';
+  xml += '<Styles>\n';
+  xml += '<Style ss:ID="sBold"><Font ss:Bold="1"/></Style>\n';
+  xml += '<Style ss:ID="sHeader"><Font ss:Bold="1" ss:Size="13"/></Style>\n';
+  xml += '<Style ss:ID="sSection"><Font ss:Bold="1" ss:Color="#3f8cff"/></Style>\n';
+  xml += '</Styles>\n';
+  xml += '<Worksheet ss:Name="Акт">\n';
+  xml += '<Table>\n';
+
+  // Col widths
+  xml += '<Column ss:Width="40"/>\n';
+  xml += '<Column ss:Width="280"/>\n';
+  xml += '<Column ss:Width="60"/>\n';
+  xml += '<Column ss:Width="60"/>\n';
+  xml += '<Column ss:Width="60"/>\n';
+  xml += '<Column ss:Width="60"/>\n';
+  xml += '<Column ss:Width="120"/>\n';
+
+  // Row 1: org header
+  xml += '<Row>';
+  xml += '<Cell ss:MergeAcross="6" ss:StyleID="sHeader"><Data ss:Type="String">АНО МВС СТ | ОБУ: Мазиловский пруд | Дата: ' + xmlEsc(dateStr) + '</Data></Cell>';
+  xml += '</Row>\n';
+
+  // Row 2: title
+  xml += '<Row>';
+  xml += '<Cell ss:MergeAcross="6" ss:StyleID="sHeader"><Data ss:Type="String">АКТ ВЫПОЛНЕННЫХ РАБОТ ЗА СУТКИ</Data></Cell>';
+  xml += '</Row>\n';
+
+  xml += emptyRow();
+
+  // Section: РАБОТЫ
+  xml += '<Row><Cell ss:MergeAcross="6" ss:StyleID="sSection"><Data ss:Type="String">РАБОТЫ</Data></Cell></Row>\n';
+  xml += headerRow(['№', 'ВИД РАБОТ', 'ПЛАН', 'ЕД ИЗМ', 'ФАКТ', 'ЕД ИЗМ', 'ОТВЕТСТВЕННЫЙ']);
+
+  if (activeWorks.length === 0) {
+    xml += '<Row><Cell ss:MergeAcross="6"><Data ss:Type="String">— нет заполненных позиций —</Data></Cell></Row>\n';
+  } else {
+    for (var i = 0; i < activeWorks.length; i++) {
+      var w = activeWorks[i];
+      xml += '<Row>';
+      xml += cell(w.num, 'Number');
+      xml += cell(w.title);
+      xml += cell('—');
+      xml += cell(w.unit);
+      xml += cellNum(w.fact);
+      xml += cell(w.unit);
+      xml += cell(w.resp);
+      xml += '</Row>\n';
+    }
+  }
+
+  xml += emptyRow();
+
+  // Section: ТЕХНИКА
+  xml += '<Row><Cell ss:MergeAcross="6" ss:StyleID="sSection"><Data ss:Type="String">ТЕХНИКА</Data></Cell></Row>\n';
+  xml += headerRow(['Тип техники', 'Ед.', 'Часы работы', 'Гос. номер', 'Организация', '', '']);
+  for (var t = 0; t < techRows.length; t++) {
+    var tr = techRows[t];
+    if (!tr.type && !tr.qty && !tr.hours && !tr.plate && !tr.org) continue;
+    xml += '<Row>';
+    xml += cell(tr.type || '');
+    xml += cellNum(tr.qty);
+    xml += cellNum(tr.hours);
+    xml += cell(tr.plate || '');
+    xml += cell(tr.org || '');
+    xml += cell('');
+    xml += cell('');
+    xml += '</Row>\n';
+  }
+
+  xml += emptyRow();
+
+  // Section: ЛЮДИ
+  xml += '<Row><Cell ss:MergeAcross="6" ss:StyleID="sSection"><Data ss:Type="String">ЛЮДИ</Data></Cell></Row>\n';
+  xml += headerRow(['Категория', 'Кол-во (чел)', '', '', '', '', '']);
+  xml += '<Row>' + cell('ИТР') + cellNum(itr) + cell('') + cell('') + cell('') + cell('') + cell('') + '</Row>\n';
+  xml += '<Row>' + cell('Дорожные рабочие') + cellNum(workers) + cell('') + cell('') + cell('') + cell('') + cell('') + '</Row>\n';
+  xml += '<Row>' + cellBold('ИТОГО') + cellNum(total) + cell('') + cell('') + cell('') + cell('') + cell('') + '</Row>\n';
+
+  xml += emptyRow();
+
+  // Section: МАТЕРИАЛЫ
+  xml += '<Row><Cell ss:MergeAcross="6" ss:StyleID="sSection"><Data ss:Type="String">МАТЕРИАЛЫ</Data></Cell></Row>\n';
+  xml += headerRow(['Наименование', 'Объём', 'Ед. изм.', '', '', '', '']);
+  for (var m = 0; m < matRows.length; m++) {
+    var mr = matRows[m];
+    if (!mr.name && !mr.vol) continue;
+    xml += '<Row>';
+    xml += cell(mr.name || '');
+    xml += cellNum(mr.vol);
+    xml += cell(mr.unit || '');
+    xml += cell(''); xml += cell(''); xml += cell(''); xml += cell('');
+    xml += '</Row>\n';
+  }
+
+  xml += emptyRow();
+
+  // Section: МАЛАЯ МЕХАНИЗАЦИЯ
+  xml += '<Row><Cell ss:MergeAcross="6" ss:StyleID="sSection"><Data ss:Type="String">МАЛАЯ МЕХАНИЗАЦИЯ</Data></Cell></Row>\n';
+  xml += headerRow(['Наименование', 'Инв. номер', 'Часы работы', '', '', '', '']);
+  for (var mc = 0; mc < mechRows.length; mc++) {
+    var mcr = mechRows[mc];
+    if (!mcr.name && !mcr.inv && !mcr.hours) continue;
+    xml += '<Row>';
+    xml += cell(mcr.name || '');
+    xml += cell(mcr.inv || '');
+    xml += cellNum(mcr.hours);
+    xml += cell(''); xml += cell(''); xml += cell(''); xml += cell('');
+    xml += '</Row>\n';
+  }
+
+  xml += '</Table>\n';
+  xml += '</Worksheet>\n';
+  xml += '</Workbook>\n';
+
+  // Generate filename
+  var fileDatePart = dateVal ? dateVal.replace(/-/g, '_') : 'nodate';
+  var filename = '\u0410\u043a\u0442_\u041c\u0430\u0437\u0438\u043b\u043e\u0432\u0441\u043a\u0438\u0439_\u043f\u0440\u0443\u0434_' + fileDatePart + '.xls';
+
+  var blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1000);
+
+  showToast('\u2713 \u0424\u0430\u0439\u043b \u0441\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u043d');
+}
+</script>
+</body>
+</html>
