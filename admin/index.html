@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админка — МВС СТ АУК №1</title>
+<style>
+  :root {
+    --bg: #0f1318; --bg-card: #1a2030; --bg-input: #141b27;
+    --border: #2a3548; --accent: #3f8cff; --red: #ff5a5a;
+    --green: #5ad17a; --text: #eef2f8; --text-dim: #8b95a7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Inter', sans-serif; min-height: 100dvh; }
+
+  /* AUTH */
+  #auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; }
+  #auth-screen.hidden { display: none; }
+  .auth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; width: 90%; max-width: 340px; display: flex; flex-direction: column; gap: 14px; }
+  .auth-title { font-size: 18px; font-weight: 800; text-align: center; }
+  .auth-sub { font-size: 13px; color: var(--text-dim); text-align: center; }
+  .auth-input { background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 10px; padding: 13px 16px; color: var(--text); font-size: 15px; font-family: inherit; outline: none; letter-spacing: 2px; text-align: center; }
+  .auth-input:focus { border-color: var(--accent); }
+  .auth-btn { padding: 13px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
+  .auth-err { font-size: 13px; color: var(--red); text-align: center; min-height: 18px; }
+
+  /* MAIN */
+  .header { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-size: 16px; font-weight: 700; }
+  .header-sub { font-size: 12px; color: var(--text-dim); }
+  .content { max-width: 640px; margin: 0 auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ADD USER */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
+  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+  .field input { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-size: 15px; font-family: inherit; outline: none; }
+  .field input:focus { border-color: var(--accent); }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-add { width: 100%; padding: 13px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; margin-top: 6px; }
+  .btn-add:active { opacity: .8; }
+  .add-result { font-size: 13px; padding: 12px; border-radius: 10px; background: rgba(90,209,122,.1); border: 1px solid rgba(90,209,122,.3); color: var(--green); display: none; }
+
+  /* USER LIST */
+  .user-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-input); border-radius: 12px; border: 1px solid var(--border); }
+  .user-row + .user-row { margin-top: 8px; }
+  .user-info { flex: 1; }
+  .user-name { font-size: 14px; font-weight: 600; }
+  .user-login { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .user-date { font-size: 11px; color: var(--text-dim); }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge.active { background: rgba(90,209,122,.15); color: var(--green); }
+  .badge.blocked { background: rgba(255,90,90,.15); color: var(--red); }
+  .btn-icon { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; color: var(--text-dim); font-family: inherit; }
+  .btn-icon:hover { border-color: var(--red); color: var(--red); }
+  .btn-toggle { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; color: var(--text-dim); font-family: inherit; }
+  .btn-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .no-users { text-align: center; color: var(--text-dim); font-size: 14px; padding: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН ПАРОЛЯ АДМИНА -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-title">🔐 Админка</div>
+    <div class="auth-sub">МВС СТ АУК №1</div>
+    <input class="auth-input" id="admin-pw" type="password" placeholder="Пароль администратора"
+      onkeydown="if(event.key==='Enter')adminLogin()">
+    <div class="auth-err" id="admin-err"></div>
+    <button class="auth-btn" onclick="adminLogin()">Войти</button>
+  </div>
+</div>
+
+<div class="header">
+  <div>
+    <div class="header-title">👤 Управление доступом</div>
+    <div class="header-sub">МВС СТ АУК №1</div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- Добавить пользователя -->
+  <div class="card">
+    <div class="card-title">➕ Добавить пользователя</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="row-2">
+        <div class="field">
+          <label>Имя</label>
+          <input id="new-name" type="text" placeholder="Иванов Иван">
+        </div>
+        <div class="field">
+          <label>Логин</label>
+          <input id="new-login" type="text" placeholder="ivanov" autocomplete="off">
+        </div>
+      </div>
+      <button class="btn-add" onclick="addUser()">Создать пользователя</button>
+      <div class="add-result" id="add-result"></div>
+    </div>
+  </div>
+
+  <!-- Список пользователей -->
+  <div class="card">
+    <div class="card-title">👥 Пользователи</div>
+    <div id="user-list"><div class="no-users">Загрузка...</div></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://comfortable-surprise-production-2bf0.up.railway.app';
+let ADMIN_PW = '';
+
+function adminLogin() {
+  const pw = document.getElementById('admin-pw').value.trim();
+  const err = document.getElementById('admin-err');
+  if (pw !== 'z3d4xi2s') {
+    err.textContent = 'Неверный пароль';
+    return;
+  }
+  ADMIN_PW = pw;
+  document.getElementById('auth-screen').classList.add('hidden');
+  loadUsers();
+}
+
+async function loadUsers() {
+  const list = document.getElementById('user-list');
+  try {
+    const r = await fetch(API + '/api/auth/users', { headers: { 'X-Admin-Password': ADMIN_PW } });
+    const users = await r.json();
+    if (!users.length) { list.innerHTML = '<div class="no-users">Пользователей нет</div>'; return; }
+    list.innerHTML = users.map(u => `
+      <div class="user-row" id="row-${u.id}">
+        <div class="user-info">
+          <div class="user-name">${u.name}</div>
+          <div class="user-login">Логин: <b>${u.login}</b></div>
+          <div class="user-date">${new Date(u.created_at).toLocaleDateString('ru')}</div>
+        </div>
+        <span class="badge ${u.is_active ? 'active' : 'blocked'}" id="badge-${u.id}">${u.is_active ? 'Активен' : 'Заблокирован'}</span>
+        <button class="btn-toggle" onclick="toggleUser(${u.id})" title="${u.is_active ? 'Заблокировать' : 'Разблокировать'}" id="tog-${u.id}">${u.is_active ? '🔒' : '✅'}</button>
+        <button class="btn-icon" onclick="deleteUser(${u.id}, '${u.name}')" title="Удалить">🗑</button>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="no-users">Ошибка загрузки</div>';
+  }
+}
+
+async function addUser() {
+  const name  = document.getElementById('new-name').value.trim();
+  const login = document.getElementById('new-login').value.trim().toLowerCase();
+  const res   = document.getElementById('add-result');
+  if (!name || !login) { res.style.display='block'; res.style.color='var(--red)'; res.style.background='rgba(255,90,90,.1)'; res.style.borderColor='rgba(255,90,90,.3)'; res.textContent='Заполните имя и логин'; return; }
+  try {
+    const r = await fetch(API + '/api/auth/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Password': ADMIN_PW },
+      body: JSON.stringify({ name, login })
+    });
+    const d = await r.json();
+    if (!r.ok) { res.style.display='block'; res.style.color='var(--red)'; res.style.background='rgba(255,90,90,.1)'; res.style.borderColor='rgba(255,90,90,.3)'; res.textContent = d.error || 'Ошибка'; return; }
+    res.style.display = 'block';
+    res.style.color = 'var(--green)';
+    res.style.background = 'rgba(90,209,122,.1)';
+    res.style.borderColor = 'rgba(90,209,122,.3)';
+    res.innerHTML = `✅ Пользователь создан!<br>Логин: <b>${d.login}</b><br>Пароль: <b style="font-size:16px;letter-spacing:2px;">${d.password}</b><br><span style="color:var(--text-dim);font-size:12px;">Передайте пароль пользователю</span>`;
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-login').value = '';
+    loadUsers();
+  } catch(e) {
+    res.style.display='block'; res.textContent = 'Ошибка сети';
+  }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`Удалить пользователя "${name}"?`)) return;
+  await fetch(API + '/api/auth/users/' + id, { method: 'DELETE', headers: { 'X-Admin-Password': ADMIN_PW } });
+  document.getElementById('row-' + id)?.remove();
+}
+
+async function toggleUser(id) {
+  const r = await fetch(API + '/api/auth/users/' + id + '/toggle', { method: 'POST', headers: { 'X-Admin-Password': ADMIN_PW } });
+  const d = await r.json();
+  const badge = document.getElementById('badge-' + id);
+  const tog   = document.getElementById('tog-' + id);
+  if (badge) { badge.textContent = d.is_active ? 'Активен' : 'Заблокирован'; badge.className = 'badge ' + (d.is_active ? 'active' : 'blocked'); }
+  if (tog)   { tog.textContent = d.is_active ? '🔒' : '✅'; }
+}
+
+document.getElementById('admin-pw').addEventListener('keydown', e => { if(e.key==='Enter') adminLogin(); });
+</script>
+</body>
+</html>
