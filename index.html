@@ -704,14 +704,75 @@ function renderTechPicker() {
     <div class="card-sub" style="margin-bottom:10px;">Выберите одну или несколько единиц техники:</div>
     <div id="techPickList" style="display:flex;flex-direction:column;gap:6px;">${itemsHtml}</div>
     <div id="techPickCount" style="font-size:12px;color:var(--text-dim);margin-top:8px;">Выбрано: 0</div>
+    <div style="margin-top:10px;">
+      <button id="addTechBtn" style="background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;">＋ Добавить технику</button>
+      <div id="addTechBox" style="display:none;margin-top:8px;">
+        <input id="addTechInput" type="text" placeholder="Введите название..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;color:var(--text);padding:9px 12px;font-size:14px;outline:none;" />
+        <div id="addTechDropdown" style="display:none;background:#1e2436;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-top:4px;overflow:hidden;"></div>
+      </div>
+    </div>
   `;
   chat.appendChild(pickerCard);
   scrollChat();
 
-  pickerCard.querySelectorAll('.tech-pick-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const idx = parseInt(item.dataset.idx);
-      const techName = techList[idx];
+  // Логика кнопки + добавить технику
+  pickerCard.querySelector('#addTechBtn').addEventListener('click', function() {
+    const box = pickerCard.querySelector('#addTechBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    if (box.style.display === 'block') pickerCard.querySelector('#addTechInput').focus();
+  });
+
+  pickerCard.querySelector('#addTechInput').addEventListener('input', function() {
+    const val = this.value.trim();
+    const drop = pickerCard.querySelector('#addTechDropdown');
+    if (val.length < 2) { drop.style.display = 'none'; return; }
+    const matches = techList.filter(t => t.toLowerCase().includes(val.toLowerCase()));
+    const items = matches.map(t =>
+      '<div style="padding:10px 14px;cursor:pointer;font-size:14px;color:var(--text);border-bottom:1px solid rgba(255,255,255,.06);" data-name="' + escapeHtml(t) + '">' + escapeHtml(t) + '</div>'
+    );
+    const alreadyExact = techList.some(t => t.toLowerCase() === val.toLowerCase());
+    if (!alreadyExact) {
+      items.push('<div style="padding:10px 14px;cursor:pointer;font-size:14px;color:#3f8cff;" data-add="' + escapeHtml(val) + '">+ Добавить «' + escapeHtml(val) + '»</div>');
+    }
+    if (items.length === 0) { drop.style.display = 'none'; return; }
+    drop.innerHTML = items.join('');
+    drop.style.display = 'block';
+    drop.querySelectorAll('div').forEach(function(d) {
+      d.addEventListener('click', function() {
+        const techName = d.dataset.add || d.dataset.name;
+        if (!techName) return;
+        if (d.dataset.add) {
+          // Добавляем в БД и в список
+          fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-tech', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({name: techName})
+          }).catch(function(){});
+          if (!techList.includes(techName)) techList.push(techName);
+        }
+        // Добавляем позицию в список пикера если ещё нет
+        const list = pickerCard.querySelector('#techPickList');
+        if (!list.querySelector('[data-name="' + techName + '"]')) {
+          const idx = techList.indexOf(techName);
+          const row = document.createElement('div');
+          row.className = 'tech-pick-item';
+          row.dataset.name = techName;
+          row.innerHTML = '<div class="pick-check"></div><span style="font-size:14px;color:var(--text);flex:1;">' + escapeHtml(techName) + '</span>' +
+            '<input class="tech-qty-input" type="number" min="1" max="99" value="1" onclick="event.stopPropagation()" style="display:none;" />' +
+            '<input class="tech-time-input" type="time" onclick="event.stopPropagation()" style="display:none;" />';
+          list.appendChild(row);
+          bindTechItem(row, techName, selected, updateCount);
+        }
+        // Скрываем поле
+        pickerCard.querySelector('#addTechInput').value = '';
+        drop.style.display = 'none';
+        pickerCard.querySelector('#addTechBox').style.display = 'none';
+      });
+    });
+  });
+
+  function bindTechItem(item, techName, selected, updateCount) {
+    item.addEventListener('click', function() {
       const check = item.querySelector('.pick-check');
       const qtyInput = item.querySelector('.tech-qty-input');
       const timeInput = item.querySelector('.tech-time-input');
@@ -723,12 +784,12 @@ function renderTechPicker() {
         qtyInput.style.display = 'block';
         timeInput.style.display = 'block';
         qtyInput.focus();
-        qtyInput.addEventListener('input', () => {
+        qtyInput.addEventListener('input', function() {
           const entry = selected.find(t => t.name === techName);
           if (entry) entry.qty = parseInt(qtyInput.value) || 1;
           updateCount();
         });
-        timeInput.addEventListener('change', () => {
+        timeInput.addEventListener('change', function() {
           const entry = selected.find(t => t.name === techName);
           if (entry) entry.time = timeInput.value;
         });
@@ -743,12 +804,18 @@ function renderTechPicker() {
       }
       updateCount();
     });
-  });
+  }
 
   function updateCount() {
     const total = selected.reduce((s, t) => s + (t.qty || 1), 0);
     pickerCard.querySelector('#techPickCount').textContent = `Выбрано: ${selected.length} ед. (итого: ${total} ед.)`;
   }
+
+  pickerCard.querySelectorAll('.tech-pick-item').forEach(item => {
+    const idx = parseInt(item.dataset.idx);
+    const techName = techList[idx];
+    bindTechItem(item, techName, selected, updateCount);
+  });
 
   addBtnGroup([
     { label: '✅ Отправить заявку', variant: 'primary', onClick: (btn) => submitRequest(btn) },
@@ -1294,6 +1361,9 @@ function loadOrderLists() {
   }).catch(function(){});
   fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-materials').then(function(r){return r.json();}).then(function(data){
     data.forEach(function(s){ if(!MAT_LIST.includes(s)) MAT_LIST.push(s); });
+  }).catch(function(){});
+  fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-tech').then(function(r){return r.json();}).then(function(data){
+    data.forEach(function(s){ if(!techList.includes(s)) techList.push(s); });
   }).catch(function(){});
 }
 
