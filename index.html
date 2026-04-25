@@ -829,7 +829,7 @@ function submitRequest(btn) {
         }).join('\n')
       : 'не выбрана';
     const text = [
-      'Заявка от ' + dateStr,
+      'Заявка на ' + dateStr,
       '',
       'МАТЕРИАЛ:',
       ..._matItems.map(m => m.name + ' — ' + m.qty + ' ' + m.unit + (m.mat_time ? ' (к ' + m.mat_time + ')' : '')),
