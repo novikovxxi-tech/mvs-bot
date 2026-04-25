@@ -106,6 +106,13 @@ def init_db():
             name TEXT UNIQUE NOT NULL
         );
     ''')
+    # Таблица техники заявок
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS order_tech (
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL
+        );
+    ''')
     conn.commit()
     cur.close()
     conn.close()
@@ -284,6 +291,31 @@ def add_order_material():
     conn = get_db()
     cur = conn.cursor()
     cur.execute('INSERT INTO order_materials (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (name,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'name': name}), 201
+
+# ── Техника заявок ────────────────────────────────
+
+@app.route('/api/order-tech', methods=['GET'])
+def get_order_tech():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT name FROM order_tech ORDER BY id')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([r[0] for r in rows])
+
+@app.route('/api/order-tech', methods=['POST'])
+def add_order_tech():
+    name = (request.json or {}).get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'name required'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO order_tech (name) VALUES (%s) ON CONFLICT (name) DO NOTHING', (name,))
     conn.commit()
     cur.close()
     conn.close()
