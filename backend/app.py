@@ -15,8 +15,8 @@ DATABASE_URL = os.environ.get('DATABASE_URL', '')
 S3 = boto3.client(
     's3',
     endpoint_url='https://storage.yandexcloud.net',
-    aws_access_key_id=os.environ.get('YC_ACCESS_KEY', ''),
-    aws_secret_access_key=os.environ.get('YC_SECRET_KEY', ''),
+    aws_access_key_id=os.environ.get('YC_ACCESS_KEY', 'YCAJEUctRGyTd482IfPc5dJ48'),
+    aws_secret_access_key=os.environ.get('YC_SECRET_KEY', 'YCPfKItoMIVkb83luhUZdrABxHfGgafZbR6RdDuh'),
     config=Config(signature_version='s3v4'),
     region_name='ru-central1'
 )
