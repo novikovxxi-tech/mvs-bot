@@ -358,7 +358,7 @@
     </div>
     <div class="field">
       <label>Объём, т</label>
-      <input type="number" id="edit-vol" step="0.1" min="0">
+      <input type="number" id="edit-vol" step="0.01" min="0">
     </div>
     <div class="field">
       <label>Тип смеси</label>
@@ -1297,10 +1297,10 @@
       usedTypes.forEach(t => {
         const v = types[t] || 0;
         const st = v ? typeStyleMap[t] : style;
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*10)/10}</Data></Cell>
+        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*100)/100}</Data></Cell>
 `;
       });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*10)/10}</Data></Cell>
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>
 `;
       xml += `      </Row>
 `;
@@ -1313,10 +1313,10 @@
 `;
     usedTypes.forEach(t => {
       const s = streetEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*10)/10}</Data></Cell>
+      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>
 `;
     });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>
 `;
     xml += `      </Row>
 `;
@@ -1456,9 +1456,9 @@
       usedTypes.forEach(t => {
         const v = types[t] || 0;
         const st = v ? typeStyleMap[t] : style;
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${v ? Math.round(v*10)/10 : 0}</Data></Cell>\n`;
+        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${v ? Math.round(v*100)/100 : 0}</Data></Cell>\n`;
       });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*10)/10}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>\n`;
       xml += `      </Row>\n`;
     });
 
@@ -1467,9 +1467,9 @@
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>\n`;
     usedTypes.forEach(t => {
       const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+e.vol,0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*10)/10}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>\n`;
     });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>\n`;
     xml += `      </Row>\n`;
     xml += `    </Table>\n  </Worksheet>\n`;
 
@@ -1508,9 +1508,9 @@
       usedTypes.forEach(t => {
         const v = types[t] || 0;
         const st = v ? typeStyleMap[t] : style;
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${v ? Math.round(v*10)/10 : 0}</Data></Cell>\n`;
+        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${v ? Math.round(v*100)/100 : 0}</Data></Cell>\n`;
       });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*10)/10}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>\n`;
       xml += `      </Row>\n`;
     });
 
@@ -1518,9 +1518,9 @@
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>\n`;
     usedTypes.forEach(t => {
       const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+e.vol,0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*10)/10}</Data></Cell>\n`;
+      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>\n`;
     });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>\n`;
     xml += `      </Row>\n`;
     xml += `    </Table>\n  </Worksheet>\n`;
 
@@ -1557,7 +1557,7 @@
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>\n`;
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
     xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
@@ -1675,10 +1675,10 @@
       usedTypes.forEach(t => {
         const v = types[t] || 0;
         const st = v ? typeStyleMap[t] : 'zero';
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*10)/10}</Data></Cell>
+        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*100)/100}</Data></Cell>
 `;
       });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*10)/10}</Data></Cell>
+      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>
 `;
       xml += `      </Row>
 `;
@@ -1691,10 +1691,10 @@
 `;
     usedTypes.forEach(t => {
       const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*10)/10}</Data></Cell>
+      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>
 `;
     });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*10)/10}</Data></Cell>
+    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>
 `;
     xml += `      </Row>
 `;
