@@ -3,11 +3,24 @@ from flask_cors import CORS
 import secrets
 import hashlib
 import psycopg2, psycopg2.extras, os
+import boto3
+from botocore.client import Config
 
 app = Flask(__name__)
 CORS(app)
 
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
+
+# Yandex Object Storage config
+S3 = boto3.client(
+    's3',
+    endpoint_url='https://storage.yandexcloud.net',
+    aws_access_key_id=os.environ.get('YC_ACCESS_KEY', ''),
+    aws_secret_access_key=os.environ.get('YC_SECRET_KEY', ''),
+    config=Config(signature_version='s3v4'),
+    region_name='ru-central1'
+)
+S3_BUCKET = 'mvs-upd'
 
 def get_db():
     conn = psycopg2.connect(DATABASE_URL)
@@ -111,6 +124,17 @@ def init_db():
         CREATE TABLE IF NOT EXISTS order_tech (
             id SERIAL PRIMARY KEY,
             name TEXT UNIQUE NOT NULL
+        );
+    ''')
+    # Таблица УПД файлов
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS upd_files (
+            id SERIAL PRIMARY KEY,
+            entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+            file_url TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            public_id TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     ''')
     conn.commit()
@@ -295,6 +319,71 @@ def add_order_material():
     cur.close()
     conn.close()
     return jsonify({'ok': True, 'name': name}), 201
+
+# ── УПД файлы ─────────────────────────────────────
+
+@app.route('/api/upd/<int:entry_id>', methods=['GET'])
+def get_upd(entry_id):
+    conn = get_db()
+    cur = conn.cursor(psycopg2.extras.RealDictCursor)
+    cur.execute('SELECT id, file_url, file_name, public_id, created_at FROM upd_files WHERE entry_id=%s ORDER BY created_at', (entry_id,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d['file_url'] = S3.generate_presigned_url('get_object', Params={'Bucket': S3_BUCKET, 'Key': d['public_id']}, ExpiresIn=86400)
+        except Exception:
+            pass
+        result.append(d)
+    return jsonify(result)
+
+@app.route('/api/upd/<int:entry_id>', methods=['POST'])
+def upload_upd(entry_id):
+    if 'file' not in request.files:
+        return jsonify({'error': 'no file'}), 400
+    f = request.files['file']
+    import uuid
+    ext = f.filename.rsplit('.', 1)[-1] if '.' in f.filename else 'bin'
+    key = f'mvs_upd/{entry_id}/{uuid.uuid4().hex}.{ext}'
+    try:
+        S3.upload_fileobj(f, S3_BUCKET, key, ExtraArgs={'ContentType': f.content_type or 'application/octet-stream'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    # Генерируем подписанную URL на 24 часа
+    url = S3.generate_presigned_url('get_object', Params={'Bucket': S3_BUCKET, 'Key': key}, ExpiresIn=86400)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO upd_files (entry_id, file_url, file_name, public_id) VALUES (%s, %s, %s, %s) RETURNING id',
+        (entry_id, key, f.filename, key)
+    )
+    new_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'id': new_id, 'file_url': url, 'file_name': f.filename}), 201
+
+@app.route('/api/upd/file/<int:file_id>', methods=['DELETE'])
+def delete_upd(file_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT public_id FROM upd_files WHERE id=%s', (file_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.close(); conn.close()
+        return jsonify({'error': 'not found'}), 404
+    try:
+        S3.delete_object(Bucket=S3_BUCKET, Key=row[0])
+    except Exception:
+        pass
+    cur.execute('DELETE FROM upd_files WHERE id=%s', (file_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True})
 
 # ── Техника заявок ────────────────────────────────
 
