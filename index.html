@@ -296,7 +296,7 @@
 </div>
 <script>
   (function(){
-    var API_URL = 'https://comfortable-surprise-production-2bf0.up.railway.app';
+    var API_URL = 'https://mvs-backend-denis3111.amvera.io';
     var KEY = 'mvs_user';
     var saved = localStorage.getItem(KEY);
     if (saved) {
@@ -743,7 +743,7 @@ function renderTechPicker() {
         if (!techName) return;
         if (d.dataset.add) {
           // Добавляем в БД и в список
-          fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-tech', {
+          fetch('https://mvs-backend-denis3111.amvera.io/api/order-tech', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({name: techName})
@@ -1082,7 +1082,7 @@ function siteAcSearch(q) {
 function siteAcAdd(val) {
   if (!siteObjects.includes(val)) {
     siteObjects.push(val);
-    fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-sites', {
+    fetch('https://mvs-backend-denis3111.amvera.io/api/order-sites', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name: val})
@@ -1356,13 +1356,13 @@ function initMatRows() {
 
 /* ==================== Boot ==================== */
 function loadOrderLists() {
-  fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-sites').then(function(r){return r.json();}).then(function(data){
+  fetch('https://mvs-backend-denis3111.amvera.io/api/order-sites').then(function(r){return r.json();}).then(function(data){
     data.forEach(function(s){ if(!siteObjects.includes(s)) siteObjects.push(s); });
   }).catch(function(){});
-  fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-materials').then(function(r){return r.json();}).then(function(data){
+  fetch('https://mvs-backend-denis3111.amvera.io/api/order-materials').then(function(r){return r.json();}).then(function(data){
     data.forEach(function(s){ if(!MAT_LIST.includes(s)) MAT_LIST.push(s); });
   }).catch(function(){});
-  fetch('https://comfortable-surprise-production-2bf0.up.railway.app/api/order-tech').then(function(r){return r.json();}).then(function(data){
+  fetch('https://mvs-backend-denis3111.amvera.io/api/order-tech').then(function(r){return r.json();}).then(function(data){
     data.forEach(function(s){ if(!techList.includes(s)) techList.push(s); });
   }).catch(function(){});
 }
