@@ -695,42 +695,38 @@ function siteAcKeydownTO(e) {
   else if (e.key === 'Escape') { drop.classList.remove('open'); }
 }
 
-function initRespDropdownTO() {
-  const input = document.getElementById('f-resp-to');
-  const drop = document.getElementById('respDropdownTO');
-  if (!input || !drop) return;
-  const people = [
-    { name: 'Аллахвердиев Вугар Илгар Оглы', phone: '+7 (999) 877-77-61' },
-    { name: 'Герц Сергей Андреевич',         phone: '+7 (999) 982-98-88' },
-    { name: 'Данилов Владимир Владимирович', phone: '+7 (996) 926-14-89' },
-    { name: 'Иванов Сергей Геннадьевич',     phone: '+7 (906) 515-95-06' },
-    { name: 'Карташов Артем Юрьевич',        phone: '+7 (977) 871-67-31' },
-    { name: 'Кушнерев Сергей Андреевич',     phone: '+7 (915) 966-35-35' },
-    { name: 'Новиков Денис Дмитриевич',      phone: '+7 (919) 222-19-86' },
-    { name: 'Сорокин Александр Евгеньевич',  phone: '+7 (965) 346-29-06' },
-  ];
-  drop.innerHTML = people.map(p =>
-    `<div class="dd-item" data-name="${escapeHtml(p.name)}" data-phone="${escapeHtml(p.phone)}">
-      <div class="dd-name">${escapeHtml(p.name)}</div>
-      <div class="dd-phone">${escapeHtml(p.phone)}</div>
-    </div>`
-  ).join('');
-  drop.querySelectorAll('.dd-item').forEach(el => {
-    el.addEventListener('click', () => {
-      input.value = el.dataset.name;
-      const phoneEl = document.getElementById('f-phone-to');
-      if (phoneEl) phoneEl.value = el.dataset.phone;
-      drop.style.display = 'none';
-    });
-  });
+function toggleRespDropdownTO() {
+  const d = document.getElementById('respDropdownTO');
+  if (!d) return;
+  if (!d.innerHTML.trim()) {
+    d.innerHTML = respList.map((p, i) => `
+      <div class="dropdown-option" onclick="pickRespTO(${i})">
+        <div>${p.name}</div>
+        <div class="opt-sub">${p.phone}</div>
+      </div>`).join('');
+  }
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
 }
 
-function toggleRespDropdownTO() {
-  const drop = document.getElementById('respDropdownTO');
-  if (!drop) return;
-  const isOpen = drop.style.display === 'block';
-  drop.style.display = isOpen ? 'none' : 'block';
+function pickRespTO(idx) {
+  const person = respList[idx];
+  const inp = document.getElementById('f-resp-to');
+  const ph  = document.getElementById('f-phone-to');
+  if (inp) inp.value = person.name;
+  if (ph)  ph.value  = person.phone;
+  const d = document.getElementById('respDropdownTO');
+  if (d) d.style.display = 'none';
 }
+
+document.addEventListener('click', (e) => {
+  const d = document.getElementById('respDropdownTO');
+  if (!d) return;
+  if (!e.target.closest('#f-resp-to') && !e.target.closest('#respDropdownTO') && !e.target.closest('[onclick="toggleRespDropdownTO()"]')) {
+    d.style.display = 'none';
+  }
+});
+
+function initRespDropdownTO() { /* инициализация через toggleRespDropdownTO */ }
 
 async function goToTechPickerOnly(btn) {
   const reqDate = document.getElementById('f-req-date-to').value;
