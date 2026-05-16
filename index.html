@@ -429,6 +429,7 @@ function go(screen, pushHistory = true) {
   switch (screen) {
     case 'home':     return renderHome();
     case 'tech':     return renderTech();
+    case 'techOnly': return renderTechOnlyForm();
     case 'techItem': return null;
     case 'material': return renderMaterial();
     case 'newReq':   return renderNewRequestForm();
@@ -458,7 +459,7 @@ function renderHome() {
   `);
   addBtnGroup([
     { html: '📦<br><span class="sub">Материал</span>', variant: 'big primary', onClick: () => go('material') },
-    { html: '🚜<br><span class="sub">Техника</span>',  variant: 'big',         onClick: () => go('tech') },
+    { html: '🚜<br><span class="sub">Техника</span>',  variant: 'big',         onClick: () => go('techOnly') },
   ], 'btn-group-2');
 }
 
@@ -591,6 +592,296 @@ function renderMaterial() {
 }
 
 /* -------- Request form: Step 1 -------- */
+/* -------- Tech-only request form -------- */
+function renderTechOnlyForm() {
+  const chat = document.getElementById('chat');
+  const formCard = document.createElement('div');
+  formCard.className = 'card';
+  formCard.innerHTML = `
+    <div class="card-title">🚜 Заявка на технику</div>
+    <div class="card-sub" style="margin-bottom:14px;">Укажите объект и ответственного, затем выберите технику.</div>
+    <form id="reqFormTechOnly" autocomplete="off" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="field">
+        <label>📅 Дата заявки</label>
+        <div class="field-wrap">
+          <input id="f-req-date-to" type="date" required />
+        </div>
+      </div>
+      <div class="field">
+        <label>Адрес объекта</label>
+        <div class="site-ac-wrap" style="position:relative;">
+          <input id="f-site-to" type="text" placeholder="Выберите или введите адрес"
+            autocomplete="off" autocorrect="off" spellcheck="false"
+            style="padding-right:38px;"
+            oninput="siteAcSearchTO(this.value)"
+            onfocus="siteAcSearchTO(this.value)"
+            onkeydown="siteAcKeydownTO(event)"
+            required />
+          <span class="field-arrow" onclick="document.getElementById('f-site-to').focus();siteAcSearchTO(document.getElementById('f-site-to').value);">&#9660;</span>
+          <div class="site-ac-drop" id="site-ac-drop-to"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Ответственный</label>
+        <div class="field-wrap" style="position:relative;">
+          <input id="f-resp-to" type="text" placeholder="Выберите или введите имя" required
+            style="padding-right:38px;" onfocus="toggleRespDropdownTO()" />
+          <span class="field-arrow" onclick="toggleRespDropdownTO()">&#9660;</span>
+          <div id="respDropdownTO" class="dropdown-list"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input id="f-phone-to" type="tel" placeholder="+7 (___) ___-__-__" />
+      </div>
+      <div class="info-note">👤 Нач. уч. Петровский А.М.&nbsp;&nbsp;8(985)197-31-33</div>
+    </form>
+  `;
+  chat.appendChild(formCard);
+  scrollChat();
+
+  const reqDateEl = document.getElementById('f-req-date-to');
+  if (reqDateEl) reqDateEl.value = new Date().toISOString().split('T')[0];
+
+  // Инициализируем автокомплит адреса для techOnly
+  window._toAcHi = -1;
+
+  addBtnGroup([
+    { label: '➡️ Далее — выбрать технику', variant: 'primary', onClick: (btn) => goToTechPickerOnly(btn) },
+    { label: '← Назад', variant: 'back', onClick: () => { history.pop(); go('home', false); } },
+  ]);
+
+  // Инициализируем выпадающий список ответственных
+  setTimeout(() => initRespDropdownTO(), 0);
+}
+
+function siteAcSearchTO(q) {
+  const drop = document.getElementById('site-ac-drop-to');
+  if (!drop) return;
+  window._toAcHi = -1;
+  const query = q.trim().toLowerCase();
+  if (query.length < 2) { drop.classList.remove('open'); return; }
+  let matches = [...siteObjects, ...(window._serverSites || [])].filter(function(s) { return s.toLowerCase().includes(query); });
+  matches = [...new Set(matches)];
+  var rows = matches.map(function(s, i) {
+    return '<div class="sac-item" data-i="' + i + '" data-val="' + siteEscHtml(s) + '">' + siteEscHtml(s) + '</div>';
+  });
+  const alreadyExact = matches.some(s => s.toLowerCase() === query);
+  if (!alreadyExact && q.trim()) rows.push('<div class="sac-item sac-add" data-add="' + siteEscHtml(q.trim()) + '">+ Добавить «' + siteEscHtml(q.trim()) + '»</div>');
+  if (!rows.length) { drop.classList.remove('open'); return; }
+  drop.innerHTML = rows.join('');
+  drop.classList.add('open');
+  drop.querySelectorAll('.sac-item').forEach(function(el) {
+    el.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var val = el.dataset.add || el.dataset.val;
+      document.getElementById('f-site-to').value = val;
+      drop.classList.remove('open');
+      if (el.dataset.add) {
+        if (!siteObjects.includes(val)) siteObjects.push(val);
+        fetch('https://mvs-backend-denis3111.amvera.io/api/streets', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:val}) }).catch(function(){});
+      }
+    });
+  });
+}
+
+function siteAcKeydownTO(e) {
+  const drop = document.getElementById('site-ac-drop-to');
+  if (!drop || !drop.classList.contains('open')) return;
+  const items = drop.querySelectorAll('.sac-item');
+  if (e.key === 'ArrowDown') { e.preventDefault(); window._toAcHi = Math.min(window._toAcHi + 1, items.length - 1); items.forEach((el,i)=>el.classList.toggle('hi', i===window._toAcHi)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); window._toAcHi = Math.max(window._toAcHi - 1, 0); items.forEach((el,i)=>el.classList.toggle('hi', i===window._toAcHi)); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (window._toAcHi >= 0 && items[window._toAcHi]) items[window._toAcHi].dispatchEvent(new MouseEvent('mousedown')); }
+  else if (e.key === 'Escape') { drop.classList.remove('open'); }
+}
+
+function initRespDropdownTO() {
+  const input = document.getElementById('f-resp-to');
+  const drop = document.getElementById('respDropdownTO');
+  if (!input || !drop) return;
+  const people = [
+    { name: 'Аллахвердиев Вугар Илгар Оглы', phone: '+7 (999) 877-77-61' },
+    { name: 'Герц Сергей Андреевич',         phone: '+7 (999) 982-98-88' },
+    { name: 'Данилов Владимир Владимирович', phone: '+7 (996) 926-14-89' },
+    { name: 'Иванов Сергей Геннадьевич',     phone: '+7 (906) 515-95-06' },
+    { name: 'Карташов Артем Юрьевич',        phone: '+7 (977) 871-67-31' },
+    { name: 'Кушнерев Сергей Андреевич',     phone: '+7 (915) 966-35-35' },
+    { name: 'Новиков Денис Дмитриевич',      phone: '+7 (919) 222-19-86' },
+    { name: 'Сорокин Александр Евгеньевич',  phone: '+7 (965) 346-29-06' },
+  ];
+  drop.innerHTML = people.map(p =>
+    `<div class="dd-item" data-name="${escapeHtml(p.name)}" data-phone="${escapeHtml(p.phone)}">
+      <div class="dd-name">${escapeHtml(p.name)}</div>
+      <div class="dd-phone">${escapeHtml(p.phone)}</div>
+    </div>`
+  ).join('');
+  drop.querySelectorAll('.dd-item').forEach(el => {
+    el.addEventListener('click', () => {
+      input.value = el.dataset.name;
+      const phoneEl = document.getElementById('f-phone-to');
+      if (phoneEl) phoneEl.value = el.dataset.phone;
+      drop.style.display = 'none';
+    });
+  });
+}
+
+function toggleRespDropdownTO() {
+  const drop = document.getElementById('respDropdownTO');
+  if (!drop) return;
+  const isOpen = drop.style.display === 'block';
+  drop.style.display = isOpen ? 'none' : 'block';
+}
+
+async function goToTechPickerOnly(btn) {
+  const reqDate = document.getElementById('f-req-date-to').value;
+  const site    = document.getElementById('f-site-to').value.trim();
+  const resp    = document.getElementById('f-resp-to').value.trim();
+  const phone   = document.getElementById('f-phone-to').value.trim();
+
+  if (!site || !resp) {
+    if (!site) { const el = document.getElementById('f-site-to'); if(el){el.style.borderColor='var(--red)'; setTimeout(()=>el.style.borderColor='',1500);} }
+    if (!resp) { const el = document.getElementById('f-resp-to'); if(el){el.style.borderColor='var(--red)'; setTimeout(()=>el.style.borderColor='',1500);} }
+    addCard('⚠️ Пожалуйста, заполните все поля.');
+    return;
+  }
+
+  btn.disabled = true; btn.style.opacity = '.55';
+  window._reqDraft = { name: '', qty: '', unit: '', mat_time: '', matItems: [], site, resp, phone, tech: [], req_date: reqDate, techOnly: true };
+  renderTechPickerOnly();
+}
+
+function renderTechPickerOnly() {
+  const chat = document.getElementById('chat');
+  const selected = window._reqDraft.tech;
+
+  const pickerCard = document.createElement('div');
+  pickerCard.className = 'card';
+
+  const itemsHtml = techList.map((name, i) => `
+    <div class="tech-pick-item" data-idx="${i}">
+      <div class="pick-check"></div>
+      <span style="font-size:14px;color:var(--text);flex:1;">${escapeHtml(name)}</span>
+      <input class="tech-qty-input" id="qty-to-${i}" type="number" min="1" max="99" value="1"
+        onclick="event.stopPropagation()" style="display:none;" />
+      <input class="tech-time-input" id="time-to-${i}" type="time"
+        onclick="event.stopPropagation()" style="display:none;" />
+    </div>
+  `).join('');
+
+  pickerCard.innerHTML = `
+    <div class="card-title">🚜 Выберите технику</div>
+    <div class="card-sub" style="margin-bottom:10px;">Выберите одну или несколько единиц техники:</div>
+    <div id="techPickListTO" style="display:flex;flex-direction:column;gap:6px;">${itemsHtml}</div>
+    <div id="techPickCountTO" style="font-size:12px;color:var(--text-dim);margin-top:8px;">Выбрано: 0</div>
+    <div style="margin-top:10px;">
+      <button id="addTechBtnTO" style="background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;">＋ Добавить технику</button>
+      <div id="addTechBoxTO" style="display:none;margin-top:8px;">
+        <input id="addTechInputTO" type="text" placeholder="Введите название..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;color:var(--text);padding:9px 12px;font-size:14px;outline:none;" />
+        <div id="addTechDropdownTO" style="display:none;background:#1e2436;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-top:4px;overflow:hidden;"></div>
+      </div>
+    </div>
+  `;
+  chat.appendChild(pickerCard);
+  scrollChat();
+
+  pickerCard.querySelector('#addTechBtnTO').addEventListener('click', function() {
+    const box = pickerCard.querySelector('#addTechBoxTO');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    if (box.style.display === 'block') pickerCard.querySelector('#addTechInputTO').focus();
+  });
+
+  pickerCard.querySelector('#addTechInputTO').addEventListener('input', function() {
+    const val = this.value.trim();
+    const drop = pickerCard.querySelector('#addTechDropdownTO');
+    if (val.length < 2) { drop.style.display = 'none'; return; }
+    const matches = techList.filter(t => t.toLowerCase().includes(val.toLowerCase()));
+    const items = matches.map(t =>
+      '<div style="padding:10px 14px;cursor:pointer;font-size:14px;color:var(--text);border-bottom:1px solid rgba(255,255,255,.06);" data-name="' + escapeHtml(t) + '">' + escapeHtml(t) + '</div>'
+    );
+    const alreadyExact = techList.some(t => t.toLowerCase() === val.toLowerCase());
+    if (!alreadyExact) items.push('<div style="padding:10px 14px;cursor:pointer;font-size:14px;color:#3f8cff;" data-add="' + escapeHtml(val) + '">+ Добавить «' + escapeHtml(val) + '»</div>');
+    if (!items.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = items.join('');
+    drop.style.display = 'block';
+    drop.querySelectorAll('div').forEach(function(d) {
+      d.addEventListener('click', function() {
+        const techName = d.dataset.add || d.dataset.name;
+        if (!techName) return;
+        if (d.dataset.add) {
+          fetch('https://mvs-backend-denis3111.amvera.io/api/order-tech', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:techName}) }).catch(function(){});
+          if (!techList.includes(techName)) techList.push(techName);
+        }
+        const list = pickerCard.querySelector('#techPickListTO');
+        if (!list.querySelector('[data-name="' + techName + '"]')) {
+          const row = document.createElement('div');
+          row.className = 'tech-pick-item';
+          row.dataset.name = techName;
+          row.innerHTML = '<div class="pick-check"></div><span style="font-size:14px;color:var(--text);flex:1;">' + escapeHtml(techName) + '</span>' +
+            '<input class="tech-qty-input" type="number" min="1" max="99" value="1" onclick="event.stopPropagation()" style="display:none;" />' +
+            '<input class="tech-time-input" type="time" onclick="event.stopPropagation()" style="display:none;" />';
+          list.appendChild(row);
+          bindTechItemTO(row, techName, selected, updateCountTO);
+        }
+        pickerCard.querySelector('#addTechInputTO').value = '';
+        drop.style.display = 'none';
+        pickerCard.querySelector('#addTechBoxTO').style.display = 'none';
+      });
+    });
+  });
+
+  function bindTechItemTO(item, techName, selected, updateCount) {
+    item.addEventListener('click', function() {
+      const check = item.querySelector('.pick-check');
+      const qtyInput = item.querySelector('.tech-qty-input');
+      const timeInput = item.querySelector('.tech-time-input');
+      const already = selected.findIndex(t => t.name === techName);
+      if (already === -1) {
+        selected.push({ name: techName, qty: 1, time: '' });
+        item.classList.add('selected');
+        check.innerHTML = '✓';
+        qtyInput.style.display = 'block';
+        timeInput.style.display = 'block';
+        qtyInput.focus();
+        qtyInput.addEventListener('input', function() {
+          const entry = selected.find(t => t.name === techName);
+          if (entry) entry.qty = parseInt(qtyInput.value) || 1;
+          updateCount();
+        });
+        timeInput.addEventListener('change', function() {
+          const entry = selected.find(t => t.name === techName);
+          if (entry) entry.time = timeInput.value;
+        });
+      } else {
+        selected.splice(already, 1);
+        item.classList.remove('selected');
+        check.innerHTML = '';
+        qtyInput.style.display = 'none';
+        qtyInput.value = 1;
+        timeInput.style.display = 'none';
+        timeInput.value = '';
+      }
+      updateCount();
+    });
+  }
+
+  function updateCountTO() {
+    const total = selected.reduce((s, t) => s + (t.qty || 1), 0);
+    pickerCard.querySelector('#techPickCountTO').textContent = `Выбрано: ${selected.length} ед. (итого: ${total} ед.)`;
+  }
+
+  pickerCard.querySelectorAll('.tech-pick-item').forEach(item => {
+    const idx = parseInt(item.dataset.idx);
+    const techName = techList[idx];
+    bindTechItemTO(item, techName, selected, updateCountTO);
+  });
+
+  addBtnGroup([
+    { label: '✅ Отправить заявку', variant: 'primary', onClick: (btn) => submitRequest(btn) },
+    { label: '← Назад', variant: 'back', onClick: () => { history.pop(); go('techOnly', false); } },
+  ]);
+}
+
+/* -------- Material request form -------- */
 function renderNewRequestForm() {
   const chat = document.getElementById('chat');
   const formCard = document.createElement('div');
@@ -826,7 +1117,8 @@ function renderTechPicker() {
 
 function submitRequest(btn) {
   const { name, qty, unit, mat_time, matItems, site, resp, phone, tech, req_date } = window._reqDraft;
-  const _matItems = matItems || [{ name, qty, unit, mat_time }];
+  const _matItems = (matItems && matItems.length) ? matItems : (name ? [{ name, qty, unit, mat_time }] : []);
+  const isTechOnly = window._reqDraft.techOnly || false;
 
   if (btn && btn.closest) {
     btn.closest('.btn-group').querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '.55'; });
@@ -857,10 +1149,11 @@ function submitRequest(btn) {
       <span class="pill new" style="margin-left:auto;"><span class="dot new"></span>Новая</span>
     </div>
 
+    ${!isTechOnly && _matItems.length ? `
     <div>
       <div class="succ-section-label">Материал:</div>
       ${_matItems.map(m => `<div class="succ-section-val" style="margin-bottom:4px;">${escapeHtml(m.name)} — ${escapeHtml(m.qty)} ${m.unit}${m.mat_time ? ` <span style="color:var(--accent);">⏰ к ${m.mat_time}</span>` : ''}</div>`).join('')}
-    </div>
+    </div>` : ''}
 
     <div class="succ-section">
       <div class="succ-section-label">📍 Адрес:</div>
@@ -895,12 +1188,13 @@ function submitRequest(btn) {
           return tLine + tTime;
         }).join('\n')
       : 'не выбрана';
+    const matLines = (!isTechOnly && _matItems.length)
+      ? ['МАТЕРИАЛ:', ..._matItems.map(m => m.name + ' — ' + m.qty + ' ' + m.unit + (m.mat_time ? ' (к ' + m.mat_time + ')' : '')), '']
+      : [];
     const text = [
       'Заявка на ' + dateStr,
       '',
-      'МАТЕРИАЛ:',
-      ..._matItems.map(m => m.name + ' — ' + m.qty + ' ' + m.unit + (m.mat_time ? ' (к ' + m.mat_time + ')' : '')),
-      '',
+      ...matLines,
       '📍 АДРЕС',
       site,
       '',
