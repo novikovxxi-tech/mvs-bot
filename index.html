@@ -287,9 +287,13 @@
     <input class="pw-input" id="pw-login" type="text" placeholder="Логин"
       style="letter-spacing:normal;" autocomplete="username"
       onkeydown="if(event.key==='Enter')document.getElementById('pw-pass').focus()">
-    <input class="pw-input" id="pw-pass" type="password" placeholder="Пароль"
-      autocomplete="current-password"
-      onkeydown="if(event.key==='Enter')checkPw()">
+    <div style="position:relative;width:100%;">
+      <input class="pw-input" id="pw-pass" type="password" placeholder="Пароль"
+        autocomplete="current-password" style="width:100%;padding-right:48px;"
+        onkeydown="if(event.key==='Enter')checkPw()">
+      <button type="button" onclick="var i=document.getElementById('pw-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈';"
+        style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,.5);">👁</button>
+    </div>
     <div class="pw-err" id="pw-err"></div>
     <button class="pw-btn" onclick="checkPw()">Войти</button>
   </div>
