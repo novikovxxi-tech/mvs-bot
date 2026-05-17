@@ -133,7 +133,7 @@ async function loadUsers() {
       <div class="user-row" id="row-${u.id}">
         <div class="user-info">
           <div class="user-name">${u.name}</div>
-          <div class="user-login">Логин: <b>${u.login}</b></div>
+          <div class="user-login">Логин: <b>${u.login}</b>${u.password ? ' &nbsp;·&nbsp; Пароль: <b>' + u.password + '</b>' : ''}</div>
           <div class="user-date">${new Date(u.created_at).toLocaleDateString('ru')}</div>
         </div>
         <span class="badge ${u.is_active ? 'active' : 'blocked'}" id="badge-${u.id}">${u.is_active ? 'Активен' : 'Заблокирован'}</span>
