@@ -167,7 +167,7 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
   }
   .succ-card-head .title { font-weight: 700; font-size: 14px; color: #d2f7dd; }
-  .succ-section { border-top: 1px solid rgba(255,255,255,.06); padding-top: 8px; margin-top: 8px; }
+  .succ-section { border-top: 1px solid rgba(255,255,255,.06); padding-top: 14px; margin-top: 14px; }
   .succ-section-label { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-bottom: 3px; }
   .succ-section-val { color: var(--text); font-size: 13.5px; }
   .succ-section-sub { color: var(--text-dim); font-size: 13px; }
@@ -1146,7 +1146,7 @@ function submitRequest(btn) {
     </div>
 
     ${!isTechOnly && _matItems.length ? `
-    <div>
+    <div style="margin-top:14px;">
       <div class="succ-section-label">Материал:</div>
       ${_matItems.map(m => `<div class="succ-section-val" style="margin-bottom:4px;">${escapeHtml(m.name)} — ${escapeHtml(m.qty)} ${m.unit}${m.mat_time ? ` <span style="color:var(--accent);">⏰ к ${m.mat_time}</span>` : ''}</div>`).join('')}
     </div>` : ''}
