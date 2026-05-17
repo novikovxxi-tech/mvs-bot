@@ -138,6 +138,7 @@ async function loadUsers() {
         </div>
         <span class="badge ${u.is_active ? 'active' : 'blocked'}" id="badge-${u.id}">${u.is_active ? 'Активен' : 'Заблокирован'}</span>
         <button class="btn-toggle" onclick="toggleUser(${u.id})" title="${u.is_active ? 'Заблокировать' : 'Разблокировать'}" id="tog-${u.id}">${u.is_active ? '🔒' : '✅'}</button>
+        <button class="btn-icon" onclick="resetPassword(${u.id}, '${u.name}')" title="Сбросить пароль">🔑</button>
         <button class="btn-icon" onclick="deleteUser(${u.id}, '${u.name}')" title="Удалить">🗑</button>
       </div>
     `).join('');
@@ -169,6 +170,21 @@ async function addUser() {
     loadUsers();
   } catch(e) {
     res.style.display='block'; res.textContent = 'Ошибка сети';
+  }
+}
+
+async function resetPassword(id, name) {
+  if (!confirm(`Сбросить пароль пользователя "${name}"?`)) return;
+  const r = await fetch(API + '/api/auth/users/' + id + '/reset-password', { method: 'POST', headers: { 'X-Admin-Password': ADMIN_PW } });
+  const d = await r.json();
+  if (d.ok) {
+    // Обновляем отображение пароля в карточке
+    const row = document.getElementById('row-' + id);
+    if (row) {
+      const loginEl = row.querySelector('.user-login');
+      if (loginEl) loginEl.innerHTML = `Логин: <b>${d.login}</b> &nbsp;·&nbsp; Пароль: <b style="color:#5ad17a;">${d.password}</b>`;
+    }
+    alert(`Новый пароль для ${d.name}:\n\n${d.password}`);
   }
 }
 
