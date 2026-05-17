@@ -108,8 +108,8 @@
 </div>
 
 <script>
-const API = 'https://comfortable-surprise-production-2bf0.up.railway.app';
-let ADMIN_PW = '';
+const API = 'https://mvs-backend-denis3111.amvera.io';
+let ADMIN_PW = sessionStorage.getItem('admin_pw') || '';
 
 function adminLogin() {
   const pw = document.getElementById('admin-pw').value.trim();
@@ -119,6 +119,7 @@ function adminLogin() {
     return;
   }
   ADMIN_PW = pw;
+  sessionStorage.setItem('admin_pw', pw);
   document.getElementById('auth-screen').classList.add('hidden');
   loadUsers();
 }
