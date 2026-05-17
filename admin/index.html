@@ -175,16 +175,30 @@ async function addUser() {
 
 async function resetPassword(id, name) {
   if (!confirm(`Сбросить пароль пользователя "${name}"?`)) return;
-  const r = await fetch(API + '/api/auth/users/' + id + '/reset-password', { method: 'POST', headers: { 'X-Admin-Password': ADMIN_PW } });
-  const d = await r.json();
-  if (d.ok) {
-    // Обновляем отображение пароля в карточке
-    const row = document.getElementById('row-' + id);
-    if (row) {
-      const loginEl = row.querySelector('.user-login');
-      if (loginEl) loginEl.innerHTML = `Логин: <b>${d.login}</b> &nbsp;·&nbsp; Пароль: <b style="color:#5ad17a;">${d.password}</b>`;
+  try {
+    const r = await fetch(API + '/api/auth/users/' + id + '/reset-password', { method: 'POST', headers: { 'X-Admin-Password': ADMIN_PW } });
+    const d = await r.json();
+    if (d.ok) {
+      const row = document.getElementById('row-' + id);
+      if (row) {
+        const loginEl = row.querySelector('.user-login');
+        if (loginEl) loginEl.innerHTML = `Логин: <b>${d.login}</b> &nbsp;·&nbsp; Пароль: <b style="color:#5ad17a;font-size:14px;">${d.password}</b>`;
+        // Показываем всплывающий блок прямо в карточке
+        let toast = row.querySelector('.pw-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.className = 'pw-toast';
+          toast.style.cssText = 'margin-top:6px;padding:8px 12px;background:rgba(90,209,122,.15);border:1px solid rgba(90,209,122,.3);border-radius:8px;font-size:13px;color:#5ad17a;';
+          row.querySelector('.user-info').appendChild(toast);
+        }
+        toast.innerHTML = `✅ Новый пароль: <b style="font-size:15px;letter-spacing:1px;">${d.password}</b>`;
+        toast.style.display = 'block';
+      }
+    } else {
+      alert('Ошибка: ' + (d.error || 'неизвестная'));
     }
-    alert(`Новый пароль для ${d.name}:\n\n${d.password}`);
+  } catch(e) {
+    alert('Ошибка сети');
   }
 }
 
