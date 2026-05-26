@@ -346,6 +346,7 @@
   <div class="tab active" onclick="switchTab('input')">Ввод</div>
   <div class="tab" onclick="switchTab('stats')">Статистика</div>
   <div class="tab" onclick="switchTab('log')">История</div>
+  <div class="tab" onclick="switchTab('progress')">Готовность</div>
 </div>
 
 <!-- МОДАЛ РЕДАКТИРОВАНИЯ -->
@@ -551,6 +552,10 @@
 </div>
 
 <!-- ИСТОРИЯ -->
+<div class="screen" id="screen-progress">
+  <div id="progress-content">Загрузка...</div>
+</div>
+
 <div class="screen" id="screen-log">
   <!-- Фильтр по улице -->
   <div class="card" style="padding:12px 14px;">
@@ -882,6 +887,95 @@
     return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
   }
 
+  // === ГОТОВНОСТЬ ===
+  const PLAN_DATA = [
+    { name: 'Проезд вдоль Сахаровского центра', plan: 28.8 },
+    { name: 'Проезд от Новорогожской ул. до Рабочей ул, вл.93', plan: 165.0 },
+    { name: 'Проезд от улицы Радио до набережной Академика Туполева', plan: 746.6 },
+    { name: 'Библиотечная', plan: 1311.2 },
+    { name: 'Калитниковский М. пр-д', plan: 669.6 },
+    { name: 'Машкова улица', plan: 382.6 },
+    { name: 'Сосинская ул', plan: 592.2 },
+    { name: 'Стремянный пер', plan: 1860.5 },
+    { name: 'Проезд от Варшавского ш. д.146 до Кировоградской улицы (подъездная дорога к универсаму № 70)', plan: 807.3 },
+    { name: 'Варшавского шоссе 37', plan: 219.5 },
+    { name: '2-й Варшавский проезд', plan: 179.3 },
+    { name: 'Подъезд к заводу (в границах Ступинской улицы)', plan: 44.3 },
+    { name: 'Колобашкина улица', plan: 888.6 },
+    { name: 'Подольских курсантов ул., д.1', plan: 37.8 },
+    { name: 'Пр-д от Хлебозаводского проезда до проектируемого проезда №3716', plan: 293.8 },
+    { name: 'Ряжская улица', plan: 1025.8 },
+    { name: '8-я улица Текстильщиков', plan: 2281.3 },
+    { name: 'Железнодорожный проезд', plan: 771.7 },
+    { name: 'Корабельная улица', plan: 2390.0 },
+    { name: 'Улица Бехтерева', plan: 1331.7 },
+    { name: 'улица Братьев Рябушинских', plan: 587.6 },
+    { name: 'Проезд № 1481', plan: 403.2 },
+    { name: 'Донецкая улица, д.40', plan: 909.4 },
+    { name: 'Подъездная дорога к «ул. Кубанская д. 27»', plan: 99.0 },
+    { name: 'Проезд № 2263', plan: 459.8 },
+    { name: 'Ставропольский проезд', plan: 965.3 },
+    { name: 'Проезд № 5113', plan: 2431.6 },
+    { name: 'Проезд от ул. Перерва до Иловайской ул.', plan: 116.9 },
+    { name: 'Проспект 40 лет Октября', plan: 3437.6 },
+    { name: 'Варшавское шоссе 126А(школа)', plan: 219.5 },
+  ];
+
+  async function renderProgress() {
+    const res = await fetch(API_URL + '/api/entries');
+    const entries = await res.json();
+
+    // Считаем факт по каждому объекту (сумма тонн из истории)
+    const fact = {};
+    entries.forEach(e => {
+      const key = (e.street || '').trim().toLowerCase();
+      fact[key] = (fact[key] || 0) + parseFloat(e.vol || 0);
+    });
+
+    const totalPlan = PLAN_DATA.reduce((s, o) => s + o.plan, 0);
+    const totalFact = Object.values(fact).reduce((s, v) => s + v, 0);
+    const totalPct = Math.min((totalFact / totalPlan * 100), 100).toFixed(1);
+
+    let html = `
+      <div style="background:var(--bg-card);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border);">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">Общая готовность</div>
+        <div style="font-size:28px;font-weight:800;color:${totalPct>=100?'#3f8cff':totalPct>=70?'#5ad17a':totalPct>=30?'#f5a623':'#ff5a5a'};">${totalPct}%</div>
+        <div style="margin:8px 0 4px;background:var(--bg-input);border-radius:6px;height:10px;overflow:hidden;">
+          <div style="height:100%;width:${totalPct}%;background:${totalPct>=100?'#3f8cff':totalPct>=70?'#5ad17a':totalPct>=30?'#f5a623':'#ff5a5a'};border-radius:6px;transition:width .5s;"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">${totalFact.toFixed(1)} т / ${totalPlan.toFixed(1)} т</div>
+      </div>`;
+
+    // Сортируем по проценту убыванию
+    const sorted = PLAN_DATA.map(o => {
+      const key = o.name.trim().toLowerCase();
+      const done = fact[key] || 0;
+      const pct = o.plan > 0 ? Math.min((done / o.plan * 100), 999) : 0;
+      return { ...o, done, pct };
+    }).sort((a, b) => b.pct - a.pct);
+
+    sorted.forEach(o => {
+      const pct = o.pct;
+      const pctDisplay = pct.toFixed(1);
+      const barWidth = Math.min(pct, 100).toFixed(1);
+      const color = pct >= 100 ? '#3f8cff' : pct >= 70 ? '#5ad17a' : pct >= 30 ? '#f5a623' : '#ff5a5a';
+      const badge = pct >= 100 ? '✅' : pct >= 70 ? '🟢' : pct >= 30 ? '🟡' : '🔴';
+      html += `
+        <div style="background:var(--bg-card);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:600;flex:1;padding-right:8px;">${badge} ${o.name}</div>
+            <div style="font-size:18px;font-weight:800;color:${color};white-space:nowrap;">${pctDisplay}%</div>
+          </div>
+          <div style="background:var(--bg-input);border-radius:4px;height:7px;overflow:hidden;margin-bottom:6px;">
+            <div style="height:100%;width:${barWidth}%;background:${color};border-radius:4px;transition:width .5s;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);">${o.done.toFixed(1)} т / ${o.plan.toFixed(1)} т &nbsp;·&nbsp; осталось: ${Math.max(o.plan - o.done, 0).toFixed(1)} т</div>
+        </div>`;
+    });
+
+    document.getElementById('progress-content').innerHTML = html;
+  }
+
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -889,6 +983,7 @@
     document.getElementById('screen-' + tab).classList.add('active');
     if (tab === 'log') renderLog();
     if (tab === 'stats') renderStats();
+    if (tab === 'progress') renderProgress();
   }
 
   async function saveEntry() {
