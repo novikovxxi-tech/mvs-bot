@@ -284,6 +284,7 @@
     0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
   }
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1339,11 +1340,8 @@
 
     const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
     const usedTypes = FIXED_TYPES.filter(t => streetEntries.some(e => e.type === t));
-    const typeStyleMap = {'МЗВ II':'mzv','ПД II':'pd','МЗБ':'mzb','КЗБ':'kzb'};
-    const typeTotalStyleMap = {'МЗВ II':'total_mzv','ПД II':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
     const grandTotal = streetEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
 
-    // Группируем по месяцу
     const byMonth = {};
     streetEntries.forEach(e => {
       const [y, m] = e.date.split('-');
@@ -1353,151 +1351,36 @@
     });
     const months = Object.keys(byMonth).sort();
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Styles>
-    <Style ss:ID="title"><Font ss:Bold="1" ss:Size="13" ss:Color="#FFFFFF"/><Interior ss:Color="#0F2D6B" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="even"><Interior ss:Color="#F4F7FF" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="odd"><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="mzv"><Font ss:Color="#1a5fa8" ss:Bold="1"/><Interior ss:Color="#dceeff" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="pd"><Font ss:Color="#1a7a3a" ss:Bold="1"/><Interior ss:Color="#d4f5e0" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="mzb"><Font ss:Color="#8a6000" ss:Bold="1"/><Interior ss:Color="#fff3cc" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="kzb"><Font ss:Color="#7a1a9a" ss:Bold="1"/><Interior ss:Color="#f5d4ff" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_mzv"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a5fa8" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_pd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a7a3a" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_mzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#8a6000" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_kzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7a1a9a" ss:Pattern="Solid"/></Style>
-  </Styles>
-`;
+    const wb = XLSX.utils.book_new();
 
     // Лист 1 — По месяцам
-    xml += `  <Worksheet ss:Name="По месяцам">
-    <Table>
-`;
-    xml += `      <Column ss:Width="140"/>
-`;
-    usedTypes.forEach(() => { xml += `      <Column ss:Width="80"/>
-`; });
-    xml += `      <Column ss:Width="90"/>
-`;
-
-    xml += `      <Row ss:Height="22">
-`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="${usedTypes.length+1}"><Data ss:Type="String">${logFilterStreet}</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-    xml += `      <Row>
-`;
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">Месяц</Data></Cell>
-`;
-    usedTypes.forEach(t => { xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${t}, т</Data></Cell>
-`; });
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">ИТОГО, т</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-
-    months.forEach((mk, i) => {
+    const ws1data = [[logFilterStreet]];
+    ws1data.push(['Месяц', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    months.forEach(mk => {
       const [y, m] = mk.split('-');
       const mName = MONTHS_RU[parseInt(m)-1] + ' ' + y;
       const types = byMonth[mk];
-      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      const style = i%2===0 ? 'even' : 'odd';
-      xml += `      <Row>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${mName}</Data></Cell>
-`;
-      usedTypes.forEach(t => {
-        const v = types[t] || 0;
-        const st = v ? typeStyleMap[t] : style;
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*100)/100}</Data></Cell>
-`;
-      });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>
-`;
-      xml += `      </Row>
-`;
+      const rowTotal = usedTypes.reduce((s,t)=>s+(types[t]||0),0);
+      ws1data.push([mName, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
     });
+    const totRow = ['ИТОГО', ...usedTypes.map(t=>Math.round(streetEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
+    ws1data.push(totRow);
+    const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
+    ws1['!cols'] = [{wch:30}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'По месяцам');
 
-    // Итого
-    xml += `      <Row>
-`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>
-`;
-    usedTypes.forEach(t => {
-      const s = streetEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>
-`;
+    // Лист 2 — Журнал
+    const ws2data = [['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание']];
+    streetEntries.forEach(e => {
+      const [y,m,d] = e.date.split('-');
+      ws2data.push([`${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
     });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-    xml += `    </Table>
-  </Worksheet>
-`;
+    const ws2 = XLSX.utils.aoa_to_sheet(ws2data);
+    ws2['!cols'] = [{wch:12},{wch:10},{wch:10},{wch:10},{wch:25},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Журнал');
 
-    // Лист 2 — Журнал по улице
-    xml += `  <Worksheet ss:Name="Журнал">
-    <Table>
-`;
-    xml += `      <Column ss:Width="90"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/><Column ss:Width="150"/>
-`;
-    xml += `      <Row ss:Height="22">
-`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="6"><Data ss:Type="String">Журнал — ${logFilterStreet}</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-    xml += `      <Row>
-`;
-    ['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
-      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
-`;
-    });
-    xml += `      </Row>
-`;
-
-    streetEntries.forEach((e, i) => {
-      const style = i%2===0 ? 'even' : 'odd';
-      const [y, m, d] = e.date.split('-');
-      xml += `      <Row>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>
-`;
-      xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.responsible||''}</Data></Cell>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.note||''}</Data></Cell>
-`;
-      xml += `      </Row>
-`;
-    });
-    xml += `    </Table>
-  </Worksheet>
-`;
-    xml += `</Workbook>`;
-
-    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     const safeName = logFilterStreet.replace(/[^а-яёa-z0-9 ._-]/gi, '_').substring(0, 40);
-    a.download = `Улица_${safeName}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, `Улица_${safeName}.xlsx`);
   }
 
   function exportExcel() {
@@ -1512,189 +1395,65 @@
     const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
     const usedTypes = FIXED_TYPES.filter(t => xlsEntries.some(e => e.type === t));
     const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
-    const grandTotal = xlsEntries.reduce((a,e)=>a+e.vol,0);
+    const grandTotal = xlsEntries.reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
 
-    const typeStyleMap = {'МЗВ II':'mzv','ПД II':'pd','МЗБ':'mzb','КЗБ':'kzb'};
-    const typeTotalStyleMap = {'МЗВ II':'total_mzv','ПД II':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
+    const wb = XLSX.utils.book_new();
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Styles>
-    <Style ss:ID="title"><Font ss:Bold="1" ss:Size="13" ss:Color="#FFFFFF"/><Interior ss:Color="#0F2D6B" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="even"><Interior ss:Color="#F4F7FF" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="odd"><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="mzv"><Font ss:Color="#1a5fa8" ss:Bold="1"/><Interior ss:Color="#dceeff" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="pd"><Font ss:Color="#1a7a3a" ss:Bold="1"/><Interior ss:Color="#d4f5e0" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="mzb"><Font ss:Color="#8a6000" ss:Bold="1"/><Interior ss:Color="#fff3cc" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="kzb"><Font ss:Color="#7a1a9a" ss:Bold="1"/><Interior ss:Color="#f5d4ff" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_mzv"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a5fa8" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_pd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a7a3a" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_mzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#8a6000" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_kzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7a1a9a" ss:Pattern="Solid"/></Style>
-  </Styles>
-`;
-
-    // ══ ЛИСТ 1: По объектам ══════════════════════════════════════
-    const byStreetXls = {};
+    // Лист 1 — По объектам
+    const byStreetMap = {};
     xlsEntries.forEach(e => {
-      if (!byStreetXls[e.street]) byStreetXls[e.street] = {};
-      byStreetXls[e.street][e.type] = (byStreetXls[e.street][e.type] || 0) + e.vol;
+      if (!byStreetMap[e.street]) byStreetMap[e.street] = {};
+      byStreetMap[e.street][e.type] = (byStreetMap[e.street][e.type] || 0) + (parseFloat(e.vol)||0);
     });
-    const streetsSorted = Object.entries(byStreetXls).sort((a,b) =>
+    const streetsSorted = Object.entries(byStreetMap).sort((a,b) =>
       Object.values(b[1]).reduce((s,v)=>s+v,0) - Object.values(a[1]).reduce((s,v)=>s+v,0)
     );
-
-    xml += `  <Worksheet ss:Name="По объектам">\n    <Table>\n`;
-    xml += `      <Column ss:Width="260"/>\n`;
-    usedTypes.forEach(() => { xml += `      <Column ss:Width="80"/>\n`; });
-    xml += `      <Column ss:Width="90"/>\n`;
-
-    // Заголовок с названием месяца
-    xml += `      <Row ss:Height="22">\n`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="${usedTypes.length+1}"><Data ss:Type="String">Объёмы работ — ${monthName}</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-
-    xml += `      <Row>\n`;
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">Улица / Объект</Data></Cell>\n`;
-    usedTypes.forEach(t => {
-      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${t}, т</Data></Cell>\n`;
-    });
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">ИТОГО, т</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-
-    streetsSorted.forEach(([street, types], i) => {
-      const style = i % 2 === 0 ? 'even' : 'odd';
+    const ws1data = [[`Объёмы работ — ${monthName}`]];
+    ws1data.push(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    streetsSorted.forEach(([street, types]) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      xml += `      <Row>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${street}</Data></Cell>\n`;
-      usedTypes.forEach(t => {
-        const v = types[t] || 0;
-        const st = v ? typeStyleMap[t] : style;
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${v ? Math.round(v*100)/100 : 0}</Data></Cell>\n`;
-      });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>\n`;
-      xml += `      </Row>\n`;
+      ws1data.push([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
     });
+    const totRow1 = ['ИТОГО', ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
+    ws1data.push(totRow1);
+    const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
+    ws1['!cols'] = [{wch:40}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'По объектам');
 
-    // Итоговая строка
-    xml += `      <Row>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>\n`;
-    usedTypes.forEach(t => {
-      const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+e.vol,0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>\n`;
-    });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-    xml += `    </Table>\n  </Worksheet>\n`;
-
-    // ══ ЛИСТ 2: По дням ══════════════════════════════════════════
-    const byDateXls = {};
+    // Лист 2 — По дням
+    const byDateMap = {};
     xlsEntries.forEach(e => {
-      if (!byDateXls[e.date]) byDateXls[e.date] = {};
-      byDateXls[e.date][e.type] = (byDateXls[e.date][e.type] || 0) + e.vol;
+      if (!byDateMap[e.date]) byDateMap[e.date] = {};
+      byDateMap[e.date][e.type] = (byDateMap[e.date][e.type] || 0) + (parseFloat(e.vol)||0);
     });
-    const datesSorted = Object.keys(byDateXls).sort();
-
-    xml += `  <Worksheet ss:Name="По дням">\n    <Table>\n`;
-    xml += `      <Column ss:Width="90"/>\n`;
-    usedTypes.forEach(() => { xml += `      <Column ss:Width="80"/>\n`; });
-    xml += `      <Column ss:Width="90"/>\n`;
-
-    xml += `      <Row ss:Height="22">\n`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="${usedTypes.length+1}"><Data ss:Type="String">По дням — ${monthName}</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-
-    xml += `      <Row>\n`;
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">Дата</Data></Cell>\n`;
-    usedTypes.forEach(t => {
-      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${t}, т</Data></Cell>\n`;
-    });
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">ИТОГО, т</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-
-    datesSorted.forEach((date, i) => {
-      const style = i % 2 === 0 ? 'even' : 'odd';
-      const types = byDateXls[date];
-      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
+    const datesSorted = Object.keys(byDateMap).sort();
+    const ws2data = [[`По дням — ${monthName}`]];
+    ws2data.push(['Дата', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    datesSorted.forEach(date => {
       const [y, m, d] = date.split('-');
-      xml += `      <Row>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>\n`;
-      usedTypes.forEach(t => {
-        const v = types[t] || 0;
-        const st = v ? typeStyleMap[t] : style;
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${v ? Math.round(v*100)/100 : 0}</Data></Cell>\n`;
-      });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>\n`;
-      xml += `      </Row>\n`;
+      const types = byDateMap[date];
+      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
+      ws2data.push([`${d}.${m}.${y}`, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
     });
+    const totRow2 = ['ИТОГО', ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
+    ws2data.push(totRow2);
+    const ws2 = XLSX.utils.aoa_to_sheet(ws2data);
+    ws2['!cols'] = [{wch:12}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'По дням');
 
-    xml += `      <Row>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>\n`;
-    usedTypes.forEach(t => {
-      const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+e.vol,0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>\n`;
-    });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-    xml += `    </Table>\n  </Worksheet>\n`;
-
-    // ══ ЛИСТ 3: Журнал записей ═══════════════════════════════════
-    xml += `  <Worksheet ss:Name="Журнал">\n    <Table>\n`;
-    xml += `      <Column ss:Width="90"/><Column ss:Width="200"/><Column ss:Width="180"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/><Column ss:Width="150"/>\n`;
-
-    xml += `      <Row ss:Height="22">\n`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="7"><Data ss:Type="String">Журнал записей — ${monthName}</Data></Cell>\n`;
-    xml += `      </Row>\n`;
-
-    xml += `      <Row>\n`;
-    ['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание'].forEach(h => {
-      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>\n`;
-    });
-    xml += `      </Row>\n`;
-
-    xlsEntries.forEach((e, i) => {
-      const style = i % 2 === 0 ? 'even' : 'odd';
+    // Лист 3 — Журнал записей
+    const ws3data = [[`Журнал записей — ${monthName}`]];
+    ws3data.push(['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание']);
+    xlsEntries.forEach(e => {
       const [y, m, d] = e.date.split('-');
-      xml += `      <Row>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.street}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.responsible||''}</Data></Cell>\n`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.note||''}</Data></Cell>\n`;
-      xml += `      </Row>\n`;
+      ws3data.push([`${d}.${m}.${y}`, e.street, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
     });
+    ws3data.push(['ИТОГО','','','', Math.round(grandTotal*100)/100,'','']);
+    const ws3 = XLSX.utils.aoa_to_sheet(ws3data);
+    ws3['!cols'] = [{wch:12},{wch:40},{wch:10},{wch:10},{wch:10},{wch:25},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Журнал');
 
-    xml += `      <Row>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String"></Data></Cell>\n`;
-    xml += `      </Row>\n`;
-    xml += `    </Table>\n  </Worksheet>\n`;
-
-    xml += `</Workbook>`;
-
-    // Скачиваем
-    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const now = new Date();
-    a.href = url;
-    a.download = `Объёмы_${MONTHS_RU[filterMonth-1]}_${filterYear}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, `Объёмы_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
   }
 
   // ─── Сводный отчёт по всем улицам ────────────────────
@@ -1710,186 +1469,50 @@
     const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
     const usedTypes = FIXED_TYPES.filter(t => xlsEntries.some(e => e.type === t));
     const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
-    const typeStyleMap = {'МЗВ II':'mzv','ПД II':'pd','МЗБ':'mzb','КЗБ':'kzb'};
-    const typeTotalStyleMap = {'МЗВ II':'total_mzv','ПД II':'total_pd','МЗБ':'total_mzb','КЗБ':'total_kzb'};
 
     // Группируем по улице
     const byStreet = {};
     xlsEntries.forEach(e => {
       if (!byStreet[e.street]) byStreet[e.street] = {};
-      byStreet[e.street][e.type] = (byStreet[e.street][e.type] || 0) + (parseFloat(e.vol) || 0);
+      byStreet[e.street][e.type] = (byStreet[e.street][e.type] || 0) + (parseFloat(e.vol)||0);
     });
-
-    // Сортируем по итогу (по убыванию)
     const streetsSorted = Object.entries(byStreet).sort((a,b) =>
       Object.values(b[1]).reduce((s,v)=>s+v,0) - Object.values(a[1]).reduce((s,v)=>s+v,0)
     );
-
     const grandTotal = xlsEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Styles>
-    <Style ss:ID="title"><Font ss:Bold="1" ss:Size="13" ss:Color="#FFFFFF"/><Interior ss:Color="#0F2D6B" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3A6E" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="even"><Interior ss:Color="#F4F7FF" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="odd"><Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="mzv"><Font ss:Color="#1a5fa8" ss:Bold="1"/><Interior ss:Color="#dceeff" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="pd"><Font ss:Color="#1a7a3a" ss:Bold="1"/><Interior ss:Color="#d4f5e0" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="mzb"><Font ss:Color="#8a6000" ss:Bold="1"/><Interior ss:Color="#fff3cc" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="kzb"><Font ss:Color="#7a1a9a" ss:Bold="1"/><Interior ss:Color="#f5d4ff" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_mzv"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a5fa8" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_pd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1a7a3a" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_mzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#8a6000" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="total_kzb"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7a1a9a" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="zero"><Font ss:Color="#BBBBBB"/><Interior ss:Color="#FAFAFA" ss:Pattern="Solid"/></Style>
-  </Styles>
-`;
+    const wb = XLSX.utils.book_new();
 
-    // ══ ЛИСТ 1: Сводная таблица ══════════════════════════
-    xml += `  <Worksheet ss:Name="Сводная">
-    <Table>
-`;
-    xml += `      <Column ss:Width="260"/>
-`;
-    usedTypes.forEach(() => { xml += `      <Column ss:Width="80"/>
-`; });
-    xml += `      <Column ss:Width="90"/>
-`;
-
-    // Заголовок
-    xml += `      <Row ss:Height="24">
-`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="${usedTypes.length+1}"><Data ss:Type="String">Сводный отчёт по улицам — ${monthName}</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-
-    // Шапка
-    xml += `      <Row>
-`;
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">Улица / Объект</Data></Cell>
-`;
-    usedTypes.forEach(t => {
-      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${t}, т</Data></Cell>
-`;
-    });
-    xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">ИТОГО, т</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-
-    // Строки по улицам
-    streetsSorted.forEach(([street, types], i) => {
-      const style = i % 2 === 0 ? 'even' : 'odd';
+    // Лист 1 — Сводная таблица
+    const ws1data = [[`Сводный отчёт по улицам — ${monthName}`]];
+    ws1data.push(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    streetsSorted.forEach(([street, types]) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      xml += `      <Row>
-`;
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${street}</Data></Cell>
-`;
-      usedTypes.forEach(t => {
-        const v = types[t] || 0;
-        const st = v ? typeStyleMap[t] : 'zero';
-        xml += `        <Cell ss:StyleID="${st}"><Data ss:Type="Number">${Math.round(v*100)/100}</Data></Cell>
-`;
-      });
-      xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${Math.round(rowTotal*100)/100}</Data></Cell>
-`;
-      xml += `      </Row>
-`;
+      ws1data.push([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
     });
+    const totRow = ['ИТОГО', ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
+    ws1data.push(totRow);
+    const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
+    ws1['!cols'] = [{wch:40}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Сводная');
 
-    // Итоговая строка
-    xml += `      <Row>
-`;
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="String">ИТОГО</Data></Cell>
-`;
-    usedTypes.forEach(t => {
-      const s = xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
-      xml += `        <Cell ss:StyleID="${typeTotalStyleMap[t]}"><Data ss:Type="Number">${Math.round(s*100)/100}</Data></Cell>
-`;
-    });
-    xml += `        <Cell ss:StyleID="total"><Data ss:Type="Number">${Math.round(grandTotal*100)/100}</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-    xml += `    </Table>
-  </Worksheet>
-`;
-
-    // ══ ЛИСТ 2: Детализация по дням для каждой улицы ════
-    // Группируем по улице + дата
-    const streetDays = {};
-    xlsEntries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e => {
-      if (!streetDays[e.street]) streetDays[e.street] = [];
-      streetDays[e.street].push(e);
-    });
-
-    xml += `  <Worksheet ss:Name="Детализация">
-    <Table>
-`;
-    xml += `      <Column ss:Width="260"/><Column ss:Width="90"/><Column ss:Width="70"/><Column ss:Width="80"/><Column ss:Width="70"/><Column ss:Width="180"/>
-`;
-
-    xml += `      <Row ss:Height="22">
-`;
-    xml += `        <Cell ss:StyleID="title" ss:MergeAcross="6"><Data ss:Type="String">Детализация — ${monthName}</Data></Cell>
-`;
-    xml += `      </Row>
-`;
-    xml += `      <Row>
-`;
-    ['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный'].forEach(h => {
-      xml += `        <Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>
-`;
-    });
-    xml += `      </Row>
-`;
-
-    let rowIdx = 0;
+    // Лист 2 — Детализация
+    const ws2data = [[`Детализация — ${monthName}`]];
+    ws2data.push(['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный']);
+    xlsEntries.sort((a,b)=>a.date.localeCompare(b.date));
     streetsSorted.forEach(([street]) => {
-      const rows = streetDays[street] || [];
+      const rows = xlsEntries.filter(e=>e.street===street);
       rows.forEach(e => {
-        const style = rowIdx % 2 === 0 ? 'even' : 'odd';
         const [y, m, d] = e.date.split('-');
-        xml += `      <Row>
-`;
-        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${street}</Data></Cell>
-`;
-        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${d}.${m}.${y}</Data></Cell>
-`;
-        xml += `        <Cell ss:StyleID="${typeStyleMap[e.type]||style}"><Data ss:Type="String">${e.type}</Data></Cell>
-`;
-        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="Number">${e.vol}</Data></Cell>
-`;
-        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.shift}</Data></Cell>
-`;
-        xml += `        <Cell ss:StyleID="${style}"><Data ss:Type="String">${e.responsible||''}</Data></Cell>
-`;
-        xml += `      </Row>
-`;
-        rowIdx++;
+        ws2data.push([street, `${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'']);
       });
     });
-    xml += `    </Table>
-  </Worksheet>
-`;
-    xml += `</Workbook>`;
+    const ws2 = XLSX.utils.aoa_to_sheet(ws2data);
+    ws2['!cols'] = [{wch:40},{wch:12},{wch:10},{wch:10},{wch:10},{wch:25}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Детализация');
 
-    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Сводный_${MONTHS_RU[filterMonth-1]}_${filterYear}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, `Сводный_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
   }
-
 
   // ── УПД ────────────────────────────────────────────────
   const API = 'https://mvs-backend-denis3111.amvera.io';
@@ -1967,4 +1590,3 @@
 <div style="position:fixed;bottom:10px;right:14px;font-size:11px;color:rgba(255,255,255,.2);z-index:100;pointer-events:none;user-select:none;">v1.6</div>
 </body>
 </html>
-
