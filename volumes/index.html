@@ -376,6 +376,17 @@
   <div class="modal">
     <div class="modal-title">✏️ Редактировать запись</div>
     <div class="field">
+      <label>Улица / объект</label>
+      <div class="ac-wrap">
+        <input type="text" id="edit-street" class="ac-input"
+          placeholder="Введите адрес..."
+          autocomplete="off" autocorrect="off" spellcheck="false"
+          oninput="editStreetInput(this.value)"
+          onkeydown="editStreetKey(event)">
+        <div class="ac-dropdown" id="edit-ac-drop"></div>
+      </div>
+    </div>
+    <div class="field">
       <label>Дата</label>
       <input type="date" id="edit-date">
     </div>
@@ -752,6 +763,7 @@
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.ac-wrap')) {
       document.getElementById('ac-drop').classList.remove('open');
+      document.getElementById('edit-ac-drop').classList.remove('open');
     }
   });
 
@@ -1080,6 +1092,7 @@
     const e = entries.find(x => x.id === id);
     if (!e) return;
     editingId = id;
+    document.getElementById('edit-street').value = e.street || '';
     document.getElementById('edit-date').value  = e.date;
     document.getElementById('edit-vol').value   = e.vol;
     document.getElementById('edit-type').value  = e.type;
@@ -1088,8 +1101,36 @@
     const editResp = document.getElementById('edit-responsible');
     editResp.value = e.responsible || '';
     editResp.classList.toggle('placeholder', !e.responsible);
+    document.getElementById('edit-ac-drop').classList.remove('open');
 
     document.getElementById('edit-modal').classList.add('open');
+  }
+
+  let editAcIdx = -1;
+  function editStreetInput(q) {
+    const drop = document.getElementById('edit-ac-drop');
+    q = q.trim();
+    if (!q) { drop.classList.remove('open'); return; }
+    let matches = allStreets.filter(s => s.toLowerCase().includes(q.toLowerCase()));
+    if (!matches.length) { drop.classList.remove('open'); return; }
+    editAcIdx = -1;
+    drop.innerHTML = matches.slice(0, 20).map((s, i) => {
+      const hi = s.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark>$1</mark>');
+      return `<div class="ac-item" data-val="${escHtml(s)}" data-idx="${i}" onmouseover="editAcIdx=${i}" onclick="editStreetPick('${escHtml(s)}')">${hi}</div>`;
+    }).join('');
+    drop.classList.add('open');
+  }
+  function editStreetPick(val) {
+    document.getElementById('edit-street').value = val;
+    document.getElementById('edit-ac-drop').classList.remove('open');
+  }
+  function editStreetKey(e) {
+    const drop = document.getElementById('edit-ac-drop');
+    const items = drop.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { editAcIdx = Math.min(editAcIdx+1, items.length-1); items.forEach((el,j)=>el.classList.toggle('hovered',j===editAcIdx)); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { editAcIdx = Math.max(editAcIdx-1, 0); items.forEach((el,j)=>el.classList.toggle('hovered',j===editAcIdx)); e.preventDefault(); }
+    else if (e.key === 'Enter' && editAcIdx >= 0) { editStreetPick(items[editAcIdx].dataset.val); e.preventDefault(); }
+    else if (e.key === 'Escape') { drop.classList.remove('open'); }
   }
 
   function closeEditModal(event) {
@@ -1100,6 +1141,7 @@
 
   async function saveEdit() {
     if (!editingId) return;
+    const street = document.getElementById('edit-street').value.trim();
     const date  = document.getElementById('edit-date').value;
     const vol   = parseFloat(document.getElementById('edit-vol').value);
     const type  = document.getElementById('edit-type').value;
@@ -1107,12 +1149,13 @@
     const note  = document.getElementById('edit-note').value.trim();
     const responsible = document.getElementById('edit-responsible').value;
     const worktype = '';
+    if (!street) { alert('Укажите улицу / объект'); return; }
     if (!date || !vol || vol <= 0) { alert('Заполните дату и объём'); return; }
     try {
       await fetch(API_URL + '/api/entries/' + editingId, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ date, vol, type, shift, note, responsible, worktype })
+        body: JSON.stringify({ street, date, vol, type, shift, note, responsible, worktype })
       });
       document.getElementById('edit-modal').classList.remove('open');
       editingId = null;
