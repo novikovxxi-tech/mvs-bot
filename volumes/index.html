@@ -1429,12 +1429,27 @@
     });
   }
 
-  function styleDataRow(row, rowIdx) {
-    const bg = rowIdx % 2 === 0 ? 'FFf5f7fc' : 'FFFFFFFF';
+  function styleDataRow(row, rowIdx, usedTypesArg) {
+    // usedTypesArg — массив типов смеси в порядке колонок (начиная с col=2)
     row.eachCell({ includeEmpty: true }, (cell, col) => {
       const isNum = typeof cell.value === 'number';
+      // col=1 — название, col=2..N — типы смеси, col=N+1 — ИТОГО
+      const typeIdx = col - 2; // индекс в usedTypesArg
+      const typeKey = usedTypesArg && typeIdx >= 0 && typeIdx < usedTypesArg.length ? usedTypesArg[typeIdx] : null;
+      const isTotal = usedTypesArg && col === usedTypesArg.length + 2;
+      let bg;
+      if (typeKey) {
+        bg = TYPE_ARGB_LIGHT[typeKey]; // светлый цвет типа смеси
+      } else if (isTotal) {
+        bg = rowIdx % 2 === 0 ? 'FFe8ecf5' : 'FFf0f3fa'; // чуть синеватый для ИТОГО
+      } else {
+        bg = rowIdx % 2 === 0 ? 'FFf5f7fc' : 'FFFFFFFF';
+      }
+      const fg = typeKey && cell.value && cell.value !== 0 ? TYPE_ARGB[typeKey] : 'FF222222';
       applyCell(cell, {
         bg,
+        fg: typeKey ? fg : 'FF222222',
+        bold: typeKey && cell.value && cell.value !== 0,
         align: { horizontal: isNum ? 'right' : (col === 1 ? 'left' : 'center') },
         border: true,
         numFmt: isNum ? '#,##0.00' : undefined
@@ -1510,7 +1525,7 @@
       const types = byMonth[mk];
       const rowTotal = usedTypes.reduce((s,t)=>s+(types[t]||0),0);
       const r = ws1.addRow([mName, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
-      styleDataRow(r, i);
+      styleDataRow(r, i, usedTypes);
     });
 
     const totData1 = ['ИТОГО',
@@ -1623,7 +1638,7 @@
     streetsSorted.forEach(([street, types], i) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
       const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
-      styleDataRow(r, i);
+      styleDataRow(r, i, usedTypes);
     });
     styleTotalRow(ws1.addRow(['ИТОГО',
       ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
@@ -1649,7 +1664,7 @@
       const types = byDateMap[date];
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
       const r = ws2.addRow([`${d}.${m}.${y}`, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
-      styleDataRow(r, i);
+      styleDataRow(r, i, usedTypes);
     });
     styleTotalRow(ws2.addRow(['ИТОГО',
       ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
@@ -1711,7 +1726,7 @@
     streetsSorted.forEach(([street, types], i) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
       const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
-      styleDataRow(r, i);
+      styleDataRow(r, i, usedTypes);
     });
     styleTotalRow(ws1.addRow(['ИТОГО',
       ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
