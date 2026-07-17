@@ -1437,19 +1437,20 @@
       const typeIdx = col - 2; // индекс в usedTypesArg
       const typeKey = usedTypesArg && typeIdx >= 0 && typeIdx < usedTypesArg.length ? usedTypesArg[typeIdx] : null;
       const isTotal = usedTypesArg && col === usedTypesArg.length + 2;
+      const isZero = isNum && (cell.value === 0 || cell.value === null);
       let bg;
-      if (typeKey) {
-        bg = TYPE_ARGB_LIGHT[typeKey]; // светлый цвет типа смеси
+      if (typeKey && !isZero) {
+        bg = TYPE_ARGB_LIGHT[typeKey]; // светлый цвет типа смеси — только если есть значение
       } else if (isTotal) {
-        bg = rowIdx % 2 === 0 ? 'FFe8ecf5' : 'FFf0f3fa'; // чуть синеватый для ИТОГО
+        bg = rowIdx % 2 === 0 ? 'FFe8ecf5' : 'FFf0f3fa';
       } else {
         bg = rowIdx % 2 === 0 ? 'FFf5f7fc' : 'FFFFFFFF';
       }
-      const fg = typeKey && cell.value && cell.value !== 0 ? TYPE_ARGB[typeKey] : 'FF222222';
+      const fg = typeKey && !isZero ? TYPE_ARGB[typeKey] : 'FF222222';
       applyCell(cell, {
         bg,
-        fg: typeKey ? fg : 'FF222222',
-        bold: typeKey && cell.value && cell.value !== 0,
+        fg: typeKey && !isZero ? fg : 'FF222222',
+        bold: typeKey && !isZero,
         align: { horizontal: isNum ? 'right' : (col === 1 ? 'left' : 'center') },
         border: true,
         numFmt: isNum ? '#,##0.00' : undefined
