@@ -285,6 +285,7 @@
   }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body>
 
@@ -1376,6 +1377,165 @@
   }
 
   // ─── Excel по улице ───────────────────────────────────
+  // ─── ExcelJS helpers ──────────────────────────────────
+  // Цвета типов смеси (ARGB без #)
+  const TYPE_ARGB = {
+    'МЗВ II': 'FF3f8cff',
+    'ПД II':  'FF5ad17a',
+    'МЗБ':    'FFffb832',
+    'КЗБ':    'FFe05aff'
+  };
+  const TYPE_ARGB_LIGHT = {
+    'МЗВ II': 'FFd0e8ff',
+    'ПД II':  'FFd4f7df',
+    'МЗБ':    'FFfff0c0',
+    'КЗБ':    'FFf9d0ff'
+  };
+
+  function xlStyle(wb_unused, opts = {}) {
+    // opts: { bold, bg, fg, align, border, numFmt }
+    return opts; // передаётся в applyCell
+  }
+
+  function applyCell(cell, opts = {}) {
+    if (opts.bold)   cell.font = { ...(cell.font||{}), bold: true, name: 'Calibri', size: opts.sz || 11 };
+    else             cell.font = { name: 'Calibri', size: opts.sz || 11 };
+    if (opts.bg)     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.bg } };
+    if (opts.fg)     cell.font = { ...(cell.font||{}), color: { argb: opts.fg } };
+    if (opts.align)  cell.alignment = opts.align;
+    if (opts.numFmt) cell.numFmt = opts.numFmt;
+    if (opts.border) {
+      const b = { style: 'thin', color: { argb: 'FFcccccc' } };
+      cell.border = { top: b, left: b, bottom: b, right: b };
+    }
+  }
+
+  function styleHeaderRow(row, usedTypes, hasTotal) {
+    row.eachCell({ includeEmpty: true }, (cell, col) => {
+      const val = cell.value;
+      const typeKey = usedTypes.find(t => val && String(val).startsWith(t));
+      if (typeKey) {
+        applyCell(cell, { bold: true, bg: TYPE_ARGB[typeKey], fg: 'FFFFFFFF', align: { horizontal: 'center' }, border: true });
+      } else {
+        applyCell(cell, { bold: true, bg: 'FF2c3e6a', fg: 'FFFFFFFF', align: { horizontal: 'center' }, border: true });
+      }
+    });
+    row.height = 20;
+  }
+
+  function styleTotalRow(row) {
+    row.eachCell({ includeEmpty: true }, cell => {
+      applyCell(cell, { bold: true, bg: 'FFe8ecf5', align: { horizontal: 'right' }, border: true });
+    });
+  }
+
+  function styleDataRow(row, rowIdx) {
+    const bg = rowIdx % 2 === 0 ? 'FFf5f7fc' : 'FFFFFFFF';
+    row.eachCell({ includeEmpty: true }, (cell, col) => {
+      const isNum = typeof cell.value === 'number';
+      applyCell(cell, {
+        bg,
+        align: { horizontal: isNum ? 'right' : (col === 1 ? 'left' : 'center') },
+        border: true,
+        numFmt: isNum ? '#,##0.00' : undefined
+      });
+    });
+  }
+
+  function styleTypeDataRow(row, typeVal, rowIdx) {
+    // Для журнала — подсвечиваем строку по типу смеси
+    const bg = TYPE_ARGB_LIGHT[typeVal] || (rowIdx % 2 === 0 ? 'FFf5f7fc' : 'FFFFFFFF');
+    const fg = TYPE_ARGB[typeVal] ? TYPE_ARGB[typeVal] : 'FF222222';
+    row.eachCell({ includeEmpty: true }, (cell, col) => {
+      const isNum = typeof cell.value === 'number';
+      applyCell(cell, {
+        bg,
+        fg: col === 3 ? fg : 'FF222222', // только колонка типа смеси — цветной текст
+        bold: col === 3,
+        align: { horizontal: isNum ? 'right' : (col === 1 ? 'center' : col === 2 ? 'left' : 'center') },
+        border: true,
+        numFmt: isNum ? '#,##0.00' : undefined
+      });
+    });
+  }
+
+  async function saveExcelJS(wb, filename) {
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function exportStreetExcel() {
+    const streetEntries = allEntries.filter(e => e.street === logFilterStreet)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    if (!streetEntries.length) { alert('Нет данных по этому объекту'); return; }
+
+    const FIXED_TYPES = ['МЗВ II','ПД II','МЗБ','КЗБ'];
+    const usedTypes = FIXED_TYPES.filter(t => streetEntries.some(e => e.type === t));
+    const grandTotal = streetEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
+
+    const byMonth = {};
+    streetEntries.forEach(e => {
+      const [y, m] = e.date.split('-');
+      const key = `${y}-${m}`;
+      if (!byMonth[key]) byMonth[key] = {};
+      byMonth[key][e.type] = (byMonth[key][e.type] || 0) + (parseFloat(e.vol)||0);
+    });
+    const months = Object.keys(byMonth).sort();
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'МВС СТ АУК №1';
+
+    // Лист 1 — По месяцам
+    const ws1 = wb.addWorksheet('По месяцам');
+    ws1.columns = [
+      { width: 30 },
+      ...usedTypes.map(() => ({ width: 14 })),
+      { width: 14 }
+    ];
+    const title1 = ws1.addRow([logFilterStreet]);
+    applyCell(title1.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
+    ws1.mergeCells(1, 1, 1, usedTypes.length + 2);
+    title1.height = 24;
+
+    const hdr1 = ws1.addRow(['Месяц', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    styleHeaderRow(hdr1, usedTypes, true);
+
+    months.forEach((mk, i) => {
+      const [y, m] = mk.split('-');
+      const mName = MONTHS_RU[parseInt(m)-1] + ' ' + y;
+      const types = byMonth[mk];
+      const rowTotal = usedTypes.reduce((s,t)=>s+(types[t]||0),0);
+      const r = ws1.addRow([mName, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      styleDataRow(r, i);
+    });
+
+    const totData1 = ['ИТОГО',
+      ...usedTypes.map(t=>Math.round(streetEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
+      Math.round(grandTotal*100)/100];
+    styleTotalRow(ws1.addRow(totData1));
+
+    // Лист 2 — Журнал
+    const ws2 = wb.addWorksheet('Журнал');
+    ws2.columns = [
+      { width: 12 },{ width: 12 },{ width: 10 },{ width: 10 },{ width: 25 },{ width: 35 }
+    ];
+    const hdr2 = ws2.addRow(['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание']);
+    styleHeaderRow(hdr2, usedTypes, false);
+
+    streetEntries.forEach((e, i) => {
+      const [y,m,d] = e.date.split('-');
+      const r = ws2.addRow([`${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
+      styleTypeDataRow(r, e.type, i);
+    });
+
+    const safeName = logFilterStreet.replace(/[^а-яёa-z0-9 ._-]/gi, '_').substring(0, 40);
+    await saveExcelJS(wb, `Улица_${safeName}.xlsx`);
+  }
+
   function exportStreetExcel() {
     if (!logFilterStreet) return;
     const streetEntries = allEntries.filter(e => e.street === logFilterStreet).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1426,7 +1586,7 @@
     XLSX.writeFile(wb, `Улица_${safeName}.xlsx`);
   }
 
-  function exportExcel() {
+  async function exportExcel() {
     const mm = String(filterMonth).padStart(2,'0');
     const prefix = `${filterYear}-${mm}`;
     const xlsEntries = allEntries.filter(e => e.date && e.date.startsWith(prefix)).sort((a,b) => a.date.localeCompare(b.date));
@@ -1440,9 +1600,10 @@
     const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
     const grandTotal = xlsEntries.reduce((a,e)=>a+(parseFloat(e.vol)||0),0);
 
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'МВС СТ АУК №1';
 
-    // Лист 1 — По объектам
+    // ── Лист 1: По объектам ──
     const byStreetMap = {};
     xlsEntries.forEach(e => {
       if (!byStreetMap[e.street]) byStreetMap[e.street] = {};
@@ -1451,56 +1612,69 @@
     const streetsSorted = Object.entries(byStreetMap).sort((a,b) =>
       Object.values(b[1]).reduce((s,v)=>s+v,0) - Object.values(a[1]).reduce((s,v)=>s+v,0)
     );
-    const ws1data = [[`Объёмы работ — ${monthName}`]];
-    ws1data.push(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
-    streetsSorted.forEach(([street, types]) => {
-      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      ws1data.push([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
-    });
-    const totRow1 = ['ИТОГО', ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
-    ws1data.push(totRow1);
-    const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
-    ws1['!cols'] = [{wch:40}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
-    XLSX.utils.book_append_sheet(wb, ws1, 'По объектам');
 
-    // Лист 2 — По дням
+    const ws1 = wb.addWorksheet('По объектам');
+    ws1.columns = [{ width: 42 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 }];
+    const t1 = ws1.addRow([`Объёмы работ — ${monthName}`]);
+    applyCell(t1.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
+    ws1.mergeCells(1, 1, 1, usedTypes.length + 2); t1.height = 24;
+    const h1 = ws1.addRow(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    styleHeaderRow(h1, usedTypes, true);
+    streetsSorted.forEach(([street, types], i) => {
+      const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
+      const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      styleDataRow(r, i);
+    });
+    styleTotalRow(ws1.addRow(['ИТОГО',
+      ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
+      Math.round(grandTotal*100)/100]));
+
+    // ── Лист 2: По дням ──
     const byDateMap = {};
     xlsEntries.forEach(e => {
       if (!byDateMap[e.date]) byDateMap[e.date] = {};
       byDateMap[e.date][e.type] = (byDateMap[e.date][e.type] || 0) + (parseFloat(e.vol)||0);
     });
     const datesSorted = Object.keys(byDateMap).sort();
-    const ws2data = [[`По дням — ${monthName}`]];
-    ws2data.push(['Дата', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
-    datesSorted.forEach(date => {
+
+    const ws2 = wb.addWorksheet('По дням');
+    ws2.columns = [{ width: 12 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 }];
+    const t2 = ws2.addRow([`По дням — ${monthName}`]);
+    applyCell(t2.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
+    ws2.mergeCells(1, 1, 1, usedTypes.length + 2); t2.height = 24;
+    const h2 = ws2.addRow(['Дата', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    styleHeaderRow(h2, usedTypes, true);
+    datesSorted.forEach((date, i) => {
       const [y, m, d] = date.split('-');
       const types = byDateMap[date];
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      ws2data.push([`${d}.${m}.${y}`, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      const r = ws2.addRow([`${d}.${m}.${y}`, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      styleDataRow(r, i);
     });
-    const totRow2 = ['ИТОГО', ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
-    ws2data.push(totRow2);
-    const ws2 = XLSX.utils.aoa_to_sheet(ws2data);
-    ws2['!cols'] = [{wch:12}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
-    XLSX.utils.book_append_sheet(wb, ws2, 'По дням');
+    styleTotalRow(ws2.addRow(['ИТОГО',
+      ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
+      Math.round(grandTotal*100)/100]));
 
-    // Лист 3 — Журнал записей
-    const ws3data = [[`Журнал записей — ${monthName}`]];
-    ws3data.push(['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание']);
-    xlsEntries.forEach(e => {
+    // ── Лист 3: Журнал ──
+    const ws3 = wb.addWorksheet('Журнал');
+    ws3.columns = [{ width: 12 },{ width: 42 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 },{ width: 35 }];
+    const t3 = ws3.addRow([`Журнал записей — ${monthName}`]);
+    applyCell(t3.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
+    ws3.mergeCells(1, 1, 1, 7); t3.height = 24;
+    const h3 = ws3.addRow(['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание']);
+    styleHeaderRow(h3, usedTypes, false);
+    xlsEntries.forEach((e, i) => {
       const [y, m, d] = e.date.split('-');
-      ws3data.push([`${d}.${m}.${y}`, e.street, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
+      const r = ws3.addRow([`${d}.${m}.${y}`, e.street, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
+      styleTypeDataRow(r, e.type, i);
     });
-    ws3data.push(['ИТОГО','','','', Math.round(grandTotal*100)/100,'','']);
-    const ws3 = XLSX.utils.aoa_to_sheet(ws3data);
-    ws3['!cols'] = [{wch:12},{wch:40},{wch:10},{wch:10},{wch:10},{wch:25},{wch:30}];
-    XLSX.utils.book_append_sheet(wb, ws3, 'Журнал');
+    styleTotalRow(ws3.addRow(['ИТОГО','','','',Math.round(grandTotal*100)/100,'','']));
 
-    XLSX.writeFile(wb, `Объёмы_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
+    await saveExcelJS(wb, `Объёмы_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
   }
 
   // ─── Сводный отчёт по всем улицам ────────────────────
-  function exportSummaryExcel() {
+  async function exportSummaryExcel() {
     const mm = String(filterMonth).padStart(2,'0');
     const prefix = `${filterYear}-${mm}`;
     const xlsEntries = allEntries.filter(e => e.date && e.date.startsWith(prefix));
@@ -1513,7 +1687,6 @@
     const usedTypes = FIXED_TYPES.filter(t => xlsEntries.some(e => e.type === t));
     const monthName = MONTHS_RU[filterMonth-1] + ' ' + filterYear;
 
-    // Группируем по улице
     const byStreet = {};
     xlsEntries.forEach(e => {
       if (!byStreet[e.street]) byStreet[e.street] = {};
@@ -1524,37 +1697,45 @@
     );
     const grandTotal = xlsEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0);
 
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'МВС СТ АУК №1';
 
-    // Лист 1 — Сводная таблица
-    const ws1data = [[`Сводный отчёт по улицам — ${monthName}`]];
-    ws1data.push(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
-    streetsSorted.forEach(([street, types]) => {
+    // Лист 1 — Сводная
+    const ws1 = wb.addWorksheet('Сводная');
+    ws1.columns = [{ width: 42 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 }];
+    const t1 = ws1.addRow([`Сводный отчёт по улицам — ${monthName}`]);
+    applyCell(t1.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
+    ws1.mergeCells(1, 1, 1, usedTypes.length + 2); t1.height = 24;
+    const h1 = ws1.addRow(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    styleHeaderRow(h1, usedTypes, true);
+    streetsSorted.forEach(([street, types], i) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      ws1data.push([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      styleDataRow(r, i);
     });
-    const totRow = ['ИТОГО', ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100), Math.round(grandTotal*100)/100];
-    ws1data.push(totRow);
-    const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
-    ws1['!cols'] = [{wch:40}, ...usedTypes.map(()=>({wch:12})), {wch:12}];
-    XLSX.utils.book_append_sheet(wb, ws1, 'Сводная');
+    styleTotalRow(ws1.addRow(['ИТОГО',
+      ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
+      Math.round(grandTotal*100)/100]));
 
     // Лист 2 — Детализация
-    const ws2data = [[`Детализация — ${monthName}`]];
-    ws2data.push(['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный']);
+    const ws2 = wb.addWorksheet('Детализация');
+    ws2.columns = [{ width: 42 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 }];
+    const t2 = ws2.addRow([`Детализация — ${monthName}`]);
+    applyCell(t2.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
+    ws2.mergeCells(1, 1, 1, 6); t2.height = 24;
+    const h2 = ws2.addRow(['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный']);
+    styleHeaderRow(h2, usedTypes, false);
     xlsEntries.sort((a,b)=>a.date.localeCompare(b.date));
+    let di = 0;
     streetsSorted.forEach(([street]) => {
-      const rows = xlsEntries.filter(e=>e.street===street);
-      rows.forEach(e => {
+      xlsEntries.filter(e=>e.street===street).forEach(e => {
         const [y, m, d] = e.date.split('-');
-        ws2data.push([street, `${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'']);
+        const r = ws2.addRow([street, `${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'']);
+        styleTypeDataRow(r, e.type, di++);
       });
     });
-    const ws2 = XLSX.utils.aoa_to_sheet(ws2data);
-    ws2['!cols'] = [{wch:40},{wch:12},{wch:10},{wch:10},{wch:10},{wch:25}];
-    XLSX.utils.book_append_sheet(wb, ws2, 'Детализация');
 
-    XLSX.writeFile(wb, `Сводный_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
+    await saveExcelJS(wb, `Сводный_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
   }
 
   // ── УПД ────────────────────────────────────────────────
