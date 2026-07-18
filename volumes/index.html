@@ -2156,37 +2156,89 @@
     }
 
     let r = 1;
-    // Строка согласования
+
+    // ── Шапка организации ──
+    ws.getRow(r).height = 28;
     ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, 'СОГЛАСОВАНО', { bold: true, align: 'right', border: false, fg: 'FF7A7974' });
+    const orgCell = ws.getCell(r, 1);
+    orgCell.value = 'АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485, 121165, Город Москва, вн.тер. г. Муниципальный Округ Дорогомилово, наб Тараса Шевченко, дом 31, помещение 10, ЭТ. 3,';
+    orgCell.font = { name: 'Times New Roman', size: 10, bold: false, color: { argb: 'FF000000' } };
+    orgCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    orgCell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
     r++;
     ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, 'Руководитель, дир. проекта ___________________________', { align: 'right', border: false, fg: 'FF7A7974' });
-    r++;
-    ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, '«_____» ________________ 2026 г.', { align: 'right', border: false, fg: 'FF7A7974' });
+    const orgLbl = ws.getCell(r, 1);
+    orgLbl.value = '(организация)';
+    orgLbl.font = { name: 'Times New Roman', size: 8, italic: true, color: { argb: 'FF666666' } };
+    orgLbl.alignment = { horizontal: 'center', vertical: 'middle' };
     r++;
 
-    // Заголовок формы
+    ws.getRow(r).height = 20;
     ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, 'Форма № М-29, раздел II', { bold: true, align: 'left', border: false, fg: 'FFa78bfa', sz: 11 });
+    const deptCell = ws.getCell(r, 1);
+    deptCell.value = 'РСУ-3, АУК№1';
+    deptCell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FF000000' } };
+    deptCell.alignment = { horizontal: 'left', vertical: 'middle' };
+    deptCell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
     r++;
     ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, 'II. СОПОСТАВЛЕНИЕ ФАКТИЧЕСКОГО РАСХОДА ОСНОВНЫХ МАТЕРИАЛОВ С РАСХОДОМ, ОПРЕДЕЛЁННЫМ ПО ПРОИЗВОДСТВЕННЫМ НОРМАМ', { bold: true, align: 'left', border: false, sz: 11 });
+    const deptLbl = ws.getCell(r, 1);
+    deptLbl.value = '(структурное подразделение)';
+    deptLbl.font = { name: 'Times New Roman', size: 8, italic: true, color: { argb: 'FF666666' } };
+    deptLbl.alignment = { horizontal: 'center', vertical: 'middle' };
     r++;
+    r++; // отступ
+
+    // ── Заголовок формы ──
     ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, 'Объект: ' + street, { bold: true, align: 'left', border: false, sz: 11 });
+    const f1 = ws.getCell(r, 1);
+    f1.value = 'Форма № М-29';
+    f1.font = { name: 'Times New Roman', size: 11, bold: false, color: { argb: 'FF000000' } };
+    f1.alignment = { horizontal: 'right', vertical: 'middle' };
     r++;
+
+    ws.getRow(r).height = 24;
     ws.mergeCells(r, 1, r, 9);
-    setCell(r, 1, 'Период: ' + periodLabel, { align: 'left', border: false, fg: 'FF7A7974' });
+    const f2 = ws.getCell(r, 1);
+    f2.value = 'ОТЧЁТ О РАСХОДЕ ОСНОВНЫХ МАТЕРИАЛОВ В СТРОИТЕЛЬСТВЕ';
+    f2.font = { name: 'Times New Roman', size: 13, bold: true, color: { argb: 'FF000000' } };
+    f2.alignment = { horizontal: 'center', vertical: 'middle' };
     r++;
-    r++; // пустая строка
+
+    ws.mergeCells(r, 1, r, 9);
+    const f3 = ws.getCell(r, 1);
+    f3.value = 'Раздел II. Сопоставление фактического расхода основных материалов с расходом, определённым по производственным нормам';
+    f3.font = { name: 'Times New Roman', size: 10, bold: false, color: { argb: 'FF000000' } };
+    f3.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    r++;
+    r++;
+
+    ws.mergeCells(r, 1, r, 9);
+    const f4 = ws.getCell(r, 1);
+    f4.value = 'Объект: ' + street;
+    f4.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FF000000' } };
+    f4.alignment = { horizontal: 'left', vertical: 'middle' };
+    f4.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
+    r++;
+
+    ws.mergeCells(r, 1, r, 9);
+    const f5 = ws.getCell(r, 1);
+    f5.value = 'Период: ' + periodLabel;
+    f5.font = { name: 'Times New Roman', size: 10, color: { argb: 'FF444444' } };
+    f5.alignment = { horizontal: 'left', vertical: 'middle' };
+    r++;
+    r++;
 
     // Заголовки таблицы
     ws.getRow(r).height = 32;
     const headers = ['№\nп.п.', 'Код\nматериала', 'Наименование материалов,\nконструкций и изделий', 'Ед.\nизм.', 'По производ-\nственным нормам', 'Факти-\nческий', 'Экономия /\nперерасход', 'Списать на\nсебестоимость', 'Приме-\nчание'];
     headers.forEach((h, i) => {
-      setCell(r, i+1, h, { bold: true, bg: 'FF1e1e2e', fg: 'FFa78bfa', sz: 10 });
+      const hcell = ws.getCell(r, i+1);
+      hcell.value = h;
+      hcell.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
+      hcell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+      hcell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      hcell.border = allBorders;
     });
     r++;
 
@@ -2207,16 +2259,24 @@
       const typeLightArgb = TYPE_ARGB_LIGHT[type] || 'FF2d2d3a';
       ws.getRow(r).height = 18;
 
-      setCell(r, 1, rowNum, { align: 'center' });
-      setCell(r, 2, '', { align: 'center' });
-      setCell(r, 3, type, { bold: true, align: 'left', bg: typeLightArgb, fg: typeArgb });
-      setCell(r, 4, 'т', { align: 'center' });
-      setCell(r, 5, '', { align: 'right' });
-      setCell(r, 6, Math.round(d.vol * 100) / 100, { align: 'right', numFmt: '#,##0.00' });
-      setCell(r, 7, '', { align: 'right' });
-      setCell(r, 8, '', { align: 'right' });
+      function tnr(cell, val, opts = {}) {
+        cell.value = val;
+        cell.font = { name: 'Times New Roman', size: 10, bold: !!opts.bold, color: { argb: opts.fg || 'FF000000' } };
+        cell.alignment = { horizontal: opts.align || 'center', vertical: 'middle', wrapText: true };
+        cell.border = allBorders;
+        if (opts.bg) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.bg } };
+        if (opts.numFmt) cell.numFmt = opts.numFmt;
+      }
+      tnr(ws.getCell(r,1), rowNum, { align: 'center' });
+      tnr(ws.getCell(r,2), '', { align: 'center' });
+      tnr(ws.getCell(r,3), type, { bold: true, align: 'left' });
+      tnr(ws.getCell(r,4), 'т', { align: 'center' });
+      tnr(ws.getCell(r,5), '', { align: 'center' });
+      tnr(ws.getCell(r,6), Math.round(d.vol * 100) / 100, { align: 'right', numFmt: '#,##0.00' });
+      tnr(ws.getCell(r,7), '', { align: 'right' });
+      tnr(ws.getCell(r,8), '', { align: 'right' });
       const note = d.area > 0 ? Math.round(d.area) + ' м² / ' + m3.toFixed(1) + ' м³' : m3.toFixed(1) + ' м³';
-      setCell(r, 9, note, { align: 'left', fg: 'FF7A7974' });
+      tnr(ws.getCell(r,9), note, { align: 'left', fg: 'FF555555' });
       r++;
       rowNum++;
     });
@@ -2226,20 +2286,74 @@
     const totalVol  = Object.values(byType).reduce((s, d) => s + d.vol, 0);
     const totalArea = Object.values(byType).reduce((s, d) => s + d.area, 0);
     const totalM3   = totalVol / 2.42;
-    setCell(r, 1, 'ИТОГО', { bold: true, align: 'right', bg: 'FF2d2d3a', fg: 'FFa78bfa' });
     ws.mergeCells(r, 1, r, 5);
-    setCell(r, 6, Math.round(totalVol * 100) / 100, { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00' });
-    setCell(r, 7, '', { bg: 'FF2d2d3a' });
-    setCell(r, 8, '', { bg: 'FF2d2d3a' });
-    setCell(r, 9, (totalArea > 0 ? Math.round(totalArea) + ' м² / ' : '') + totalM3.toFixed(1) + ' м³', { align: 'left', bg: 'FF2d2d3a', fg: 'FF20c997' });
+    const tc1 = ws.getCell(r, 1);
+    tc1.value = 'ИТОГО';
+    tc1.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
+    tc1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+    tc1.alignment = { horizontal: 'right', vertical: 'middle' };
+    tc1.border = allBorders;
+
+    const tc6 = ws.getCell(r, 6);
+    tc6.value = Math.round(totalVol * 100) / 100;
+    tc6.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
+    tc6.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+    tc6.alignment = { horizontal: 'right', vertical: 'middle' };
+    tc6.numFmt = '#,##0.00';
+    tc6.border = allBorders;
+
+    [7,8].forEach(col => {
+      const tc = ws.getCell(r, col);
+      tc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+      tc.border = allBorders;
+    });
+
+    const tc9 = ws.getCell(r, 9);
+    tc9.value = (totalArea > 0 ? Math.round(totalArea) + ' м² / ' : '') + totalM3.toFixed(1) + ' м³';
+    tc9.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
+    tc9.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+    tc9.alignment = { horizontal: 'left', vertical: 'middle' };
+    tc9.border = allBorders;
     r += 2;
 
-    // Подписи
-    const sigs = ['Ведущий бухгалтер', 'Начальник участка', 'Ответственный производитель работ'];
-    sigs.forEach(sig => {
-      ws.mergeCells(r, 1, r, 9);
-      setCell(r, 1, sig + ':  ___________________________', { align: 'left', border: false, fg: 'FF7A7974' });
+    // ── Подписи ──
+    r++;
+    const sigData = [
+      { role: 'Начальник РСУ-3',         name: 'Грансон Я.Я.' },
+      { role: 'Руководитель проекта',     name: 'Митрофанов А.В.' },
+      { role: 'Начальник участка АУК №1', name: 'Петровский А.М.' },
+      { role: 'Ведущий бухгалтер',        name: 'Хакимзянова Н.И.' },
+    ];
+    sigData.forEach(s => {
+      ws.getRow(r).height = 28;
+      // Должность — левая колонка
+      ws.mergeCells(r, 1, r, 3);
+      const roleCell = ws.getCell(r, 1);
+      roleCell.value = s.role;
+      roleCell.font = { name: 'Times New Roman', size: 11, color: { argb: 'FF000000' } };
+      roleCell.alignment = { horizontal: 'left', vertical: 'bottom' };
+
+      // Линия подписи — средняя
+      ws.mergeCells(r, 4, r, 6);
+      const lineCell = ws.getCell(r, 4);
+      lineCell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
+
+      // ФИО — правая колонка
+      ws.mergeCells(r, 7, r, 9);
+      const nameCell = ws.getCell(r, 7);
+      nameCell.value = s.name;
+      nameCell.font = { name: 'Times New Roman', size: 11, color: { argb: 'FF000000' } };
+      nameCell.alignment = { horizontal: 'right', vertical: 'bottom' };
       r++;
+
+      // Подпись под линией
+      ws.mergeCells(r, 4, r, 6);
+      const subCell = ws.getCell(r, 4);
+      subCell.value = '(подпись, расшифровка подписи)';
+      subCell.font = { name: 'Times New Roman', size: 7, italic: true, color: { argb: 'FF888888' } };
+      subCell.alignment = { horizontal: 'center', vertical: 'top' };
+      r++;
+      r++; // отступ между подписями
     });
 
     // Скачать
