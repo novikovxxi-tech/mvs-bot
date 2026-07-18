@@ -1021,12 +1021,18 @@
     // Разбивка по типам в карточке «тонн всего»
     const TYPE_COLORS_STAT = { 'МЗВ II':'#3f8cff', 'ПД II':'#5ad17a', 'МЗБ II':'#ffb832', 'КЗБ II':'#e05aff', 'ЩМА-20':'#ff6b35' };
     const byType = {};
-    entries.forEach(e => { byType[e.type] = (byType[e.type] || 0) + (parseFloat(e.vol) || 0); });
+    const byTypeArea = {};
+    entries.forEach(e => {
+      byType[e.type] = (byType[e.type] || 0) + (parseFloat(e.vol) || 0);
+      byTypeArea[e.type] = (byTypeArea[e.type] || 0) + (parseFloat(e.area) || 0);
+    });
     const breakdownEl = document.getElementById('s-total-breakdown');
     breakdownEl.innerHTML = ['МЗВ II','ПД II','МЗБ II','КЗБ II','ЩМА-20'].filter(t => byType[t]).map(t => {
       const v = byType[t];
+      const a = byTypeArea[t] || 0;
       const vStr = v % 1 === 0 ? v.toLocaleString('ru') : v.toFixed(1);
-      return `<div style="font-size:11px;color:${TYPE_COLORS_STAT[t]};font-weight:600;">${t}: ${vStr} т</div>`;
+      const aStr = a > 0 ? ` / ${Math.round(a).toLocaleString('ru')} м²` : '';
+      return `<div style="font-size:11px;color:${TYPE_COLORS_STAT[t]};font-weight:600;">${t}: ${vStr} т${aStr}</div>`;
     }).join('');
 
     // Блок «По типам смеси»
@@ -1039,9 +1045,11 @@
         const v = byType[t];
         const vStr = v % 1 === 0 ? v.toLocaleString('ru') : v.toFixed(1);
         const pct = Math.round(v / total * 100);
+        const areaVal = byTypeArea[t] || 0;
+        const areaStr = areaVal > 0 ? `<span style="font-size:11px;color:#20c997;font-weight:600;margin-left:8px;">${Math.round(areaVal).toLocaleString('ru')} м²</span>` : '';
         return `<div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <span style="font-size:14px;font-weight:700;color:${TYPE_COLORS_STAT[t]}">${t}</span>
+            <span style="font-size:14px;font-weight:700;color:${TYPE_COLORS_STAT[t]}">${t}${areaStr}</span>
             <span style="font-size:14px;font-weight:700;color:var(--text)">${vStr} т</span>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
