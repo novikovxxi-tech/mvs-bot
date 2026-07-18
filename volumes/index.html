@@ -393,6 +393,10 @@
       <input type="date" id="edit-date">
     </div>
     <div class="field">
+      <label>Площадь, м²</label>
+      <input type="number" id="edit-area" step="0.1" min="0" placeholder="0">
+    </div>
+    <div class="field">
       <label>Объём, т</label>
       <input type="number" id="edit-vol" step="0.01" min="0">
     </div>
@@ -474,10 +478,16 @@
 
     <div class="row">
       <div class="field">
+        <label>Площадь, м²</label>
+        <input type="number" id="f-area" placeholder="0" step="0.1" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
         <label>Объём, т</label>
         <input type="number" id="f-vol" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
       </div>
-      <div class="field">
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1">
         <label>Смена</label>
         <select id="f-shift">
           <option>День</option>
@@ -1014,6 +1024,7 @@
     const date = document.getElementById('f-date').value;
     const street = getStreetValue();
     const vol = parseFloat(document.getElementById('f-vol').value);
+    const area = parseFloat(document.getElementById('f-area').value) || 0;
     const shift = document.getElementById('f-shift').value;
     const note = document.getElementById('f-note').value;
     const responsible = document.getElementById('f-responsible').value;
@@ -1032,10 +1043,10 @@
       const res = await fetch(API_URL + '/api/entries', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ date, street, type: selectedType, vol, shift, note, responsible, worktype })
+        body: JSON.stringify({ date, street, type: selectedType, vol, area, shift, note, responsible, worktype })
       });
       const data = await res.json();
-      entries.unshift({ id: data.id, date, street, type: selectedType, vol, shift, note, responsible, worktype });
+      entries.unshift({ id: data.id, date, street, type: selectedType, vol, area, shift, note, responsible, worktype });
       renderStats();
 
       btn.textContent = '✅ Сохранено!';
@@ -1043,6 +1054,7 @@
       setTimeout(() => { btn.textContent = 'Сохранить запись'; btn.classList.remove('success'); btn.disabled = false; }, 2000);
 
       document.getElementById('f-vol').value = '';
+      document.getElementById('f-area').value = '';
       document.getElementById('f-note').value = '';
     } catch(e) {
       alert('Ошибка соединения с сервером');
@@ -1080,7 +1092,7 @@
           <div class="log-street">${escHtml(e.street)}</div>
           <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
         </div>
-        <div class="log-val">${e.vol} т</div>
+        <div class="log-val">${e.vol} т${e.area ? `<br><span style="font-size:11px;color:var(--text-dim)">${e.area} м²</span>` : ''}</div>
         <div class="log-actions">
           <button class="log-btn upd" onclick="openUpdModal(${e.id})" title="УПД">📎</button>
           <button class="log-btn edit" onclick="openEditModal(${e.id})" title="Редактировать">✏️</button>
@@ -1098,6 +1110,7 @@
     if (!e) return;
     editingId = id;
     document.getElementById('edit-street').value = e.street || '';
+    document.getElementById('edit-area').value = e.area || '';
     document.getElementById('edit-date').value  = e.date;
     document.getElementById('edit-vol').value   = e.vol;
     document.getElementById('edit-type').value  = e.type;
@@ -1147,6 +1160,7 @@
   async function saveEdit() {
     if (!editingId) return;
     const street = document.getElementById('edit-street').value.trim();
+    const area = parseFloat(document.getElementById('edit-area').value) || 0;
     const date  = document.getElementById('edit-date').value;
     const vol   = parseFloat(document.getElementById('edit-vol').value);
     const type  = document.getElementById('edit-type').value;
@@ -1160,7 +1174,7 @@
       await fetch(API_URL + '/api/entries/' + editingId, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ street, date, vol, type, shift, note, responsible, worktype })
+        body: JSON.stringify({ street, date, vol, area, type, shift, note, responsible, worktype })
       });
       document.getElementById('edit-modal').classList.remove('open');
       editingId = null;
@@ -1544,14 +1558,16 @@
     // Лист 2 — Журнал
     const ws2 = wb.addWorksheet('Журнал');
     ws2.columns = [
-      { width: 12 },{ width: 12 },{ width: 10 },{ width: 10 },{ width: 25 },{ width: 35 }
+      { width: 12 },{ width: 12 },{ width: 10 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 25 },{ width: 35 }
     ];
-    const hdr2 = ws2.addRow(['Дата','Тип смеси','Объём, т','Смена','Ответственный','Примечание']);
+    const hdr2 = ws2.addRow(['Дата','Тип смеси','Объём, т','Площадь, м²','Объём, м³','Смена','Ответственный','Примечание']);
     styleHeaderRow(hdr2, usedTypes, false);
 
     streetEntries.forEach((e, i) => {
       const [y,m,d] = e.date.split('-');
-      const r = ws2.addRow([`${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
+      const area = parseFloat(e.area) || 0;
+      const m3 = area ? Math.round(parseFloat(e.vol)/2.42*100)/100 : '';
+      const r = ws2.addRow([`${d}.${m}.${y}`, e.type, parseFloat(e.vol), area||'', m3, e.shift, e.responsible||'', e.note||'']);
       styleTypeDataRow(r, e.type, i);
     });
 
@@ -1637,20 +1653,26 @@
     );
 
     const ws1 = wb.addWorksheet('По объектам');
-    ws1.columns = [{ width: 42 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 }];
+    // По объектам: площадь и м³ по улицам
+    const areaByStreet = {};
+    xlsEntries.forEach(e => { areaByStreet[e.street] = (areaByStreet[e.street]||0)+(parseFloat(e.area)||0); });
+    const totalAreaAll = xlsEntries.reduce((s,e)=>s+(parseFloat(e.area)||0),0);
+    ws1.columns = [{ width: 42 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 },{ width: 14 },{ width: 14 }];
     const t1 = ws1.addRow([`Объёмы работ — ${monthName}`]);
     applyCell(t1.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
-    ws1.mergeCells(1, 1, 1, usedTypes.length + 2); t1.height = 24;
-    const h1 = ws1.addRow(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    ws1.mergeCells(1, 1, 1, usedTypes.length + 4); t1.height = 24;
+    const h1 = ws1.addRow(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т','Площадь, м²','Объём, м³']);
     styleHeaderRow(h1, usedTypes, true);
     streetsSorted.forEach(([street, types], i) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      const rowArea = Math.round((areaByStreet[street]||0)*100)/100;
+      const rowM3 = Math.round(rowTotal/2.42*100)/100;
+      const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100, rowArea||'', rowArea?rowM3:'']);
       styleDataRow(r, i, usedTypes);
     });
     styleTotalRow(ws1.addRow(['ИТОГО',
       ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
-      Math.round(grandTotal*100)/100]));
+      Math.round(grandTotal*100)/100, Math.round(totalAreaAll*100)/100, Math.round(grandTotal/2.42*100)/100]));
 
     // ── Лист 2: По дням ──
     const byDateMap = {};
@@ -1680,18 +1702,22 @@
 
     // ── Лист 3: Журнал ──
     const ws3 = wb.addWorksheet('Журнал');
-    ws3.columns = [{ width: 12 },{ width: 42 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 },{ width: 35 }];
+    ws3.columns = [{ width: 12 },{ width: 42 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 },{ width: 35 }];
     const t3 = ws3.addRow([`Журнал записей — ${monthName}`]);
     applyCell(t3.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
-    ws3.mergeCells(1, 1, 1, 7); t3.height = 24;
-    const h3 = ws3.addRow(['Дата','Улица / Объект','Тип смеси','Объём, т','Смена','Ответственный','Примечание']);
+    ws3.mergeCells(1, 1, 1, 9); t3.height = 24;
+    const h3 = ws3.addRow(['Дата','Улица / Объект','Тип смеси','Объём, т','Площадь, м²','Объём, м³','Смена','Ответственный','Примечание']);
     styleHeaderRow(h3, usedTypes, false);
+    const totalArea3 = xlsEntries.reduce((s,e)=>s+(parseFloat(e.area)||0),0);
+    const totalM3 = xlsEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0)/2.42;
     xlsEntries.forEach((e, i) => {
       const [y, m, d] = e.date.split('-');
-      const r = ws3.addRow([`${d}.${m}.${y}`, e.street, e.type, parseFloat(e.vol), e.shift, e.responsible||'', e.note||'']);
+      const area = parseFloat(e.area) || 0;
+      const m3 = area ? Math.round(parseFloat(e.vol)/2.42*100)/100 : '';
+      const r = ws3.addRow([`${d}.${m}.${y}`, e.street, e.type, parseFloat(e.vol), area||'', m3, e.shift, e.responsible||'', e.note||'']);
       styleTypeDataRow(r, e.type, i);
     });
-    styleTotalRow(ws3.addRow(['ИТОГО','','','',Math.round(grandTotal*100)/100,'','']));
+    styleTotalRow(ws3.addRow(['ИТОГО','','',Math.round(grandTotal*100)/100,Math.round(totalArea3*100)/100,Math.round(totalM3*100)/100,'','','']));
 
     await saveExcelJS(wb, `Объёмы_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
   }
@@ -1725,20 +1751,26 @@
 
     // Лист 1 — Сводная
     const ws1 = wb.addWorksheet('Сводная');
-    ws1.columns = [{ width: 42 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 }];
+    // Сводная: площадь и м³ по улицам
+    const areaByStreetS = {};
+    xlsEntries.forEach(e => { areaByStreetS[e.street] = (areaByStreetS[e.street]||0)+(parseFloat(e.area)||0); });
+    const totalAreaS = xlsEntries.reduce((s,e)=>s+(parseFloat(e.area)||0),0);
+    ws1.columns = [{ width: 42 }, ...usedTypes.map(()=>({ width: 14 })), { width: 14 },{ width: 14 },{ width: 14 }];
     const t1 = ws1.addRow([`Сводный отчёт по улицам — ${monthName}`]);
     applyCell(t1.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
-    ws1.mergeCells(1, 1, 1, usedTypes.length + 2); t1.height = 24;
-    const h1 = ws1.addRow(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т']);
+    ws1.mergeCells(1, 1, 1, usedTypes.length + 4); t1.height = 24;
+    const h1 = ws1.addRow(['Улица / Объект', ...usedTypes.map(t=>t+', т'), 'ИТОГО, т','Площадь, м²','Объём, м³']);
     styleHeaderRow(h1, usedTypes, true);
     streetsSorted.forEach(([street, types], i) => {
       const rowTotal = Object.values(types).reduce((s,v)=>s+v,0);
-      const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100]);
+      const rowArea = Math.round((areaByStreetS[street]||0)*100)/100;
+      const rowM3 = Math.round(rowTotal/2.42*100)/100;
+      const r = ws1.addRow([street, ...usedTypes.map(t=>Math.round((types[t]||0)*100)/100), Math.round(rowTotal*100)/100, rowArea||'', rowArea?rowM3:'']);
       styleDataRow(r, i, usedTypes);
     });
     styleTotalRow(ws1.addRow(['ИТОГО',
       ...usedTypes.map(t=>Math.round(xlsEntries.filter(e=>e.type===t).reduce((a,e)=>a+(parseFloat(e.vol)||0),0)*100)/100),
-      Math.round(grandTotal*100)/100]));
+      Math.round(grandTotal*100)/100, Math.round(totalAreaS*100)/100, Math.round(grandTotal/2.42*100)/100]));
 
     // Лист 2 — Детализация
     const ws2 = wb.addWorksheet('Детализация');
