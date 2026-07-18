@@ -370,6 +370,9 @@
           var nameTag = document.getElementById('user-name-tag');
           if (nameTag) nameTag.textContent = d.name || d.login;
           applyRoleUI(d.role || 'user');
+          // Загружаем данные после входа
+          if (typeof renderStats === 'function') renderStats();
+          if (typeof renderLog === 'function') renderLog();
         } else {
           err.textContent = d.error || 'Ошибка входа';
           var inp = document.getElementById('pw-pass');
