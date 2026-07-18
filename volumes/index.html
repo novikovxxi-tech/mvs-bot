@@ -100,6 +100,12 @@
     text-align: center;
   }
   .type-btn.active { border-color: var(--accent); background: rgba(63,140,255,.12); color: var(--accent); }
+  .wtype-btn {
+    padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--text-dim); font-size: 13px; cursor: pointer;
+    transition: all .15s; white-space: nowrap;
+  }
+  .wtype-btn.active { border-color: #20c997; background: rgba(32,201,151,.12); color: #20c997; }
 
   /* SUBMIT BTN */
   .btn-submit {
@@ -393,6 +399,15 @@
       <input type="date" id="edit-date">
     </div>
     <div class="field">
+      <label>Вид работ</label>
+      <select id="edit-worktype">
+        <option>Проезжая часть</option>
+        <option>Тротуар</option>
+        <option>Парковка</option>
+        <option>Съезд</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Площадь, м²</label>
       <input type="number" id="edit-area" step="0.1" min="0" placeholder="0">
     </div>
@@ -462,6 +477,16 @@
           onfocus="acSearch(this.value)"
           onkeydown="acKeydown(event)">
         <div class="ac-dropdown" id="ac-drop"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Вид работ</label>
+      <div class="type-btns" style="flex-wrap:wrap">
+        <button class="wtype-btn active" onclick="setWorktype('Проезжая часть', this)">Проезжая часть</button>
+        <button class="wtype-btn" onclick="setWorktype('Тротуар', this)">Тротуар</button>
+        <button class="wtype-btn" onclick="setWorktype('Парковка', this)">Парковка</button>
+        <button class="wtype-btn" onclick="setWorktype('Съезд', this)">Съезд</button>
       </div>
     </div>
 
@@ -641,6 +666,7 @@
   document.getElementById('f-date').value = today;
 
   let selectedType = 'МЗВ II';
+  let selectedWorktype = 'Проезжая часть';
   let entries = [];
   let allEntries = []; // все записи без фильтра
 
@@ -791,6 +817,12 @@
 
   function getStreetValue() {
     return document.getElementById('f-street').value.trim();
+  }
+
+  function setWorktype(wt, btn) {
+    selectedWorktype = wt;
+    document.querySelectorAll('.wtype-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
   }
 
   function setType(type, btn) {
@@ -1028,7 +1060,7 @@
     const shift = document.getElementById('f-shift').value;
     const note = document.getElementById('f-note').value;
     const responsible = document.getElementById('f-responsible').value;
-    const worktype = '';
+    const worktype = selectedWorktype;
 
     if (!date || !street || !vol || vol <= 0) {
       alert('Заполните дату, объект и объём');
@@ -1046,7 +1078,7 @@
         body: JSON.stringify({ date, street, type: selectedType, vol, area, shift, note, responsible, worktype })
       });
       const data = await res.json();
-      entries.unshift({ id: data.id, date, street, type: selectedType, vol, area, shift, note, responsible, worktype });
+      entries.unshift({ id: data.id, date, street, type: selectedType, vol, area, shift, note, responsible, worktype: selectedWorktype });
       renderStats();
 
       btn.textContent = '✅ Сохранено!';
@@ -1055,6 +1087,8 @@
 
       document.getElementById('f-vol').value = '';
       document.getElementById('f-area').value = '';
+      selectedWorktype = 'Проезжая часть';
+      document.querySelectorAll('.wtype-btn').forEach((b,i) => b.classList.toggle('active', i===0));
       document.getElementById('f-note').value = '';
     } catch(e) {
       alert('Ошибка соединения с сервером');
@@ -1090,7 +1124,7 @@
         <div class="log-dot" style="background:${dotColor(e.type)}"></div>
         <div class="log-info">
           <div class="log-street">${escHtml(e.street)}</div>
-          <div class="log-meta">${formatDate(e.date)} · ${e.type} · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
+          <div class="log-meta">${formatDate(e.date)} · ${e.type} · <span style="color:#20c997">${e.worktype||'Проезжая часть'}</span> · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
         </div>
         <div class="log-val">${e.vol} т${e.area ? `<br><span style="font-size:11px;color:var(--text-dim)">${e.area} м²</span>` : ''}</div>
         <div class="log-actions">
@@ -1111,6 +1145,7 @@
     editingId = id;
     document.getElementById('edit-street').value = e.street || '';
     document.getElementById('edit-area').value = e.area || '';
+    document.getElementById('edit-worktype').value = e.worktype || 'Проезжая часть';
     document.getElementById('edit-date').value  = e.date;
     document.getElementById('edit-vol').value   = e.vol;
     document.getElementById('edit-type').value  = e.type;
@@ -1167,7 +1202,7 @@
     const shift = document.getElementById('edit-shift').value;
     const note  = document.getElementById('edit-note').value.trim();
     const responsible = document.getElementById('edit-responsible').value;
-    const worktype = '';
+    const worktype = document.getElementById('edit-worktype').value;
     if (!street) { alert('Укажите улицу / объект'); return; }
     if (!date || !vol || vol <= 0) { alert('Заполните дату и объём'); return; }
     try {
@@ -1558,16 +1593,16 @@
     // Лист 2 — Журнал
     const ws2 = wb.addWorksheet('Журнал');
     ws2.columns = [
-      { width: 12 },{ width: 12 },{ width: 10 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 25 },{ width: 35 }
+      { width: 12 },{ width: 12 },{ width: 16 },{ width: 10 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 25 },{ width: 35 }
     ];
-    const hdr2 = ws2.addRow(['Дата','Тип смеси','Объём, т','Площадь, м²','Объём, м³','Смена','Ответственный','Примечание']);
+    const hdr2 = ws2.addRow(['Дата','Тип смеси','Вид работ','Объём, т','Площадь, м²','Объём, м³','Смена','Ответственный','Примечание']);
     styleHeaderRow(hdr2, usedTypes, false);
 
     streetEntries.forEach((e, i) => {
       const [y,m,d] = e.date.split('-');
       const area = parseFloat(e.area) || 0;
       const m3 = area ? Math.round(parseFloat(e.vol)/2.42*100)/100 : '';
-      const r = ws2.addRow([`${d}.${m}.${y}`, e.type, parseFloat(e.vol), area||'', m3, e.shift, e.responsible||'', e.note||'']);
+      const r = ws2.addRow([`${d}.${m}.${y}`, e.type, e.worktype||'Проезжая часть', parseFloat(e.vol), area||'', m3, e.shift, e.responsible||'', e.note||'']);
       styleTypeDataRow(r, e.type, i);
     });
 
@@ -1702,11 +1737,11 @@
 
     // ── Лист 3: Журнал ──
     const ws3 = wb.addWorksheet('Журнал');
-    ws3.columns = [{ width: 12 },{ width: 42 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 },{ width: 35 }];
+    ws3.columns = [{ width: 12 },{ width: 42 },{ width: 12 },{ width: 16 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 },{ width: 35 }];
     const t3 = ws3.addRow([`Журнал записей — ${monthName}`]);
     applyCell(t3.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
-    ws3.mergeCells(1, 1, 1, 9); t3.height = 24;
-    const h3 = ws3.addRow(['Дата','Улица / Объект','Тип смеси','Объём, т','Площадь, м²','Объём, м³','Смена','Ответственный','Примечание']);
+    ws3.mergeCells(1, 1, 1, 10); t3.height = 24;
+    const h3 = ws3.addRow(['Дата','Улица / Объект','Тип смеси','Вид работ','Объём, т','Площадь, м²','Объём, м³','Смена','Ответственный','Примечание']);
     styleHeaderRow(h3, usedTypes, false);
     const totalArea3 = xlsEntries.reduce((s,e)=>s+(parseFloat(e.area)||0),0);
     const totalM3 = xlsEntries.reduce((s,e)=>s+(parseFloat(e.vol)||0),0)/2.42;
@@ -1714,10 +1749,10 @@
       const [y, m, d] = e.date.split('-');
       const area = parseFloat(e.area) || 0;
       const m3 = area ? Math.round(parseFloat(e.vol)/2.42*100)/100 : '';
-      const r = ws3.addRow([`${d}.${m}.${y}`, e.street, e.type, parseFloat(e.vol), area||'', m3, e.shift, e.responsible||'', e.note||'']);
+      const r = ws3.addRow([`${d}.${m}.${y}`, e.street, e.type, e.worktype||'Проезжая часть', parseFloat(e.vol), area||'', m3, e.shift, e.responsible||'', e.note||'']);
       styleTypeDataRow(r, e.type, i);
     });
-    styleTotalRow(ws3.addRow(['ИТОГО','','',Math.round(grandTotal*100)/100,Math.round(totalArea3*100)/100,Math.round(totalM3*100)/100,'','','']));
+    styleTotalRow(ws3.addRow(['ИТОГО','','','',Math.round(grandTotal*100)/100,Math.round(totalArea3*100)/100,Math.round(totalM3*100)/100,'','','']));
 
     await saveExcelJS(wb, `Объёмы_${MONTHS_RU[filterMonth-1]}_${filterYear}.xlsx`);
   }
@@ -1774,18 +1809,20 @@
 
     // Лист 2 — Детализация
     const ws2 = wb.addWorksheet('Детализация');
-    ws2.columns = [{ width: 42 },{ width: 12 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 }];
+    ws2.columns = [{ width: 42 },{ width: 12 },{ width: 12 },{ width: 16 },{ width: 12 },{ width: 12 },{ width: 10 },{ width: 26 }];
     const t2 = ws2.addRow([`Детализация — ${monthName}`]);
     applyCell(t2.getCell(1), { bold: true, sz: 13, bg: 'FF1a2a4a', fg: 'FFFFFFFF' });
-    ws2.mergeCells(1, 1, 1, 6); t2.height = 24;
-    const h2 = ws2.addRow(['Улица / Объект','Дата','Тип смеси','Объём, т','Смена','Ответственный']);
+    ws2.mergeCells(1, 1, 1, 8); t2.height = 24;
+    const h2 = ws2.addRow(['Улица / Объект','Дата','Тип смеси','Вид работ','Объём, т','Площадь, м²','Объём, м³','Ответственный']);
     styleHeaderRow(h2, usedTypes, false);
     xlsEntries.sort((a,b)=>a.date.localeCompare(b.date));
     let di = 0;
     streetsSorted.forEach(([street]) => {
       xlsEntries.filter(e=>e.street===street).forEach(e => {
         const [y, m, d] = e.date.split('-');
-        const r = ws2.addRow([street, `${d}.${m}.${y}`, e.type, parseFloat(e.vol), e.shift, e.responsible||'']);
+        const area = parseFloat(e.area)||0;
+        const m3 = area ? Math.round(parseFloat(e.vol)/2.42*100)/100 : '';
+        const r = ws2.addRow([street, `${d}.${m}.${y}`, e.type, e.worktype||'Проезжая часть', parseFloat(e.vol), area||'', m3, e.responsible||'']);
         styleTypeDataRow(r, e.type, di++);
       });
     });
