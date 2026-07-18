@@ -321,20 +321,36 @@
   (function(){
     var API_URL = 'https://mvs-backend-denis3111.amvera.io';
     var KEY = 'mvs_user';
-    var saved = localStorage.getItem(KEY);
-    if (saved) {
-      try { var u = JSON.parse(saved); if (u && u.login) { document.getElementById('pw-screen').classList.add('hidden'); applyRoleUI(u.role || 'user'); } } catch(e) {}
-    }
+
     window.applyRoleUI = function(role) {
       var isAdmin = role === 'admin';
-      // Скрыть/показать все кнопки экспорта
       document.querySelectorAll('.btn-export').forEach(function(btn) {
         btn.style.display = isAdmin ? '' : 'none';
       });
-      // Показать метку роли в шапке если нужно
-      var roleTag = document.getElementById('role-tag');
-      if (roleTag) roleTag.style.display = isAdmin ? '' : 'none';
     };
+
+    window.doLogout = function() {
+      localStorage.removeItem(KEY);
+      location.reload();
+    };
+
+    // Применить роль как только DOM готов
+    document.addEventListener('DOMContentLoaded', function() {
+      var saved = localStorage.getItem(KEY);
+      if (saved) {
+        try {
+          var u = JSON.parse(saved);
+          if (u && u.login) {
+            document.getElementById('pw-screen').classList.add('hidden');
+            var nameTag = document.getElementById('user-name-tag');
+            if (nameTag) nameTag.textContent = u.name || u.login;
+            // Если роль не сохранена — считать user (скрыть экспорт)
+            applyRoleUI(u.role || 'user');
+          }
+        } catch(e) {}
+      }
+    });
+
     window.checkPw = function(){
       var login = document.getElementById('pw-login').value.trim();
       var pass  = document.getElementById('pw-pass').value.trim();
@@ -351,6 +367,8 @@
         if (d.ok) {
           localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name, role: d.role || 'user'}));
           document.getElementById('pw-screen').classList.add('hidden');
+          var nameTag = document.getElementById('user-name-tag');
+          if (nameTag) nameTag.textContent = d.name || d.login;
           applyRoleUI(d.role || 'user');
         } else {
           err.textContent = d.error || 'Ошибка входа';
@@ -371,6 +389,10 @@
   <div>
     <div class="header-title">📊 Объёмы работ</div>
     <div class="header-sub">МВС СТ АУК №1</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="user-name-tag" style="font-size:12px;color:var(--text-dim);"></span>
+    <button onclick="doLogout()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;">Выйти</button>
   </div>
 </div>
 
