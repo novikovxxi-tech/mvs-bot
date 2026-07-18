@@ -2103,17 +2103,25 @@
     let entries = all.filter(e => (e.street||'').trim() === street.trim());
     if (period !== 'all') entries = entries.filter(e => e.date && e.date.startsWith(period));
 
+    // Коэффициент перерасхода по умолчанию (если h не заполнено) — 7%
+    const DEFAULT_OVERRUN = 0.07;
+
     // Группировка по типу смеси
     const byType = {};
     entries.forEach(e => {
       const t = e.type || 'Не указан';
       if (!byType[t]) byType[t] = { vol: 0, area: 0, norm: 0 };
-      byType[t].vol  += parseFloat(e.vol  || 0);
-      byType[t].area += parseFloat(e.area || 0);
-      // Норма = м² × h × 2.42
+      const vol   = parseFloat(e.vol  || 0);
       const eArea = parseFloat(e.area || 0);
       const eH    = parseFloat(e.h    || 0);
-      byType[t].norm += eArea * eH * 2.42;
+      byType[t].vol  += vol;
+      byType[t].area += eArea;
+      // Если h заполнено — норма по формуле, иначе — факт / (1 + 7%)
+      if (eH > 0 && eArea > 0) {
+        byType[t].norm += eArea * eH * 2.42;
+      } else {
+        byType[t].norm += vol / (1 + DEFAULT_OVERRUN);
+      }
     });
 
     // Плановые тонны по объекту
