@@ -2106,10 +2106,23 @@
     // Коэффициент перерасхода по умолчанию (если h не заполнено) — 7%
     const DEFAULT_OVERRUN = 0.07;
 
+    // Нормализация старых названий типов → новые
+    const TYPE_ALIAS = {
+      'МЗБ':  'МЗБ II',
+      'КЗБ':  'КЗБ II',
+      'МЗВ':  'МЗВ II',
+      'ПД':   'ПД II',
+      'МЗВ2': 'МЗВ II',
+      'МЗБ2': 'МЗБ II',
+      'КЗБ2': 'КЗБ II',
+      'ПД2':  'ПД II',
+    };
+
     // Группировка по типу смеси
     const byType = {};
     entries.forEach(e => {
-      const t = e.type || 'Не указан';
+      const raw = (e.type || 'Не указан').trim();
+      const t = TYPE_ALIAS[raw] || raw;
       if (!byType[t]) byType[t] = { vol: 0, area: 0, norm: 0 };
       const vol   = parseFloat(e.vol  || 0);
       const eArea = parseFloat(e.area || 0);
