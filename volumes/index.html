@@ -405,6 +405,27 @@
 
 <!-- МОДАЛ РЕДАКТИРОВАНИЯ -->
 <!-- УПД Модальное окно -->
+<!-- М-29 модальное окно -->
+<div class="modal-overlay" id="m29-modal" onclick="closeM29Modal(event)">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-title">📋 Форма М-29</div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Объект</label>
+      <select id="m29-street" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:14px;"></select>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Период</label>
+      <select id="m29-period" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-size:14px;">
+        <option value="all">Итого за всё время</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button onclick="closeM29Modal()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;">Отмена</button>
+      <button onclick="generateM29()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#a78bfa;color:#fff;font-weight:700;cursor:pointer;">Скачать Excel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="upd-modal" onclick="closeUpdModal(event)">
   <div class="modal" style="max-width:480px;">
     <div class="modal-title">📎 УПД документы</div>
@@ -665,6 +686,9 @@
   <div style="display:flex;gap:10px;margin-bottom:12px;">
     <button class="btn-export" style="flex:1;" onclick="exportSummaryExcel()">📊 Сводный отчёт</button>
     <button class="btn-export" style="flex:1;" onclick="exportExcel()">📥 Выгрузить журнал</button>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:12px;">
+    <button class="btn-export" style="flex:1;background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.4);color:#a78bfa;" onclick="openM29Modal()">📋 Сформировать М-29</button>
   </div>
 
   <div class="card">
@@ -2027,6 +2051,214 @@
     fetch(API + '/api/upd/file/' + fileId, { method: 'DELETE' })
       .then(() => loadUpdFiles(entryId))
       .catch(() => alert('Ошибка удаления'));
+  }
+
+  // ─── М-29 ───────────────────────────────────────────
+  const MONTHS_RU = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+  const MONTHS_RU_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+  function openM29Modal() {
+    // Заполняем список объектов из PLAN_DATA
+    const sel = document.getElementById('m29-street');
+    sel.innerHTML = PLAN_DATA.map(o => `<option value="${escHtml(o.name)}">${escHtml(o.name)}</option>`).join('');
+
+    // Заполняем месяцы из реальных записей
+    fetch(API_URL + '/api/entries')
+      .then(r => r.json())
+      .then(entries => {
+        const months = [...new Set(entries.map(e => e.date ? e.date.slice(0,7) : null).filter(Boolean))].sort();
+        const psel = document.getElementById('m29-period');
+        psel.innerHTML = '<option value="all">Итого за всё время</option>' +
+          months.map(m => {
+            const [y, mo] = m.split('-');
+            const label = MONTHS_RU[+mo-1] + ' ' + y + ' г.';
+            return `<option value="${m}">${label}</option>`;
+          }).join('');
+        // Выбрать последний месяц по умолчанию
+        if (months.length) psel.value = months[months.length-1];
+      });
+
+    document.getElementById('m29-modal').classList.add('open');
+  }
+
+  function closeM29Modal(event) {
+    if (event && event.target !== document.getElementById('m29-modal')) return;
+    document.getElementById('m29-modal').classList.remove('open');
+  }
+
+  async function generateM29() {
+    const street = document.getElementById('m29-street').value;
+    const period = document.getElementById('m29-period').value; // 'YYYY-MM' или 'all'
+
+    const res = await fetch(API_URL + '/api/entries');
+    const all = await res.json();
+
+    // Фильтр
+    let entries = all.filter(e => (e.street||'').trim() === street.trim());
+    if (period !== 'all') entries = entries.filter(e => e.date && e.date.startsWith(period));
+
+    // Группировка по типу смеси
+    const byType = {};
+    entries.forEach(e => {
+      const t = e.type || 'Не указан';
+      if (!byType[t]) byType[t] = { vol: 0, area: 0 };
+      byType[t].vol  += parseFloat(e.vol  || 0);
+      byType[t].area += parseFloat(e.area || 0);
+    });
+
+    // Плановые тонны по объекту
+    const planObj = PLAN_DATA.find(o => o.name.trim() === street.trim());
+    const planTotal = planObj ? planObj.plan : 0;
+
+    // Заголовок периода
+    let periodLabel, periodShort;
+    if (period === 'all') {
+      periodLabel = 'за всё время';
+      periodShort = 'итого';
+    } else {
+      const [y, mo] = period.split('-');
+      periodLabel = MONTHS_RU_GEN[+mo-1] + ' ' + y + ' г.';
+      periodShort = MONTHS_RU[+mo-1] + '_' + y;
+    }
+
+    // ─── Создаём Excel ───────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'МВС СТ АУК №1';
+    const ws = wb.addWorksheet('М-29');
+
+    // Ширины столбцов
+    ws.columns = [
+      { width: 6  },  // A — №
+      { width: 14 },  // B — Код / Ед.изм
+      { width: 40 },  // C — Наименование
+      { width: 12 },  // D — Ед. изм.
+      { width: 18 },  // E — По норме
+      { width: 18 },  // F — Факт
+      { width: 18 },  // G — Экономия/перерасход
+      { width: 18 },  // H — Списать
+      { width: 20 },  // I — Примечание
+    ];
+
+    const thinBorder = { style: 'thin', color: { argb: 'FF999999' } };
+    const allBorders = { top: thinBorder, left: thinBorder, bottom: thinBorder, right: thinBorder };
+    const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2d2d3a' } };
+    const subFill    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1e1e2e' } };
+
+    function setCell(r, c, val, opts = {}) {
+      const cell = ws.getCell(r, c);
+      cell.value = val;
+      cell.font = { name: 'Calibri', size: opts.sz || 10, bold: !!opts.bold, color: { argb: opts.fg || 'FFCDCCCA' } };
+      if (opts.bg) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.bg } };
+      if (opts.align) cell.alignment = { horizontal: opts.align, vertical: 'middle', wrapText: true };
+      else cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      if (opts.border !== false) cell.border = allBorders;
+      if (opts.numFmt) cell.numFmt = opts.numFmt;
+    }
+
+    let r = 1;
+    // Строка согласования
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, 'СОГЛАСОВАНО', { bold: true, align: 'right', border: false, fg: 'FF7A7974' });
+    r++;
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, 'Руководитель, дир. проекта ___________________________', { align: 'right', border: false, fg: 'FF7A7974' });
+    r++;
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, '«_____» ________________ 2026 г.', { align: 'right', border: false, fg: 'FF7A7974' });
+    r++;
+
+    // Заголовок формы
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, 'Форма № М-29, раздел II', { bold: true, align: 'left', border: false, fg: 'FFa78bfa', sz: 11 });
+    r++;
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, 'II. СОПОСТАВЛЕНИЕ ФАКТИЧЕСКОГО РАСХОДА ОСНОВНЫХ МАТЕРИАЛОВ С РАСХОДОМ, ОПРЕДЕЛЁННЫМ ПО ПРОИЗВОДСТВЕННЫМ НОРМАМ', { bold: true, align: 'left', border: false, sz: 11 });
+    r++;
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, 'Объект: ' + street, { bold: true, align: 'left', border: false, sz: 11 });
+    r++;
+    ws.mergeCells(r, 1, r, 9);
+    setCell(r, 1, 'Период: ' + periodLabel, { align: 'left', border: false, fg: 'FF7A7974' });
+    r++;
+    r++; // пустая строка
+
+    // Заголовки таблицы
+    ws.getRow(r).height = 32;
+    const headers = ['№\nп.п.', 'Код\nматериала', 'Наименование материалов,\nконструкций и изделий', 'Ед.\nизм.', 'По производ-\nственным нормам', 'Факти-\nческий', 'Экономия /\nперерасход', 'Списать на\nсебестоимость', 'Приме-\nчание'];
+    headers.forEach((h, i) => {
+      setCell(r, i+1, h, { bold: true, bg: 'FF1e1e2e', fg: 'FFa78bfa', sz: 10 });
+    });
+    r++;
+
+    // Строки по типам смеси
+    let rowNum = 1;
+    const types = Object.keys(byType);
+
+    if (types.length === 0) {
+      ws.mergeCells(r, 1, r, 9);
+      setCell(r, 1, 'Нет данных за выбранный период', { align: 'left', fg: 'FF7A7974', border: false });
+      r++;
+    }
+
+    types.forEach(type => {
+      const d = byType[type];
+      const m3 = d.vol / 2.42;
+      const typeArgb = TYPE_ARGB[type] || 'FFa78bfa';
+      const typeLightArgb = TYPE_ARGB_LIGHT[type] || 'FF2d2d3a';
+      ws.getRow(r).height = 18;
+
+      setCell(r, 1, rowNum, { align: 'center' });
+      setCell(r, 2, '', { align: 'center' });
+      setCell(r, 3, type, { bold: true, align: 'left', bg: typeLightArgb, fg: typeArgb });
+      setCell(r, 4, 'т', { align: 'center' });
+      // По норме: плановые тонны пропорционально доле типа если общий план известен
+      // Для простоты — ставим общий план объекта в первую строку типа, остальные пусты
+      const normVal = rowNum === 1 ? (planTotal || '') : '';
+      setCell(r, 5, normVal, { align: 'right', numFmt: '#,##0.00' });
+      setCell(r, 6, Math.round(d.vol * 100) / 100, { align: 'right', numFmt: '#,##0.00' });
+      // Экономия = факт - норма (только первая строка)
+      const ekon = rowNum === 1 && planTotal ? Math.round((d.vol - planTotal) * 100) / 100 : '';
+      setCell(r, 7, ekon !== '' ? ekon : '', { align: 'right', numFmt: '#,##0.00' });
+      setCell(r, 8, '', { align: 'right' });
+      // Примечание — м² и м³
+      const note = d.area > 0 ? Math.round(d.area) + ' м² / ' + m3.toFixed(1) + ' м³' : m3.toFixed(1) + ' м³';
+      setCell(r, 9, note, { align: 'left', fg: 'FF7A7974' });
+      r++;
+      rowNum++;
+    });
+
+    // Итоговая строка
+    ws.getRow(r).height = 20;
+    const totalVol  = Object.values(byType).reduce((s, d) => s + d.vol, 0);
+    const totalArea = Object.values(byType).reduce((s, d) => s + d.area, 0);
+    const totalM3   = totalVol / 2.42;
+    const totalEkon = planTotal ? Math.round((totalVol - planTotal) * 100) / 100 : '';
+    setCell(r, 1, 'ИТОГО', { bold: true, align: 'right', bg: 'FF2d2d3a', fg: 'FFa78bfa' });
+    ws.mergeCells(r, 1, r, 4);
+    setCell(r, 5, planTotal || '', { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00' });
+    setCell(r, 6, Math.round(totalVol * 100) / 100, { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00' });
+    setCell(r, 7, totalEkon !== '' ? totalEkon : '', { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00', fg: totalEkon > 0 ? 'FFff5a5a' : 'FF5ad17a' });
+    setCell(r, 8, '', { bg: 'FF2d2d3a' });
+    setCell(r, 9, (totalArea > 0 ? Math.round(totalArea) + ' м² / ' : '') + totalM3.toFixed(1) + ' м³', { align: 'left', bg: 'FF2d2d3a', fg: 'FF20c997' });
+    r += 2;
+
+    // Подписи
+    const sigs = ['Ведущий бухгалтер', 'Начальник участка', 'Ответственный производитель работ'];
+    sigs.forEach(sig => {
+      ws.mergeCells(r, 1, r, 9);
+      setCell(r, 1, sig + ':  ___________________________', { align: 'left', border: false, fg: 'FF7A7974' });
+      r++;
+    });
+
+    // Скачать
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'М-29_' + street.replace(/[/\\:*?"<>|]/g, '_').slice(0, 40) + '_' + periodShort + '.xlsx';
+    a.click();
+
+    document.getElementById('m29-modal').classList.remove('open');
   }
 
   document.getElementById('upd-file-input').addEventListener('change', function() {
