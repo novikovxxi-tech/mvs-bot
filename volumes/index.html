@@ -941,7 +941,7 @@
     // Загружаем свежие данные с сервера
     try {
       const res = await fetch(API_URL + '/api/entries');
-      allEntries = await res.json();
+      allEntries = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
     } catch(e) { console.warn('Ошибка загрузки:', e); }
 
     // Фильтруем по выбранному месяцу
@@ -1106,7 +1106,7 @@
 
   async function renderProgress() {
     const res = await fetch(API_URL + '/api/entries');
-    const entries = await res.json();
+    const entries = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
 
     // Считаем факт по каждому объекту
     const fact = {};      // тонны
@@ -1250,7 +1250,7 @@
         body: JSON.stringify({ date, street, type: selectedType, vol, area, h, layer, shift, note, responsible, worktype })
       });
       const data = await res.json();
-      entries.unshift({ id: data.id, date, street, type: selectedType, vol, area, h, layer, shift, note, responsible, worktype: selectedWorktype });
+      entries.unshift({ id: data.id, date, street, type: normalizeType(selectedType), vol, area, h, layer, shift, note, responsible, worktype: selectedWorktype });
       renderStats();
 
       btn.textContent = '✅ Сохранено!';
@@ -1277,7 +1277,7 @@
     list.innerHTML = '<div class="empty">Загружаем...</div>';
     try {
       const res = await fetch(API_URL + '/api/entries');
-      allEntries = await res.json();
+      allEntries = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
       entries = allEntries;
     } catch(e) { /* используем кэш */ }
 
@@ -1422,6 +1422,18 @@
     }
 
     const TYPES = ['МЗВ II', 'ПД II', 'МЗБ II', 'КЗБ II', 'ЩМА-20'];
+
+  // Нормализация старых названий типов → актуальные
+  const TYPE_NORMALIZE = {
+    'МЗБ':  'МЗБ II', 'МЗБ2': 'МЗБ II',
+    'КЗБ':  'КЗБ II', 'КЗБ2': 'КЗБ II',
+    'МЗВ':  'МЗВ II', 'МЗВ2': 'МЗВ II',
+    'ПД':   'ПД II',  'ПД2':  'ПД II',
+  };
+  function normalizeType(t) {
+    const s = (t || '').trim();
+    return TYPE_NORMALIZE[s] || s;
+  }
     const TYPE_COLORS = {
       'МЗВ II': ['#5aaeff', '#3f8cff'],
       'ПД II':  ['#7be89a', '#5ad17a'],
@@ -2097,7 +2109,7 @@
     const period = document.getElementById('m29-period').value; // 'YYYY-MM' или 'all'
 
     const res = await fetch(API_URL + '/api/entries');
-    const all = await res.json();
+    const all = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
 
     // Фильтр
     let entries = all.filter(e => (e.street||'').trim() === street.trim());
