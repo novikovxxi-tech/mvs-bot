@@ -2211,16 +2211,10 @@
       setCell(r, 2, '', { align: 'center' });
       setCell(r, 3, type, { bold: true, align: 'left', bg: typeLightArgb, fg: typeArgb });
       setCell(r, 4, 'т', { align: 'center' });
-      // По норме: плановые тонны пропорционально доле типа если общий план известен
-      // Для простоты — ставим общий план объекта в первую строку типа, остальные пусты
-      const normVal = rowNum === 1 ? (planTotal || '') : '';
-      setCell(r, 5, normVal, { align: 'right', numFmt: '#,##0.00' });
+      setCell(r, 5, '', { align: 'right' });
       setCell(r, 6, Math.round(d.vol * 100) / 100, { align: 'right', numFmt: '#,##0.00' });
-      // Экономия = факт - норма (только первая строка)
-      const ekon = rowNum === 1 && planTotal ? Math.round((d.vol - planTotal) * 100) / 100 : '';
-      setCell(r, 7, ekon !== '' ? ekon : '', { align: 'right', numFmt: '#,##0.00' });
+      setCell(r, 7, '', { align: 'right' });
       setCell(r, 8, '', { align: 'right' });
-      // Примечание — м² и м³
       const note = d.area > 0 ? Math.round(d.area) + ' м² / ' + m3.toFixed(1) + ' м³' : m3.toFixed(1) + ' м³';
       setCell(r, 9, note, { align: 'left', fg: 'FF7A7974' });
       r++;
@@ -2232,12 +2226,10 @@
     const totalVol  = Object.values(byType).reduce((s, d) => s + d.vol, 0);
     const totalArea = Object.values(byType).reduce((s, d) => s + d.area, 0);
     const totalM3   = totalVol / 2.42;
-    const totalEkon = planTotal ? Math.round((totalVol - planTotal) * 100) / 100 : '';
     setCell(r, 1, 'ИТОГО', { bold: true, align: 'right', bg: 'FF2d2d3a', fg: 'FFa78bfa' });
-    ws.mergeCells(r, 1, r, 4);
-    setCell(r, 5, planTotal || '', { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00' });
+    ws.mergeCells(r, 1, r, 5);
     setCell(r, 6, Math.round(totalVol * 100) / 100, { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00' });
-    setCell(r, 7, totalEkon !== '' ? totalEkon : '', { bold: true, align: 'right', bg: 'FF2d2d3a', numFmt: '#,##0.00', fg: totalEkon > 0 ? 'FFff5a5a' : 'FF5ad17a' });
+    setCell(r, 7, '', { bg: 'FF2d2d3a' });
     setCell(r, 8, '', { bg: 'FF2d2d3a' });
     setCell(r, 9, (totalArea > 0 ? Math.round(totalArea) + ' м² / ' : '') + totalM3.toFixed(1) + ' м³', { align: 'left', bg: 'FF2d2d3a', fg: 'FF20c997' });
     r += 2;
