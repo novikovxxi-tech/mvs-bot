@@ -323,8 +323,18 @@
     var KEY = 'mvs_user';
     var saved = localStorage.getItem(KEY);
     if (saved) {
-      try { var u = JSON.parse(saved); if (u && u.login) document.getElementById('pw-screen').classList.add('hidden'); } catch(e) {}
+      try { var u = JSON.parse(saved); if (u && u.login) { document.getElementById('pw-screen').classList.add('hidden'); applyRoleUI(u.role || 'user'); } } catch(e) {}
     }
+    window.applyRoleUI = function(role) {
+      var isAdmin = role === 'admin';
+      // Скрыть/показать все кнопки экспорта
+      document.querySelectorAll('.btn-export').forEach(function(btn) {
+        btn.style.display = isAdmin ? '' : 'none';
+      });
+      // Показать метку роли в шапке если нужно
+      var roleTag = document.getElementById('role-tag');
+      if (roleTag) roleTag.style.display = isAdmin ? '' : 'none';
+    };
     window.checkPw = function(){
       var login = document.getElementById('pw-login').value.trim();
       var pass  = document.getElementById('pw-pass').value.trim();
@@ -339,8 +349,9 @@
       }).then(function(r){ return r.json(); }).then(function(d){
         btn.disabled = false; btn.textContent = 'Войти';
         if (d.ok) {
-          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name}));
+          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name, role: d.role || 'user'}));
           document.getElementById('pw-screen').classList.add('hidden');
+          applyRoleUI(d.role || 'user');
         } else {
           err.textContent = d.error || 'Ошибка входа';
           var inp = document.getElementById('pw-pass');
