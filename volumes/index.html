@@ -1326,7 +1326,7 @@
           <div class="log-street">${escHtml(e.street)}</div>
           <div class="log-meta">${formatDate(e.date)} · ${e.type} · <span style="color:#20c997">${e.worktype||'Проезжая часть'}</span> · <span style="color:#a78bfa">${e.layer||'Нижний'}${e.h ? ' h='+e.h+'м' : ''}</span> · ${e.shift}${e.responsible ? ' · ' + escHtml(e.responsible.split(' ')[0] + ' ' + e.responsible.split(' ')[1]) : ''}${e.note ? ' · ' + escHtml(e.note) : ''}</div>
         </div>
-        <div class="log-val">${e.vol} т${e.area ? `<br><span style="font-size:11px;color:var(--text-dim)">${e.area} м²</span>` : ''}</div>
+        <div class="log-val">${e.vol} т${e.area ? `<br><span style="font-size:11px;color:#20c997;font-weight:600;">${e.area} м²</span>` : ''}</div>
         <div class="log-actions">
           <button class="log-btn upd" onclick="openUpdModal(${e.id})" title="УПД">📎</button>
           <button class="log-btn edit" onclick="openEditModal(${e.id})" title="Редактировать">✏️</button>
