@@ -322,6 +322,18 @@
     var API_URL = 'https://mvs-backend-denis3111.amvera.io';
     var KEY = 'mvs_user';
 
+    // Нормализация старых названий типов → актуальные (объявляем первыми)
+    var TYPE_NORMALIZE = {
+      'МЗБ':  'МЗБ II', 'МЗБ2': 'МЗБ II',
+      'КЗБ':  'КЗБ II', 'КЗБ2': 'КЗБ II',
+      'МЗВ':  'МЗВ II', 'МЗВ2': 'МЗВ II',
+      'ПД':   'ПД II',  'ПД2':  'ПД II',
+    };
+    window.normalizeType = function(t) {
+      var s = (t || '').trim();
+      return TYPE_NORMALIZE[s] || s;
+    };
+
     window.applyRoleUI = function(role) {
       var isAdmin = role === 'admin';
       document.querySelectorAll('.btn-export').forEach(function(btn) {
@@ -370,9 +382,11 @@
           var nameTag = document.getElementById('user-name-tag');
           if (nameTag) nameTag.textContent = d.name || d.login;
           applyRoleUI(d.role || 'user');
-          // Загружаем данные после входа
-          if (typeof renderStats === 'function') renderStats();
-          if (typeof renderLog === 'function') renderLog();
+          // Загружаем данные после входа с небольшой задержкой
+          setTimeout(function() {
+            if (typeof renderStats === 'function') renderStats();
+            if (typeof renderLog === 'function') renderLog();
+          }, 300);
         } else {
           err.textContent = d.error || 'Ошибка входа';
           var inp = document.getElementById('pw-pass');
@@ -1426,17 +1440,7 @@
 
     const TYPES = ['МЗВ II', 'ПД II', 'МЗБ II', 'КЗБ II', 'ЩМА-20'];
 
-  // Нормализация старых названий типов → актуальные
-  const TYPE_NORMALIZE = {
-    'МЗБ':  'МЗБ II', 'МЗБ2': 'МЗБ II',
-    'КЗБ':  'КЗБ II', 'КЗБ2': 'КЗБ II',
-    'МЗВ':  'МЗВ II', 'МЗВ2': 'МЗВ II',
-    'ПД':   'ПД II',  'ПД2':  'ПД II',
-  };
-  function normalizeType(t) {
-    const s = (t || '').trim();
-    return TYPE_NORMALIZE[s] || s;
-  }
+
     const TYPE_COLORS = {
       'МЗВ II': ['#5aaeff', '#3f8cff'],
       'ПД II':  ['#7be89a', '#5ad17a'],
