@@ -730,9 +730,9 @@
 </div>
 
 <div class="screen" id="screen-log">
-  <!-- Фильтр по улице -->
+  <!-- Фильтры журнала -->
   <div class="card" style="padding:12px 14px;">
-    <div class="field" style="margin-bottom:0;">
+    <div class="field" style="margin-bottom:8px;">
       <label>Фильтр по улице / объекту</label>
       <div class="ac-wrap">
         <input type="text" id="log-filter" class="ac-input"
@@ -742,6 +742,17 @@
           onfocus="logFilterSearch(this.value)">
         <div class="ac-dropdown" id="log-filter-drop"></div>
       </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;">
+      <div class="field" style="margin-bottom:0;flex:1;">
+        <label>Дата от</label>
+        <input type="date" id="log-date-from" class="ac-input" onchange="renderLog()">
+      </div>
+      <div class="field" style="margin-bottom:0;flex:1;">
+        <label>Дата до</label>
+        <input type="date" id="log-date-to" class="ac-input" onchange="renderLog()">
+      </div>
+      <button class="btn" style="margin-bottom:0;padding:8px 14px;white-space:nowrap;" onclick="clearDateFilter()">✕ Сбросить</button>
     </div>
   </div>
 
@@ -1306,10 +1317,15 @@
       entries = allEntries;
     } catch(e) { /* используем кэш */ }
 
-    // Фильтр по улице
-    const filtered = logFilterStreet
-      ? allEntries.filter(e => e.street === logFilterStreet)
-      : allEntries;
+    // Фильтры по улице и дате
+    const dateFrom = document.getElementById('log-date-from')?.value || '';
+    const dateTo   = document.getElementById('log-date-to')?.value   || '';
+    const filtered = allEntries.filter(e => {
+      if (logFilterStreet && e.street !== logFilterStreet) return false;
+      if (dateFrom && e.date < dateFrom) return false;
+      if (dateTo   && e.date > dateTo)   return false;
+      return true;
+    });
 
     // Статистика по выбранной улице
     renderStreetStat(logFilterStreet);
@@ -1338,6 +1354,16 @@
 
   let editingId = null;
   let logFilterStreet = ''; // текущий фильтр истории
+  let logDateFrom = ''; // фильтр от даты
+  let logDateTo = '';   // фильтр до даты
+
+  function clearDateFilter() {
+    logDateFrom = '';
+    logDateTo = '';
+    document.getElementById('log-date-from').value = '';
+    document.getElementById('log-date-to').value = '';
+    renderLog();
+  }
 
   function openEditModal(id) {
     const e = entries.find(x => x.id === id);
