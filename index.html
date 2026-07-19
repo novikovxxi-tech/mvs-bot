@@ -635,6 +635,10 @@ let dstList = [
 ];
 
 let transportDate = new Date().toISOString().split('T')[0];
+let streetOptions = [];
+fetch('https://mvs-backend-denis3111.amvera.io/api/streets')
+  .then(r=>r.json()).then(d=>{ streetOptions=d; })
+  .catch(()=>{});
 let transportResp = '';
 
 // Восстанавливаем из localStorage
@@ -753,6 +757,14 @@ function renderTransportRequest() {
   document.getElementById('chat').appendChild(trCard);
 
   // Раздел ДСТ
+  let dlEl = document.getElementById('dst-streets-list');
+  if (!dlEl) {
+    dlEl = document.createElement('datalist');
+    dlEl.id = 'dst-streets-list';
+    document.body.appendChild(dlEl);
+  }
+  dlEl.innerHTML = streetOptions.map(s=>'<option value="'+escapeHtml(s)+'">').join('');
+
   const dstCard = document.createElement('div');
   dstCard.className = 'card';
   dstCard.id = 'dst-card';
@@ -800,9 +812,11 @@ function renderDstTable(card) {
               <td style="padding:4px 6px;"><input type="time" value="${r.time}"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:80px;"
                 onchange="dstList[${i}].time=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:130px;"
-                onchange="dstList[${i}].from=this.value;saveTransport();"></td>
+              <td style="padding:4px 6px;">
+                <input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес" list="dst-streets-list"
+                  style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:180px;"
+                  onchange="dstList[${i}].from=this.value;saveTransport();">
+              </td>
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.type)}" placeholder="Тип"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
                 onchange="dstList[${i}].type=this.value;saveTransport();"></td>
