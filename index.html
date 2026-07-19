@@ -705,37 +705,37 @@ function renderTransportRequest() {
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
             <span style="font-size:11px;color:var(--text-dim);font-weight:700;">#${i+1}</span>
             <input type="text" value="${escapeHtml(r.vehicle)}" placeholder="Марка / номер"
-              style="${inp}font-weight:700;color:#3f8cff;"
+              style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;font-weight:700;color:#3f8cff;"
               onchange="TRANSPORT_ROWS[${i}].vehicle=this.value;saveTransport();">
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div>
-              <span style="${lbl}">⏰ Время</span>
+              <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">⏰ Время</span>
               <input type="time" value="${r.time}"
-                style="${inp}"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
                 onchange="TRANSPORT_ROWS[${i}].time=this.value;saveTransport();">
             </div>
             <div>
-              <span style="${lbl}">📦 Груз / л/с</span>
+              <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">📦 Груз / л/с</span>
               <input type="text" value="${escapeHtml(r.cargo)}" placeholder="Груз/л/с"
-                style="${inp}"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
                 onchange="TRANSPORT_ROWS[${i}].cargo=this.value;saveTransport();">
             </div>
           </div>
           <div>
-            <span style="${lbl}">📍 Откуда</span>
+            <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">📍 Откуда</span>
             <input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес подачи"
-              style="${inp}"
+              style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
               onchange="TRANSPORT_ROWS[${i}].from=this.value;saveTransport();">
           </div>
           <div>
-            <span style="${lbl}">🏁 Куда</span>
+            <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">🏁 Куда</span>
             <input type="text" value="${escapeHtml(r.to)}" placeholder="Адрес назначения"
-              style="${inp}"
+              style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
               onchange="TRANSPORT_ROWS[${i}].to=this.value;saveTransport();">
           </div>
           <div>
-            <span style="${lbl}">👤 Ответственный</span>
+            <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">👤 Ответственный</span>
             <select id="tr-resp-sel-${i}" style="${sel_style}"
               onchange="TRANSPORT_ROWS[${i}].resp=this.value;saveTransport();updateTrPhone(${i});">
               ${respList.map(p => '<option value="'+p.name+'" '+(p.name===r.resp?'selected':'')+'>'+p.name+'</option>').join('')}
@@ -781,29 +781,29 @@ function renderDstTable(card) {
             style="position:absolute;top:10px;right:10px;background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px;">✕</button>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div>
-              <span style="${lbl}">⏰ Время</span>
-              <input type="time" value="${r.time}" style="${inp}"
+              <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">⏰ Время</span>
+              <input type="time" value="${r.time}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
                 onchange="dstList[${i}].time=this.value;saveTransport();">
             </div>
             <div>
-              <span style="${lbl}">🚜 Тип ДСТ</span>
-              <input type="text" value="${escapeHtml(r.type)}" placeholder="КДМ, Самосвал..." style="${inp}font-weight:700;color:#3f8cff;"
+              <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">🚜 Тип ДСТ</span>
+              <input type="text" value="${escapeHtml(r.type)}" placeholder="КДМ, Самосвал..." style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;font-weight:700;color:#3f8cff;"
                 onchange="dstList[${i}].type=this.value;saveTransport();">
             </div>
           </div>
           <div>
-            <span style="${lbl}">📍 Адрес подачи</span>
-            <input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес" style="${inp}"
+            <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">📍 Адрес подачи</span>
+            <input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес" style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
               onchange="dstList[${i}].from=this.value;saveTransport();">
           </div>
           <div>
-            <span style="${lbl}">💬 Комментарий</span>
-            <input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий" style="${inp}"
+            <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">💬 Комментарий</span>
+            <input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий" style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
               onchange="dstList[${i}].comment=this.value;saveTransport();">
           </div>
           <div>
-            <span style="${lbl}">👤 Ответственный</span>
-            <select id="dst-resp-sel-${i}" style="${inp}"
+            <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">👤 Ответственный</span>
+            <select id="dst-resp-sel-${i}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
               onchange="dstList[${i}].resp=this.value;saveTransport();updateDstPhone(${i});">
               <option value="">— выберите —</option>
               ${respList.map(p => '<option value="'+p.name+'" '+(p.name===(r.resp||'')?'selected':'')+'>'+p.name+'</option>').join('')}
