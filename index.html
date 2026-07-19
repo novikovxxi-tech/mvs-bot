@@ -736,7 +736,7 @@ function renderTransportRequest() {
           </div>
           <div>
             <span style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;">👤 Ответственный</span>
-            <select id="tr-resp-sel-${i}" style="${sel_style}"
+            <select id="tr-resp-sel-${i}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;font-family:inherit;width:100%;"
               onchange="TRANSPORT_ROWS[${i}].resp=this.value;saveTransport();updateTrPhone(${i});">
               ${respList.map(p => '<option value="'+p.name+'" '+(p.name===r.resp?'selected':'')+'>'+p.name+'</option>').join('')}
             </select>
