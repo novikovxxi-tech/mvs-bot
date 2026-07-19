@@ -727,11 +727,11 @@ function renderTransportRequest() {
               <td style="padding:4px 6px;"><input type="time" value="${r.time}"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:80px;"
                 onchange="TRANSPORT_ROWS[${i}].time=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Откуда"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:180px;"
+              <td style="padding:4px 6px;white-space:nowrap;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Откуда"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;min-width:200px;box-sizing:border-box;"
                 onchange="TRANSPORT_ROWS[${i}].from=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.to)}" placeholder="Куда"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:180px;"
+              <td style="padding:4px 6px;white-space:nowrap;"><input type="text" value="${escapeHtml(r.to)}" placeholder="Куда"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;min-width:200px;box-sizing:border-box;"
                 onchange="TRANSPORT_ROWS[${i}].to=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.vehicle)}" placeholder="Марка"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-weight:600;color:#3f8cff;width:100%;min-width:160px;"
