@@ -704,6 +704,7 @@ function renderTransportRequest() {
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Транспорт</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Груз / л/с</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Ответственный</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Телефон</th>
           </tr>
         </thead>
         <tbody>
@@ -725,10 +726,13 @@ function renderTransportRequest() {
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-dim);font-size:12px;width:100%;min-width:100px;"
                 onchange="TRANSPORT_ROWS[${i}].cargo=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;">
-                <select style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
-                  onchange="TRANSPORT_ROWS[${i}].resp=this.value;saveTransport();">
+                <select id="tr-resp-sel-${i}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
+                  onchange="TRANSPORT_ROWS[${i}].resp=this.value;saveTransport();updateTrPhone(${i});">
                   ${respList.map(p => '<option value="'+p.name+'" '+(p.name===r.resp?'selected':'')+'>'+p.name.split(' ').slice(0,2).join(' ')+'</option>').join('')}
                 </select>
+              </td>
+              <td style="padding:4px 8px;white-space:nowrap;font-size:11px;color:var(--text-dim);" id="tr-phone-${i}">
+                ${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}
               </td>
             </tr>
           `).join('')}
@@ -833,6 +837,14 @@ function pickTrResp(i) {
   saveTransport();
 }
 
+function updateTrPhone(i) {
+  const sel = document.getElementById('tr-resp-sel-'+i);
+  const phoneEl = document.getElementById('tr-phone-'+i);
+  if (!sel || !phoneEl) return;
+  const found = respList.find(p => p.name === sel.value);
+  phoneEl.textContent = found ? found.phone : '';
+}
+
 function printTransportRequest() {
   const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   const trRows = TRANSPORT_ROWS.map((r,i) => `
@@ -844,6 +856,7 @@ function printTransportRequest() {
       <td>${escapeHtml(r.vehicle)}</td>
       <td>${escapeHtml(r.cargo)}</td>
       <td>${escapeHtml(r.resp)}</td>
+      <td>${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
     </tr>
   `).join('');
   const dstRows = dstList.map((r,i) => `
@@ -878,7 +891,7 @@ function printTransportRequest() {
 
   <h3>🚐 ТРАНСПОРТ</h3>
   <table>
-    <thead><tr><th>№</th><th>Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th></tr></thead>
+    <thead><tr><th>№</th><th>Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th><th>Телефон</th></tr></thead>
     <tbody>${trRows}</tbody>
   </table>
 
