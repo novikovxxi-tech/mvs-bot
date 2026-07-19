@@ -280,6 +280,7 @@
     .tech-time-input { font-size: 15px !important; width: 100px !important; }
   }
 </style>
+<script src="xlsx.mini.min.js"></script>
 </head>
 <body>
 
@@ -1053,85 +1054,43 @@ function printTransportRequest(download) {
 
 function exportTransportExcel() {
   const dateDisplay = new Date(transportDate+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-  const trRows = TRANSPORT_ROWS.map((r,i) => `
-    <tr>
-      <td align="center">${i+1}</td>
-      <td>${r.time}</td>
-      <td>${r.from||''}</td>
-      <td>${r.to||''}</td>
-      <td><b>${r.vehicle||''}</b></td>
-      <td>${r.cargo||''}</td>
-      <td>${r.resp||''}</td>
-      <td>${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
-    </tr>`).join('');
-  const dstRows = dstList.map((r,i) => `
-    <tr>
-      <td align="center">${i+1}</td>
-      <td>${r.time}</td>
-      <td>${r.from||''}</td>
-      <td><b>${r.type||''}</b></td>
-      <td>${r.comment||''}</td>
-      <td>${r.resp||''}</td>
-      <td>${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
-    </tr>`).join('');
+  const wb = XLSX.utils.book_new();
+  const rows = [];
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-    xmlns:x="urn:schemas-microsoft-com:office:excel"
-    xmlns="http://www.w3.org/TR/REC-html40">
-  <head><meta charset="UTF-8">
-  <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
-  <x:ExcelWorksheet><x:Name>Заявка</x:Name>
-  <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-  </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
-  <style>
-    body{font-family:Arial,sans-serif;font-size:10pt;}
-    table{border-collapse:collapse;width:100%;}
-    th{background:#1B3A6B;color:#fff;font-weight:bold;padding:5px 8px;border:1px solid #999;text-align:center;}
-    td{padding:4px 8px;border:1px solid #ccc;vertical-align:top;}
-    tr:nth-child(even) td{background:#EBF3FB;}
-    .sec{background:#2563A8;color:#fff;font-weight:bold;font-size:11pt;padding:5px 8px;}
-    .sec-dst{background:#1A7A5E;color:#fff;font-weight:bold;font-size:11pt;padding:5px 8px;}
-    .th-dst{background:#1B5E4E;color:#fff;font-weight:bold;padding:5px 8px;border:1px solid #999;text-align:center;}
-    tr.dst-even td{background:#E8F5F0;}
-    .org{font-size:9pt;color:#555;font-style:italic;}
-    .title{font-size:14pt;font-weight:bold;}
-  </style>
-  </head><body>
-  <table>
-    <tr><td colspan="8" align="center" class="org">АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485</td></tr>
-    <tr><td colspan="8" align="center" class="org">121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3 &nbsp;|&nbsp; РСУ-3, АУК №1</td></tr>
-    <tr><td colspan="8" align="center" class="title" style="background:#1B3A6B;color:#fff;padding:8px;">ЗАЯВКА НА ТРАНСПОРТ И ДСТ</td></tr>
-    <tr><td colspan="8" align="center" style="background:#1B3A6B;color:#BDD7EE;font-weight:bold;">${dateDisplay}${transportResp?' &nbsp;|&nbsp; Ответственный: '+transportResp:''}</td></tr>
-    <tr><td colspan="8"></td></tr>
-    <tr><td colspan="8" class="sec">ТРАНСПОРТ</td></tr>
-    <tr>
-      <th style="width:30px;">№</th><th style="width:55px;">Время</th>
-      <th>Откуда</th><th>Куда</th><th>Транспорт</th>
-      <th>Груз / л/с</th><th>Ответственный</th><th style="width:120px;">Телефон</th>
-    </tr>
-    ${trRows}
-    <tr><td colspan="8"></td></tr>
-    <tr><td colspan="7" class="sec-dst">ДСТ</td><td></td></tr>
-    <tr>
-      <th class="th-dst" style="width:30px;">№</th><th class="th-dst" style="width:55px;">Время</th>
-      <th class="th-dst">Адрес подачи</th><th class="th-dst">Тип ДСТ</th>
-      <th class="th-dst">Комментарий</th><th class="th-dst">Ответственный</th>
-      <th class="th-dst" colspan="2" style="width:120px;">Телефон</th>
-    </tr>
-    ${dstRows}
-    <tr><td colspan="8"></td></tr>
-    <tr><td colspan="8"></td></tr>
-    <tr><td colspan="3">Начальник участка АУК №1</td><td colspan="2"></td><td colspan="3">Ответственный</td></tr>
-    <tr><td colspan="3"></td><td colspan="2"></td><td colspan="3"></td></tr>
-    <tr><td colspan="3">Петровский А.М.</td><td colspan="2"></td><td colspan="3">${transportResp||''}</td></tr>
-  </table>
-  </body></html>`;
+  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485']);
+  rows.push(['121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3  |  РСУ-3, АУК №1']);
+  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay]);
+  rows.push([transportResp ? 'Ответственный: ' + transportResp : '']);
+  rows.push([]);
+  rows.push(['ТРАНСПОРТ']);
+  rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
+  TRANSPORT_ROWS.forEach((r,i) => rows.push([
+    i+1, r.time, r.from||'', r.to||'', r.vehicle||'', r.cargo||'', r.resp||'',
+    (respList.find(p=>p.name===r.resp)||{phone:''}).phone
+  ]));
+  rows.push([]);
+  rows.push(['ДСТ']);
+  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
+  dstList.forEach((r,i) => rows.push([
+    i+1, r.time, r.from||'', r.type||'', r.comment||'', r.resp||'',
+    (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone
+  ]));
+  rows.push([]);
+  rows.push([]);
+  rows.push(['Начальник участка АУК №1','','','','Ответственный']);
+  rows.push([]);
+  rows.push(['Петровский А.М.','','','',transportResp||'']);
 
-  const blob = new Blob(['\uFEFF'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:4},{wch:7},{wch:24},{wch:24},{wch:22},{wch:20},{wch:28},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Заявка');
+
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'Заявка_' + transportDate + '.xls';
+  a.download = 'Заявка_' + transportDate + '.xlsx';
   document.body.appendChild(a);
   a.click();
   setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 2000);
