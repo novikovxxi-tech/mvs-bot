@@ -280,7 +280,6 @@
     .tech-time-input { font-size: 15px !important; width: 100px !important; }
   }
 </style>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -961,58 +960,48 @@ function printTransportRequest(download) {
 }
 
 function exportTransportExcel() {
-  try {
-    if (typeof XLSX === 'undefined') {
-      alert('Библиотека Excel не загружена. Проверьте интернет-соединение и попробуйте обновить страницу.');
-      return;
-    }
-    const dateDisplay = new Date(transportDate+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-    const wb = XLSX.utils.book_new();
-    const rows = [];
+  const dateDisplay = new Date(transportDate+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  const BOM = '\uFEFF';
+  const SEP = '\t'; // TAB-разделитель — Excel открывает без вопросов
 
-    rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485']);
-    rows.push(['121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3  |  РСУ-3, АУК №1']);
-    rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay]);
-    if (transportResp) rows.push(['Ответственный: ' + transportResp]);
-    rows.push([]);
+  const q = v => String(v == null ? '' : v).replace(/\t/g,' ').replace(/\r?\n/g,' ');
 
-    rows.push(['ТРАНСПОРТ']);
-    rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
-    TRANSPORT_ROWS.forEach((r,i) => rows.push([
-      i+1, r.time, r.from, r.to, r.vehicle, r.cargo, r.resp,
-      (respList.find(p=>p.name===r.resp)||{phone:''}).phone
-    ]));
-    rows.push([]);
+  const rows = [];
+  rows.push([q('АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485')]);
+  rows.push([q('121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3  |  РСУ-3, АУК №1')]);
+  rows.push([q('ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay)]);
+  if (transportResp) rows.push([q('Ответственный: ' + transportResp)]);
+  rows.push(['']);
 
-    rows.push(['ДСТ']);
-    rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
-    dstList.forEach((r,i) => rows.push([
-      i+1, r.time, r.from, r.type, r.comment, r.resp||'',
-      (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone
-    ]));
-    rows.push([]);
-    rows.push([]);
-    rows.push(['Начальник участка АУК №1','','','','Ответственный']);
-    rows.push([]);
-    rows.push(['Петровский А.М.','','','',transportResp||'']);
+  rows.push([q('ТРАНСПОРТ')]);
+  rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон'].map(q));
+  TRANSPORT_ROWS.forEach((r,i) => rows.push([
+    i+1, q(r.time), q(r.from), q(r.to), q(r.vehicle), q(r.cargo), q(r.resp),
+    q((respList.find(p=>p.name===r.resp)||{phone:''}).phone)
+  ]));
+  rows.push(['']);
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{wch:4},{wch:7},{wch:24},{wch:24},{wch:22},{wch:20},{wch:28},{wch:18}];
+  rows.push([q('ДСТ')]);
+  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон'].map(q));
+  dstList.forEach((r,i) => rows.push([
+    i+1, q(r.time), q(r.from), q(r.type), q(r.comment), q(r.resp||''),
+    q((respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone)
+  ]));
+  rows.push(['']);
+  rows.push(['']);
+  rows.push([q('Начальник участка АУК №1'),'','','',q('Ответственный')]);
+  rows.push(['']);
+  rows.push([q('Петровский А.М.'),'','','',q(transportResp||'')]);
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Заявка');
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Заявка_' + transportDate + '.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-  } catch(e) {
-    alert('Ошибка при создании Excel: ' + e.message);
-    console.error(e);
-  }
+  const tsv = BOM + rows.map(r => r.join(SEP)).join('\r\n');
+  const blob = new Blob([tsv], {type: 'text/tab-separated-values;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Заявка_' + transportDate + '.xls';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 }
 
 
