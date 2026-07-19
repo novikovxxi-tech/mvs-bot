@@ -770,57 +770,55 @@ function renderTransportRequest() {
 }
 
 function renderDstTable(card) {
+  const INP = 'background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;width:100%;';
+  const LBL = 'font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;';
   card.innerHTML = `
     <div class="card-title" style="margin-bottom:10px;">🚜 ДСТ</div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead>
-          <tr style="color:var(--text-dim);text-align:left;">
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Время</th>
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Адрес подачи</th>
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Тип ДСТ</th>
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Комментарий</th>
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Ответственный</th>
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Телефон</th>
-            <th style="padding:6px 8px;border-bottom:1px solid var(--border);"></th>
-          </tr>
-        </thead>
-        <tbody id="dst-tbody">
-          ${dstList.map((r,i) => `
-            <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
-              <td style="padding:4px 6px;"><input type="time" value="${r.time}"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:80px;"
-                onchange="dstList[${i}].time=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:130px;"
-                onchange="dstList[${i}].from=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.type)}" placeholder="Тип"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
-                onchange="dstList[${i}].type=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий"
-                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
-                onchange="dstList[${i}].comment=this.value;saveTransport();"></td>
-              <td style="padding:4px 6px;">
-                <select id="dst-resp-sel-${i}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
-                  onchange="dstList[${i}].resp=this.value;saveTransport();updateDstPhone(${i});">
-                  <option value="">— выберите —</option>
-                  ${respList.map(p => '<option value="'+p.name+'" '+(p.name===(r.resp||'')?'selected':'')+'>'+p.name.split(' ').slice(0,2).join(' ')+'</option>').join('')}
-                </select>
-              </td>
-              <td style="padding:4px 8px;white-space:nowrap;font-size:11px;color:var(--text-dim);" id="dst-phone-${i}">
-                ${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}
-              </td>
-              <td style="padding:4px 6px;text-align:center;">
-                <button onclick="dstList.splice(${i},1);saveTransport();renderDstTable(document.getElementById('dst-card'));"
-                  style="background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;">✕</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${dstList.map((r,i) => `
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;flex:1;">
+              <div>
+                <span style="${LBL}">⏰ Время</span>
+                <input type="time" value="${r.time}" style="${INP}"
+                  onchange="dstList[${i}].time=this.value;saveTransport();">
+              </div>
+              <div>
+                <span style="${LBL}">🚜 Тип ДСТ</span>
+                <input type="text" value="${escapeHtml(r.type)}" placeholder="КДМ, Самосвал..." style="${INP}font-weight:700;color:#3f8cff;"
+                  onchange="dstList[${i}].type=this.value;saveTransport();">
+              </div>
+            </div>
+            <button onclick="dstList.splice(${i},1);saveTransport();renderDstTable(document.getElementById('dst-card'));"
+              style="flex-shrink:0;background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px;line-height:1;">✕</button>
+          </div>
+          <div>
+            <span style="${LBL}">📍 Адрес подачи</span>
+            <input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес" style="${INP}"
+              onchange="dstList[${i}].from=this.value;saveTransport();">
+          </div>
+          <div>
+            <span style="${LBL}">💬 Комментарий</span>
+            <input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий" style="${INP}"
+              onchange="dstList[${i}].comment=this.value;saveTransport();">
+          </div>
+          <div>
+            <span style="${LBL}">👤 Ответственный</span>
+            <select id="dst-resp-sel-${i}" style="${INP}"
+              onchange="dstList[${i}].resp=this.value;saveTransport();updateDstPhone(${i});">
+              <option value="">— выберите —</option>
+              ${respList.map(p => '<option value="'+p.name+'" '+(p.name===(r.resp||'')?'selected':'')+'>'+p.name+'</option>').join('')}
+            </select>
+          </div>
+          <div id="dst-phone-${i}" style="font-size:13px;color:var(--text-dim);">
+            ${(r.resp&&respList.find(p=>p.name===r.resp)) ? '📞 '+(respList.find(p=>p.name===r.resp)||{phone:''}).phone : ''}
+          </div>
+        </div>
+      `).join('')}
     </div>
     <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:'',resp:''});saveTransport();renderDstTable(document.getElementById('dst-card'));"
-      style="margin-top:10px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px;font-size:13px;cursor:pointer;">
+      style="margin-top:12px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:12px;padding:12px;font-size:14px;cursor:pointer;">
       ＋ Добавить ДСТ
     </button>
   `;
