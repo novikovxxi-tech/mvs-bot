@@ -1068,7 +1068,7 @@ function exportTransportExcel() {
       phone: (respList2.find(p=>p.name===(r.resp||''))||{phone:''}).phone
     }))
   };
-  fetch(API + '/api/transport/export/excel', {
+  fetch(API + '/api/export-transport', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
