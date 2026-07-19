@@ -49,6 +49,7 @@
     max-width: 600px;
     margin: 0 auto;
   }
+  .content.wide { max-width: 1200px; }
 
   /* ── Cards ── */
   .card {
@@ -392,6 +393,7 @@ function escapeHtml(s) {
 function clearChat() {
   const chat = document.getElementById('chat');
   chat.innerHTML = '';
+  chat.classList.remove('wide');
 }
 
 /* ==================== Helpers ==================== */
@@ -660,6 +662,7 @@ function renderTransportRequest() {
   clearChat();
   history.push('transport');
   updateBack();
+  document.getElementById('chat').classList.add('wide');
 
   const dateVal = transportDate;
   const dateDisplay = new Date(dateVal + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
