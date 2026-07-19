@@ -624,9 +624,9 @@ let TRANSPORT_ROWS = [
 ];
 
 let dstList = [
-  { time: '08:00', from: 'Варшавское шоссе 146',  type: 'КДМ',            comment: '' },
-  { time: '08:00', from: 'Варшавское шоссе 126',  type: 'Самосвал пустой', comment: '' },
-  { time: '08:00', from: 'Варшавское шоссе 146',  type: 'Манипулятор',    comment: 'вывоз борткамня' },
+  { time: '08:00', from: 'Варшавское шоссе 146',  type: 'КДМ',            comment: '',              resp: 'Сорокин Александр Евгеньевич' },
+  { time: '08:00', from: 'Варшавское шоссе 126',  type: 'Самосвал пустой', comment: '',             resp: 'Сорокин Александр Евгеньевич' },
+  { time: '08:00', from: 'Варшавское шоссе 146',  type: 'Манипулятор',    comment: 'вывоз борткамня', resp: 'Сорокин Александр Евгеньевич' },
 ];
 
 let transportDate = new Date().toISOString().split('T')[0];
@@ -774,6 +774,8 @@ function renderDstTable(card) {
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Адрес подачи</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Тип ДСТ</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Комментарий</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Ответственный</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Телефон</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);"></th>
           </tr>
         </thead>
@@ -792,6 +794,16 @@ function renderDstTable(card) {
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
                 onchange="dstList[${i}].comment=this.value;saveTransport();"></td>
+              <td style="padding:4px 6px;">
+                <select id="dst-resp-sel-${i}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
+                  onchange="dstList[${i}].resp=this.value;saveTransport();updateDstPhone(${i});">
+                  <option value="">— выберите —</option>
+                  ${respList.map(p => '<option value="'+p.name+'" '+(p.name===(r.resp||'')?'selected':'')+'>'+p.name.split(' ').slice(0,2).join(' ')+'</option>').join('')}
+                </select>
+              </td>
+              <td style="padding:4px 8px;white-space:nowrap;font-size:11px;color:var(--text-dim);" id="dst-phone-${i}">
+                ${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}
+              </td>
               <td style="padding:4px 6px;text-align:center;">
                 <button onclick="dstList.splice(${i},1);saveTransport();renderDstTable(document.getElementById('dst-card'));"
                   style="background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;">✕</button>
@@ -801,7 +813,7 @@ function renderDstTable(card) {
         </tbody>
       </table>
     </div>
-    <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:''});saveTransport();renderDstTable(document.getElementById('dst-card'));"
+    <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:'',resp:''});saveTransport();renderDstTable(document.getElementById('dst-card'));"
       style="margin-top:10px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px;font-size:13px;cursor:pointer;">
       ＋ Добавить ДСТ
     </button>
@@ -837,6 +849,14 @@ function pickTrResp(i) {
   saveTransport();
 }
 
+function updateDstPhone(i) {
+  const sel = document.getElementById('dst-resp-sel-'+i);
+  const phoneEl = document.getElementById('dst-phone-'+i);
+  if (!sel || !phoneEl) return;
+  const found = respList.find(p => p.name === sel.value);
+  phoneEl.textContent = found ? found.phone : '';
+}
+
 function updateTrPhone(i) {
   const sel = document.getElementById('tr-resp-sel-'+i);
   const phoneEl = document.getElementById('tr-phone-'+i);
@@ -866,7 +886,8 @@ function printTransportRequest() {
       <td>${escapeHtml(r.from)}</td>
       <td>${escapeHtml(r.type)}</td>
       <td>${escapeHtml(r.comment)}</td>
-      <td>${escapeHtml(transportResp)}</td>
+      <td>${escapeHtml(r.resp||'')}</td>
+      <td>${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
     </tr>
   `).join('');
 
@@ -897,7 +918,7 @@ function printTransportRequest() {
 
   <h3>🚜 ДСТ</h3>
   <table>
-    <thead><tr><th>№</th><th>Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th></tr></thead>
+    <thead><tr><th>№</th><th>Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th><th>Телефон</th></tr></thead>
     <tbody>${dstRows}</tbody>
   </table>
 
