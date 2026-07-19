@@ -1073,15 +1073,15 @@ function exportTransportExcel() {
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('Ошибка сервера: ' + res.status);
-    return res.blob();
-  })
-  .then(blob => {
+  .then(res => res.json())
+  .then(json => {
+    if (!json.ok) throw new Error(json.error || 'Ошибка сервера');
+    const bytes = Uint8Array.from(atob(json.data), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Заявка_' + transportDate + '.xlsx';
+    a.download = json.filename || 'Заявка.xlsx';
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 2000);
