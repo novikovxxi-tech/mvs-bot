@@ -881,94 +881,40 @@ function updateTrPhone(i) {
 }
 
 function exportTransportWord() {
-  const dateDisplay = new Date(transportDate+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-  const trRows = TRANSPORT_ROWS.map((r,i) => `
-    <tr>
-      <td align="center" style="width:30px">${i+1}</td>
-      <td style="width:55px">${r.time}</td>
-      <td>${r.from||''}</td><td>${r.to||''}</td>
-      <td><b>${r.vehicle||''}</b></td>
-      <td>${r.cargo||''}</td>
-      <td>${r.resp||''}</td>
-      <td style="width:120px">${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
-    </tr>`).join('');
-  const dstRows = dstList.map((r,i) => `
-    <tr>
-      <td align="center" style="width:30px">${i+1}</td>
-      <td style="width:55px">${r.time}</td>
-      <td>${r.from||''}</td><td><b>${r.type||''}</b></td>
-      <td>${r.comment||''}</td><td>${r.resp||''}</td>
-      <td colspan="2" style="width:120px">${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
-    </tr>`).join('');
-
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-    xmlns:w="urn:schemas-microsoft-com:office:word"
-    xmlns="http://www.w3.org/TR/REC-html40">
-  <head><meta charset="UTF-8">
-  <!--[if gte mso 9]><xml><w:WordDocument>
-  <w:View>Print</w:View><w:Zoom>90</w:Zoom>
-  <w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
-  <style>
-    @page{size:A4 portrait;margin:20mm 15mm 20mm 20mm}
-    body{font-family:Arial,sans-serif;font-size:10pt;margin:0}
-    table{border-collapse:collapse;width:100%;margin-bottom:8pt}
-    th{background:#1B3A6B;color:#fff;font-weight:bold;padding:4px 6px;border:1px solid #999;text-align:center;font-size:9pt}
-    td{padding:3px 6px;border:1px solid #ccc;font-size:9pt;vertical-align:top}
-    .sec{background:#2563A8;color:#fff;font-weight:bold;font-size:10pt;padding:4px 8px}
-    .sec-dst{background:#1A7A5E;color:#fff;font-weight:bold;font-size:10pt;padding:4px 8px}
-    .th-dst{background:#1B5E4E;color:#fff;font-weight:bold;padding:4px 6px;border:1px solid #999;text-align:center;font-size:9pt}
-    .org{font-size:8pt;color:#555;font-style:italic}
-    .title{font-size:13pt;font-weight:bold}
-    .signs{margin-top:20mm}
-  </style>
-  </head><body>
-  <p align="center" class="org">АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485</p>
-  <p align="center" class="org">121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3 &nbsp;|&nbsp; РСУ-3, АУК №1</p>
-  <p align="center" class="title">ЗАЯВКА НА ТРАНСПОРТ И ДСТ</p>
-  <p align="center">${dateDisplay}${transportResp?' &nbsp;|&nbsp; Ответственный: <b>'+transportResp+'</b>':''}</p>
-  <table>
-    <tr><td colspan="8" class="sec">ТРАНСПОРТ</td></tr>
-    <tr>
-      <th>№</th><th>Время</th><th>Откуда</th><th>Куда</th>
-      <th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th><th>Телефон</th>
-    </tr>
-    ${trRows}
-  </table>
-  <table>
-    <tr><td colspan="8" class="sec-dst">ДСТ</td></tr>
-    <tr>
-      <th class="th-dst">№</th><th class="th-dst">Время</th>
-      <th class="th-dst">Адрес подачи</th><th class="th-dst">Тип ДСТ</th>
-      <th class="th-dst">Комментарий</th><th class="th-dst">Ответственный</th>
-      <th class="th-dst" colspan="2">Телефон</th>
-    </tr>
-    ${dstRows}
-  </table>
-  <div class="signs">
-    <table style="border:none;width:100%">
-      <tr>
-        <td style="border:none;width:45%">Начальник участка АУК №1</td>
-        <td style="border:none;width:10%"></td>
-        <td style="border:none;width:45%">Ответственный</td>
-      </tr>
-      <tr><td style="border:none;height:15mm"></td><td style="border:none"></td><td style="border:none"></td></tr>
-      <tr>
-        <td style="border:none;border-top:1px solid #000;padding-top:3px">Петровский А.М.</td>
-        <td style="border:none"></td>
-        <td style="border:none;border-top:1px solid #000;padding-top:3px">${transportResp||''}</td>
-      </tr>
-    </table>
-  </div>
-  </body></html>`;
-
-  const blob = new Blob(['\uFEFF'+html], {type:'application/msword;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'Заявка_' + transportDate + '.doc';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 2000);
+  const payload = {
+    date: transportDate,
+    resp: transportResp,
+    transport: TRANSPORT_ROWS.map(r => ({
+      time: r.time, from: r.from, to: r.to,
+      vehicle: r.vehicle, cargo: r.cargo,
+      resp: r.resp,
+      phone: (respList.find(p=>p.name===r.resp)||{phone:''}).phone
+    })),
+    dst: dstList.map(r => ({
+      time: r.time, from: r.from, type: r.type, comment: r.comment,
+      resp: r.resp,
+      phone: (respList.find(p=>p.name===r.resp)||{phone:''}).phone
+    }))
+  };
+  fetch('https://mvs-backend-denis3111.amvera.io/api/export-transport-word', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(json => {
+    if (!json.ok) throw new Error(json.error || 'Ошибка сервера');
+    const bytes = Uint8Array.from(atob(json.data), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = json.filename || 'Заявка.docx';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 2000);
+  })
+  .catch(e => alert('Ошибка Word: ' + e.message));
 }
 
 function printTransportRequest(download) {
