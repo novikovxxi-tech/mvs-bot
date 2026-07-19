@@ -280,7 +280,7 @@
     .tech-time-input { font-size: 15px !important; width: 100px !important; }
   }
 </style>
-<script src="xlsx.mini.min.js"></script>
+<script src="xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1057,35 +1057,114 @@ function exportTransportExcel() {
   const wb = XLSX.utils.book_new();
   const rows = [];
 
-  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485']);
-  rows.push(['121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3  |  РСУ-3, АУК №1']);
-  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay]);
-  rows.push([transportResp ? 'Ответственный: ' + transportResp : '']);
-  rows.push([]);
-  rows.push(['ТРАНСПОРТ']);
+  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485','','','','','','','']);
+  rows.push(['121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3  |  РСУ-3, АУК №1','','','','','','','']);
+  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay,'','','','','','','']);
+  rows.push([transportResp ? 'Ответственный: ' + transportResp : '','','','','','','','']);
+  rows.push(['','','','','','','','']);
+  rows.push(['ТРАНСПОРТ','','','','','','','']);
   rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
+  const trStart = rows.length;
   TRANSPORT_ROWS.forEach((r,i) => rows.push([
     i+1, r.time, r.from||'', r.to||'', r.vehicle||'', r.cargo||'', r.resp||'',
     (respList.find(p=>p.name===r.resp)||{phone:''}).phone
   ]));
-  rows.push([]);
-  rows.push(['ДСТ']);
-  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
+  const trEnd = rows.length;
+  rows.push(['','','','','','','','']);
+  rows.push(['ДСТ','','','','','','','']);
+  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон','']);
+  const dstStart = rows.length;
   dstList.forEach((r,i) => rows.push([
     i+1, r.time, r.from||'', r.type||'', r.comment||'', r.resp||'',
-    (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone
+    (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone, ''
   ]));
-  rows.push([]);
-  rows.push([]);
-  rows.push(['Начальник участка АУК №1','','','','Ответственный']);
-  rows.push([]);
-  rows.push(['Петровский А.М.','','','',transportResp||'']);
+  const dstEnd = rows.length;
+  rows.push(['','','','','','','','']);
+  rows.push(['','','','','','','','']);
+  rows.push(['Начальник участка АУК №1','','','','Ответственный','','','']);
+  rows.push(['','','','','','','','']);
+  rows.push(['Петровский А.М.','','','',transportResp||'','','','']);
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{wch:4},{wch:7},{wch:24},{wch:24},{wch:22},{wch:20},{wch:28},{wch:18}];
-  XLSX.utils.book_append_sheet(wb, ws, 'Заявка');
 
-  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  // Merges
+  const M = (r1,c1,r2,c2) => ({s:{r:r1,c:c1},e:{r:r2,c:c2}});
+  ws['!merges'] = [
+    M(0,0,0,7), M(1,0,1,7), M(2,0,2,7), M(3,0,3,7),
+    M(5,0,5,7), // ТРАНСПОРТ секция
+    M(trEnd+1,0,trEnd+1,7), // ДСТ секция
+  ];
+
+  // Стили
+  const S = (fill,font,align,border) => ({fill,font,alignment:align,border});
+  const thin = s => ({top:s,bottom:s,left:s,right:s});
+  const B = {style:'thin',color:{rgb:'AAAAAA'}};
+  const BH = {style:'thin',color:{rgb:'888888'}};
+
+  const BLUE_DARK = {patternType:'solid',fgColor:{rgb:'1B3A6B'}};
+  const BLUE_MED  = {patternType:'solid',fgColor:{rgb:'2563A8'}};
+  const TEAL_DARK = {patternType:'solid',fgColor:{rgb:'1B5E4E'}};
+  const TEAL_MED  = {patternType:'solid',fgColor:{rgb:'1A7A5E'}};
+  const GRAY_LIGHT= {patternType:'solid',fgColor:{rgb:'F2F2F2'}};
+  const BLUE_ROW  = {patternType:'solid',fgColor:{rgb:'EBF3FB'}};
+  const TEAL_ROW  = {patternType:'solid',fgColor:{rgb:'E8F5F0'}};
+  const WHITE     = {patternType:'solid',fgColor:{rgb:'FFFFFF'}};
+
+  const FW = (rgb,sz,bold) => ({bold:!!bold,sz:sz||10,color:{rgb:rgb||'000000'}});
+  const CTR = {horizontal:'center',vertical:'center',wrapText:true};
+  const LFT = {horizontal:'left',  vertical:'center',wrapText:true};
+
+  function sc(r,col,fill,font,align,border) {
+    const addr = XLSX.utils.encode_cell({r,c:col});
+    if (!ws[addr]) ws[addr] = {t:'s',v:''};
+    ws[addr].s = {fill,font,alignment:align};
+    if (border) ws[addr].s.border = border;
+  }
+
+  // Строка 1 — org (серая)
+  sc(0,0, GRAY_LIGHT, FW('555555',9,false), CTR, null);
+  sc(1,0, GRAY_LIGHT, FW('555555',9,false), CTR, null);
+  // Строка 3 — заголовок (тёмно-синий)
+  sc(2,0, BLUE_DARK, FW('FFFFFF',14,true), CTR, null);
+  // Строка 4 — дата
+  sc(3,0, BLUE_DARK, FW('BDD7EE',10,true), CTR, null);
+  // Строка 6 — ТРАНСПОРТ
+  sc(5,0, BLUE_MED, FW('FFFFFF',11,true), LFT, null);
+  // Заголовки транспорта (строка 7, индекс 6)
+  const trHeadIdx = 6;
+  for(let col=0;col<8;col++) sc(trHeadIdx,col, BLUE_DARK, FW('FFFFFF',10,true), CTR, thin(BH));
+  ws['!rows'] = ws['!rows']||[];
+  ws['!rows'][trHeadIdx] = {hpt:20};
+  // Данные транспорта
+  for(let i=trStart;i<trEnd;i++){
+    const fill = (i-trStart)%2===0 ? WHITE : BLUE_ROW;
+    for(let col=0;col<8;col++){
+      const bold = col===4;
+      sc(i,col, fill, FW('000000',10,bold), col===0?CTR:LFT, thin(B));
+    }
+    ws['!rows'][i]={hpt:16};
+  }
+  // ДСТ секция
+  const dstSecIdx = trEnd+1;
+  sc(dstSecIdx,0, TEAL_MED, FW('FFFFFF',11,true), LFT, null);
+  // Заголовки ДСТ
+  const dstHeadIdx = dstSecIdx+1;
+  for(let col=0;col<7;col++) sc(dstHeadIdx,col, TEAL_DARK, FW('FFFFFF',10,true), CTR, thin(BH));
+  ws['!rows'][dstHeadIdx]={hpt:20};
+  // Данные ДСТ
+  for(let i=dstStart+(dstSecIdx-trEnd+1);i<dstEnd+(dstSecIdx-trEnd+1);i++){
+    // пересчитываем: dstStart — индекс в rows[], но rows[] == r в ws
+    const fill = (i-(dstStart+(dstSecIdx-trEnd+1)))%2===0 ? WHITE : TEAL_ROW;
+    for(let col=0;col<7;col++){
+      const bold = col===3;
+      sc(i,col, fill, FW('000000',10,bold), col===0?CTR:LFT, thin(B));
+    }
+    ws['!rows'][i]={hpt:16};
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Заявка');
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array', cellStyles:true});
   const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
