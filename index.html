@@ -599,16 +599,17 @@ function renderMaterial() {
 /* -------- Request form: Step 1 -------- */
 
 /* -------- Transport Request -------- */
-const TRANSPORT_FIXED = [
-  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Спец объект Че',                    vehicle: 'Газель ГП у955се',       cargo: 'люди / инструмент' },
-  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528мо',       cargo: '6 чел и инструменты' },
-  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП р590со',       cargo: '6 чел и инструменты' },
-  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528',         cargo: '6 чел и инструменты' },
-  { time: '07:00', from: 'Харьковский проезд',    to: 'Школы',                              vehicle: 'Газель компрессор т590су', cargo: '6 чел и инструменты' },
-  { time: '07:00', from: 'Харьковский проезд',    to: 'Устранение замечаний',               vehicle: 'Газель ГП е057',         cargo: '6 чел и инструменты' },
-  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Варшавское шоссе 146',               vehicle: 'Газель ГП 315',          cargo: 'люди / инструмент' },
-  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Варшавское шоссе 146',               vehicle: 'АВТОБУС 670',            cargo: 'люди' },
-  { time: '07:00', from: 'Повторное устранение замечаний ЦККБ', to: 'Повторное устранение замечаний ЦККБ', vehicle: 'Газель ГП', cargo: 'люди + инструмент' },
+// Транспорт — константный список, resp меняется через UI
+let TRANSPORT_ROWS = [
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Спец объект Че',                    vehicle: 'Газель ГП у955се',        cargo: 'люди / инструмент',    resp: 'Кушнерев Сергей Андреевич' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528мо',        cargo: '6 чел и инструменты',  resp: 'Сорокин Александр Евгеньевич' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП р590со',        cargo: '6 чел и инструменты',  resp: 'Сорокин Александр Евгеньевич' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528',          cargo: '6 чел и инструменты',  resp: 'Сорокин Александр Евгеньевич' },
+  { time: '07:00', from: 'Харьковский проезд',    to: 'Школы',                              vehicle: 'Газель компрессор т590су',cargo: '6 чел и инструменты',  resp: 'Сорокин Александр Евгеньевич' },
+  { time: '07:00', from: 'Харьковский проезд',    to: 'Устранение замечаний',               vehicle: 'Газель ГП е057',          cargo: '6 чел и инструменты',  resp: 'Сорокин Александр Евгеньевич' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Варшавское шоссе 146',               vehicle: 'Газель ГП 315',           cargo: 'люди / инструмент',    resp: 'Герц Сергей Андреевич' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Варшавское шоссе 146',               vehicle: 'АВТОБУС 670',             cargo: 'люди',                 resp: 'Герц Сергей Андреевич' },
+  { time: '07:00', from: 'Повторное устранение замечаний ЦККБ', to: 'Повторное устранение замечаний ЦККБ', vehicle: 'Газель ГП', cargo: 'люди + инструмент', resp: 'Сорокин Александр Евгеньевич' },
 ];
 
 let dstList = [
@@ -667,16 +668,23 @@ function renderTransportRequest() {
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Куда</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Транспорт</th>
             <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Груз / л/с</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Ответственный</th>
           </tr>
         </thead>
         <tbody>
-          ${TRANSPORT_FIXED.map((r,i) => `
+          ${TRANSPORT_ROWS.map((r,i) => `
             <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
               <td style="padding:7px 8px;white-space:nowrap;">${r.time}</td>
               <td style="padding:7px 8px;">${escapeHtml(r.from)}</td>
               <td style="padding:7px 8px;">${escapeHtml(r.to)}</td>
               <td style="padding:7px 8px;font-weight:600;color:var(--accent);">${escapeHtml(r.vehicle)}</td>
               <td style="padding:7px 8px;color:var(--text-dim);">${escapeHtml(r.cargo)}</td>
+              <td style="padding:4px 6px;">
+                <select style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
+                  onchange="TRANSPORT_ROWS[${i}].resp=this.value">
+                  ${respList.map(p => \`<option value="\${p.name}" \${p.name===r.resp?'selected':''}>\${p.name.split(' ').slice(0,2).join(' ')}</option>\`).join('')}
+                </select>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -781,7 +789,7 @@ function pickTrResp(i) {
 
 function printTransportRequest() {
   const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-  const trRows = TRANSPORT_FIXED.map((r,i) => `
+  const trRows = TRANSPORT_ROWS.map((r,i) => `
     <tr>
       <td>${i+1}</td>
       <td>${r.time}</td>
@@ -789,7 +797,7 @@ function printTransportRequest() {
       <td>${escapeHtml(r.to)}</td>
       <td>${escapeHtml(r.vehicle)}</td>
       <td>${escapeHtml(r.cargo)}</td>
-      <td>${escapeHtml(transportResp)}</td>
+      <td>${escapeHtml(r.resp)}</td>
     </tr>
   `).join('');
   const dstRows = dstList.map((r,i) => `
