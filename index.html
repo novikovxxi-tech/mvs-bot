@@ -280,6 +280,7 @@
     .tech-time-input { font-size: 15px !important; width: 100px !important; }
   }
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -948,26 +949,160 @@ function printTransportRequest() {
 
 function exportTransportExcel() {
   const dateDisplay = new Date(transportDate+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-  const BOM = '\uFEFF', sep = ';';
-  const q = v => '"'+String(v||'').replace(/"/g,'""')+'"';
-  let rows = [];
-  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"']);
-  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — '+dateDisplay]);
-  rows.push(['РСУ-3, АУК №1']);
-  rows.push([]);
-  rows.push(['ТРАНСПОРТ']);
-  rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
-  TRANSPORT_ROWS.forEach((r,i)=>rows.push([i+1,r.time,r.from,r.to,r.vehicle,r.cargo,r.resp,(respList.find(p=>p.name===r.resp)||{phone:''}).phone]));
-  rows.push([]);
-  rows.push(['ДСТ']);
-  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
-  dstList.forEach((r,i)=>rows.push([i+1,r.time,r.from,r.type,r.comment,r.resp||'',(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone]));
-  rows.push([]);
-  rows.push(['Начальник участка АУК №1','','','Петровский А.М.']);
-  rows.push(['Ответственный','','',transportResp||'']);
-  const csv = BOM+rows.map(r=>r.map(q).join(sep)).join('\r\n');
-  const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),download:'Заявка_'+transportDate+'.csv'});
-  a.click();
+  const wb = XLSX.utils.book_new();
+  const ws_data = [];
+
+  // ── Шапка ──
+  ws_data.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485']);
+  ws_data.push(['121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3  |  РСУ-3, АУК №1']);
+  ws_data.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ']);
+  ws_data.push([dateDisplay + (transportResp ? '   |   Ответственный: ' + transportResp : '')]);
+  ws_data.push([]);
+
+  // ── ТРАНСПОРТ ──
+  ws_data.push(['ТРАНСПОРТ']);
+  const TR_HEADS = ['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон'];
+  ws_data.push(TR_HEADS);
+  const trDataStart = ws_data.length + 1;
+  TRANSPORT_ROWS.forEach((r,i) => ws_data.push([
+    i+1, r.time, r.from, r.to, r.vehicle, r.cargo, r.resp,
+    (respList.find(p=>p.name===r.resp)||{phone:''}).phone
+  ]));
+  const trDataEnd = ws_data.length;
+  ws_data.push([]);
+
+  // ── ДСТ ──
+  const dstSectionRow = ws_data.length + 1;
+  ws_data.push(['ДСТ']);
+  const DST_HEADS = ['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон'];
+  ws_data.push(DST_HEADS);
+  const dstDataStart = ws_data.length + 1;
+  dstList.forEach((r,i) => ws_data.push([
+    i+1, r.time, r.from, r.type, r.comment, r.resp||'',
+    (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone
+  ]));
+  const dstDataEnd = ws_data.length;
+  ws_data.push([]);
+  ws_data.push([]);
+
+  // ── Подписи ──
+  ws_data.push(['Начальник участка АУК №1', '', '', '', 'Ответственный']);
+  ws_data.push([]);
+  ws_data.push(['Петровский А.М.', '', '', '', transportResp||'']);
+
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+  // ── Ширина колонок ──
+  ws['!cols'] = [
+    {wch:5},   // №
+    {wch:8},   // Время
+    {wch:22},  // Откуда / Адрес
+    {wch:22},  // Куда / Тип ДСТ
+    {wch:22},  // Транспорт / Комментарий
+    {wch:18},  // Груз / Ответственный
+    {wch:28},  // Ответственный / Телефон
+    {wch:18},  // Телефон
+  ];
+
+  // ── Стили ──
+  const BLUE_HDR  = {fgColor:{rgb:'1B3A6B'}};
+  const TEAL_HDR  = {fgColor:{rgb:'1B5E4E'}};
+  const BLUE_SEC  = {fgColor:{rgb:'2563A8'}};
+  const TEAL_SEC  = {fgColor:{rgb:'1A7A5E'}};
+  const GRAY_ORG  = {fgColor:{rgb:'F0F4F8'}};
+  const WHITE     = {fgColor:{rgb:'FFFFFF'}};
+  const LIGHT_ROW = {fgColor:{rgb:'EBF3FB'}};
+  const LIGHT_DST = {fgColor:{rgb:'E8F5F0'}};
+
+  const bold14   = {bold:true, sz:14, color:{rgb:'FFFFFF'}};
+  const bold12   = {bold:true, sz:12, color:{rgb:'FFFFFF'}};
+  const bold11wh = {bold:true, sz:11, color:{rgb:'FFFFFF'}};
+  const bold11   = {bold:true, sz:11};
+  const norm10   = {sz:10};
+  const ctr      = {horizontal:'center', vertical:'center', wrapText:true};
+  const left     = {horizontal:'left',   vertical:'center', wrapText:true};
+
+  function setCell(addr, val, fill, font, align, border) {
+    if (!ws[addr]) ws[addr] = {t:'s', v:val==null?'':String(val)};
+    ws[addr].s = {};
+    if (fill)   ws[addr].s.fill   = {patternType:'solid', ...fill};
+    if (font)   ws[addr].s.font   = font;
+    if (align)  ws[addr].s.alignment = align;
+    if (border) ws[addr].s.border = border;
+  }
+
+  const thin = {style:'thin', color:{rgb:'CCCCCC'}};
+  const thk  = {style:'medium',color:{rgb:'888888'}};
+  const allThin = {top:thin, bottom:thin, left:thin, right:thin};
+  const allThk  = {top:thk,  bottom:thk,  left:thk,  right:thk};
+
+  // Орг строки (1-2)
+  ['A1','A2'].forEach(a => setCell(a, ws[a]&&ws[a].v, GRAY_ORG, {sz:9,color:{rgb:'555555'},italic:true}, {horizontal:'center'}, null));
+  // Merge орг строки
+  if (!ws['!merges']) ws['!merges'] = [];
+  ws['!merges'].push({s:{r:0,c:0},e:{r:0,c:7}});
+  ws['!merges'].push({s:{r:1,c:0},e:{r:1,c:7}});
+
+  // Заголовок (строка 3)
+  setCell('A3', ws['A3']&&ws['A3'].v, BLUE_HDR, bold14, ctr, allThk);
+  ws['!merges'].push({s:{r:2,c:0},e:{r:2,c:7}});
+
+  // Дата/ответственный (строка 4)
+  setCell('A4', ws['A4']&&ws['A4'].v, BLUE_HDR, {bold:true,sz:10,color:{rgb:'BDD7EE'}}, ctr, null);
+  ws['!merges'].push({s:{r:3,c:0},e:{r:3,c:7}});
+
+  // Секция ТРАНСПОРТ (строка 6)
+  setCell('A6', 'ТРАНСПОРТ', BLUE_SEC, bold12, left, allThk);
+  ws['!merges'].push({s:{r:5,c:0},e:{r:5,c:7}});
+
+  // Заголовки транспорта (строка 7)
+  const trHeadRow = 6; // 0-based = row 7
+  TR_HEADS.forEach((h,ci) => {
+    const addr = XLSX.utils.encode_cell({r:trHeadRow,c:ci});
+    setCell(addr, h, BLUE_HDR, bold11wh, ctr, allThin);
+  });
+
+  // Высота строки заголовка
+  if (!ws['!rows']) ws['!rows'] = [];
+  ws['!rows'][trHeadRow] = {hpt:22};
+
+  // Данные транспорта
+  for (let i = trDataStart-1; i < trDataEnd; i++) {
+    const fill = (i - trDataStart) % 2 === 0 ? {fgColor:{rgb:'FFFFFF'}} : LIGHT_ROW;
+    for (let ci = 0; ci < 8; ci++) {
+      const addr = XLSX.utils.encode_cell({r:i,c:ci});
+      const isBold = ci === 4; // Транспорт — жирный
+      setCell(addr, ws[addr]&&ws[addr].v, fill, isBold?{bold:true,sz:10}:norm10, ci===0?ctr:left, allThin);
+    }
+    ws['!rows'][i] = {hpt:18};
+  }
+
+  // Секция ДСТ
+  const dstSecIdx = dstSectionRow - 1;
+  setCell(XLSX.utils.encode_cell({r:dstSecIdx,c:0}), 'ДСТ', TEAL_SEC, bold12, left, allThk);
+  ws['!merges'].push({s:{r:dstSecIdx,c:0},e:{r:dstSecIdx,c:6}});
+
+  // Заголовки ДСТ (строка после секции)
+  const dstHeadRow = dstSecIdx + 1;
+  DST_HEADS.forEach((h,ci) => {
+    const addr = XLSX.utils.encode_cell({r:dstHeadRow,c:ci});
+    setCell(addr, h, TEAL_HDR, bold11wh, ctr, allThin);
+  });
+  ws['!rows'][dstHeadRow] = {hpt:22};
+
+  // Данные ДСТ
+  for (let i = dstDataStart-1; i < dstDataEnd; i++) {
+    const fill = (i - dstDataStart) % 2 === 0 ? {fgColor:{rgb:'FFFFFF'}} : LIGHT_DST;
+    for (let ci = 0; ci < 7; ci++) {
+      const addr = XLSX.utils.encode_cell({r:i,c:ci});
+      const isBold = ci === 3; // Тип ДСТ — жирный
+      setCell(addr, ws[addr]&&ws[addr].v, fill, isBold?{bold:true,sz:10}:norm10, ci===0?ctr:left, allThin);
+    }
+    ws['!rows'][i] = {hpt:18};
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Заявка '+transportDate);
+  XLSX.writeFile(wb, 'Заявка_'+transportDate+'.xlsx');
 }
 
 
