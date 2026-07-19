@@ -753,7 +753,10 @@ function renderTransportRequest() {
   const btnWrap = document.createElement('div');
   btnWrap.className = 'btn-group';
   btnWrap.innerHTML = `
-    <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать / скачать</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать А4</button>
+      <button class="btn" style="background:rgba(52,199,89,.15);border-color:rgba(52,199,89,.3);color:#34c759;" onclick="exportTransportExcel()">📊 Excel</button>
+    </div>
     <button class="btn back" onclick="history.pop();go('home',false);">← Назад в меню</button>
   `;
   document.getElementById('chat').appendChild(btnWrap);
@@ -869,78 +872,95 @@ function printTransportRequest() {
   const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   const trRows = TRANSPORT_ROWS.map((r,i) => `
     <tr>
-      <td>${i+1}</td>
-      <td>${r.time}</td>
+      <td style="text-align:center">${i+1}</td>
+      <td style="white-space:nowrap">${r.time}</td>
       <td>${escapeHtml(r.from)}</td>
       <td>${escapeHtml(r.to)}</td>
-      <td>${escapeHtml(r.vehicle)}</td>
+      <td style="font-weight:700">${escapeHtml(r.vehicle)}</td>
       <td>${escapeHtml(r.cargo)}</td>
       <td>${escapeHtml(r.resp)}</td>
-      <td>${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
-    </tr>
-  `).join('');
+      <td style="white-space:nowrap">${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
+    </tr>`).join('');
   const dstRows = dstList.map((r,i) => `
     <tr>
-      <td>${i+1}</td>
-      <td>${r.time}</td>
+      <td style="text-align:center">${i+1}</td>
+      <td style="white-space:nowrap">${r.time}</td>
       <td>${escapeHtml(r.from)}</td>
-      <td>${escapeHtml(r.type)}</td>
+      <td style="font-weight:700">${escapeHtml(r.type)}</td>
       <td>${escapeHtml(r.comment)}</td>
       <td>${escapeHtml(r.resp||'')}</td>
-      <td>${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
-    </tr>
-  `).join('');
-
+      <td style="white-space:nowrap">${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
+    </tr>`).join('');
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Заявка на транспорт ${dateDisplay}</title>
+  <title>Заявка ${dateDisplay}</title>
   <style>
-    body{font-family:Arial,sans-serif;font-size:11pt;padding:20mm;}
-    h2{text-align:center;font-size:14pt;margin-bottom:4px;}
-    h3{font-size:11pt;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;}
-    .sub{text-align:center;font-size:10pt;color:#555;margin-bottom:16px;}
-    table{width:100%;border-collapse:collapse;margin-bottom:10px;}
-    th,td{border:1px solid #999;padding:5px 7px;font-size:10pt;}
-    th{background:#f0f0f0;font-weight:600;}
-    .sign{margin-top:40px;display:flex;justify-content:space-between;}
-    .sign-item{width:45%;}
-    .sign-line{border-top:1px solid #000;margin-top:30px;}
-  </style>
-  </head><body>
-  <h2>АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"</h2>
-  <div class="sub">ЗАЯВКА на перевозку личного состава / техника ${dateDisplay}</div>
-  <div class="sub">Ответственный: <b>${escapeHtml(transportResp) || '_______________'}</b></div>
-
-  <h3>🚐 ТРАНСПОРТ</h3>
+    @page{size:A4 portrait;margin:12mm 10mm 15mm 10mm}
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:8.5pt;margin:0}
+    .org{text-align:center;font-size:7.5pt;color:#555;margin-bottom:1px}
+    .title{text-align:center;font-size:12pt;font-weight:700;margin:4px 0 2px;text-transform:uppercase}
+    .sub{text-align:center;font-size:8pt;color:#333;margin-bottom:8px}
+    h3{font-size:8.5pt;font-weight:700;margin:8px 0 3px;padding:2px 5px;background:#f0f0f0;border-left:3px solid #555}
+    table{width:100%;border-collapse:collapse;margin-bottom:5px}
+    th{background:#e8e8e8;font-size:7.5pt;font-weight:700;padding:3px 4px;border:1px solid #aaa;text-align:left}
+    td{font-size:7.5pt;padding:3px 4px;border:1px solid #ccc;vertical-align:top}
+    tr:nth-child(even) td{background:#fafafa}
+    .signs{margin-top:12mm;display:flex;justify-content:space-between}
+    .sign{width:45%}
+    .sign-lbl{font-size:7.5pt;margin-bottom:6mm}
+    .sign-line{border-top:1px solid #000;font-size:7.5pt;padding-top:2px}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body>
+  <div class="org">АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485</div>
+  <div class="org">121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3 &nbsp;|&nbsp; РСУ-3, АУК №1</div>
+  <div class="title">Заявка на транспорт и ДСТ</div>
+  <div class="sub">${dateDisplay}${transportResp ? ' &nbsp;|&nbsp; Ответственный: <b>'+escapeHtml(transportResp)+'</b>' : ''}</div>
+  <h3>ТРАНСПОРТ</h3>
   <table>
-    <thead><tr><th>№</th><th>Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th><th>Телефон</th></tr></thead>
+    <thead><tr><th style="width:18px">№</th><th style="width:38px">Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th><th style="width:82px">Телефон</th></tr></thead>
     <tbody>${trRows}</tbody>
   </table>
-
-  <h3>🚜 ДСТ</h3>
+  <h3>ДСТ</h3>
   <table>
-    <thead><tr><th>№</th><th>Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th><th>Телефон</th></tr></thead>
+    <thead><tr><th style="width:18px">№</th><th style="width:38px">Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th><th style="width:82px">Телефон</th></tr></thead>
     <tbody>${dstRows}</tbody>
   </table>
-
-  <div class="sign">
-    <div class="sign-item">
-      <div>Начальник участка АУК №1</div>
-      <div class="sign-line">Петровский А.М.</div>
-    </div>
-    <div class="sign-item">
-      <div>Ответственный</div>
-      <div class="sign-line">${escapeHtml(transportResp) || '_______________'}</div>
-    </div>
+  <div class="signs">
+    <div class="sign"><div class="sign-lbl">Начальник участка АУК №1</div><div class="sign-line">Петровский А.М.</div></div>
+    <div class="sign"><div class="sign-lbl">Ответственный</div><div class="sign-line">${escapeHtml(transportResp)||'_______________'}</div></div>
   </div>
   </body></html>`;
-
-  const w = window.open('', '_blank');
+  const w = window.open('','_blank');
   w.document.write(html);
   w.document.close();
-  setTimeout(() => w.print(), 600);
+  setTimeout(()=>w.print(),600);
 }
 
-/* -------- Tech-only request form -------- */
+function exportTransportExcel() {
+  const dateDisplay = new Date(transportDate+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  const BOM = '\uFEFF', sep = ';';
+  const q = v => '"'+String(v||'').replace(/"/g,'""')+'"';
+  let rows = [];
+  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"']);
+  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — '+dateDisplay]);
+  rows.push(['РСУ-3, АУК №1']);
+  rows.push([]);
+  rows.push(['ТРАНСПОРТ']);
+  rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
+  TRANSPORT_ROWS.forEach((r,i)=>rows.push([i+1,r.time,r.from,r.to,r.vehicle,r.cargo,r.resp,(respList.find(p=>p.name===r.resp)||{phone:''}).phone]));
+  rows.push([]);
+  rows.push(['ДСТ']);
+  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
+  dstList.forEach((r,i)=>rows.push([i+1,r.time,r.from,r.type,r.comment,r.resp||'',(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone]));
+  rows.push([]);
+  rows.push(['Начальник участка АУК №1','','','Петровский А.М.']);
+  rows.push(['Ответственный','','',transportResp||'']);
+  const csv = BOM+rows.map(r=>r.map(q).join(sep)).join('\r\n');
+  const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),download:'Заявка_'+transportDate+'.csv'});
+  a.click();
+}
+
+
 function renderTechOnlyForm() {
   const chat = document.getElementById('chat');
   const formCard = document.createElement('div');
