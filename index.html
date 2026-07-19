@@ -49,7 +49,6 @@
     max-width: 600px;
     margin: 0 auto;
   }
-  .content.wide { max-width: 1200px; }
 
   /* ── Cards ── */
   .card {
@@ -393,7 +392,6 @@ function escapeHtml(s) {
 function clearChat() {
   const chat = document.getElementById('chat');
   chat.innerHTML = '';
-  chat.classList.remove('wide');
 }
 
 /* ==================== Helpers ==================== */
@@ -662,7 +660,6 @@ function renderTransportRequest() {
   clearChat();
   history.push('transport');
   updateBack();
-  document.getElementById('chat').classList.add('wide');
 
   const dateVal = transportDate;
   const dateDisplay = new Date(dateVal + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -756,10 +753,7 @@ function renderTransportRequest() {
   const btnWrap = document.createElement('div');
   btnWrap.className = 'btn-group';
   btnWrap.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать А4</button>
-      <button class="btn" style="background:rgba(52,199,89,.15);border-color:rgba(52,199,89,.3);color:#34c759;" onclick="exportTransportExcel()">📊 Excel</button>
-    </div>
+    <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать / скачать</button>
     <button class="btn back" onclick="history.pop();go('home',false);">← Назад в меню</button>
   `;
   document.getElementById('chat').appendChild(btnWrap);
@@ -770,55 +764,57 @@ function renderTransportRequest() {
 }
 
 function renderDstTable(card) {
-  const INP = 'background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;width:100%;';
-  const LBL = 'font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:4px;display:block;';
   card.innerHTML = `
     <div class="card-title" style="margin-bottom:10px;">🚜 ДСТ</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      ${dstList.map((r,i) => `
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;flex:1;">
-              <div>
-                <span style="${LBL}">⏰ Время</span>
-                <input type="time" value="${r.time}" style="${INP}"
-                  onchange="dstList[${i}].time=this.value;saveTransport();">
-              </div>
-              <div>
-                <span style="${LBL}">🚜 Тип ДСТ</span>
-                <input type="text" value="${escapeHtml(r.type)}" placeholder="КДМ, Самосвал..." style="${INP}font-weight:700;color:#3f8cff;"
-                  onchange="dstList[${i}].type=this.value;saveTransport();">
-              </div>
-            </div>
-            <button onclick="dstList.splice(${i},1);saveTransport();renderDstTable(document.getElementById('dst-card'));"
-              style="flex-shrink:0;background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px;line-height:1;">✕</button>
-          </div>
-          <div>
-            <span style="${LBL}">📍 Адрес подачи</span>
-            <input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес" style="${INP}"
-              onchange="dstList[${i}].from=this.value;saveTransport();">
-          </div>
-          <div>
-            <span style="${LBL}">💬 Комментарий</span>
-            <input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий" style="${INP}"
-              onchange="dstList[${i}].comment=this.value;saveTransport();">
-          </div>
-          <div>
-            <span style="${LBL}">👤 Ответственный</span>
-            <select id="dst-resp-sel-${i}" style="${INP}"
-              onchange="dstList[${i}].resp=this.value;saveTransport();updateDstPhone(${i});">
-              <option value="">— выберите —</option>
-              ${respList.map(p => '<option value="'+p.name+'" '+(p.name===(r.resp||'')?'selected':'')+'>'+p.name+'</option>').join('')}
-            </select>
-          </div>
-          <div id="dst-phone-${i}" style="font-size:13px;color:var(--text-dim);">
-            ${(r.resp&&respList.find(p=>p.name===r.resp)) ? '📞 '+(respList.find(p=>p.name===r.resp)||{phone:''}).phone : ''}
-          </div>
-        </div>
-      `).join('')}
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="color:var(--text-dim);text-align:left;">
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Время</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Адрес подачи</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Тип ДСТ</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Комментарий</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Ответственный</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Телефон</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);"></th>
+          </tr>
+        </thead>
+        <tbody id="dst-tbody">
+          ${dstList.map((r,i) => `
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+              <td style="padding:4px 6px;"><input type="time" value="${r.time}"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:80px;"
+                onchange="dstList[${i}].time=this.value;saveTransport();"></td>
+              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:130px;"
+                onchange="dstList[${i}].from=this.value;saveTransport();"></td>
+              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.type)}" placeholder="Тип"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
+                onchange="dstList[${i}].type=this.value;saveTransport();"></td>
+              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
+                onchange="dstList[${i}].comment=this.value;saveTransport();"></td>
+              <td style="padding:4px 6px;">
+                <select id="dst-resp-sel-${i}" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
+                  onchange="dstList[${i}].resp=this.value;saveTransport();updateDstPhone(${i});">
+                  <option value="">— выберите —</option>
+                  ${respList.map(p => '<option value="'+p.name+'" '+(p.name===(r.resp||'')?'selected':'')+'>'+p.name.split(' ').slice(0,2).join(' ')+'</option>').join('')}
+                </select>
+              </td>
+              <td style="padding:4px 8px;white-space:nowrap;font-size:11px;color:var(--text-dim);" id="dst-phone-${i}">
+                ${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}
+              </td>
+              <td style="padding:4px 6px;text-align:center;">
+                <button onclick="dstList.splice(${i},1);saveTransport();renderDstTable(document.getElementById('dst-card'));"
+                  style="background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;">✕</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
     <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:'',resp:''});saveTransport();renderDstTable(document.getElementById('dst-card'));"
-      style="margin-top:12px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:12px;padding:12px;font-size:14px;cursor:pointer;">
+      style="margin-top:10px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px;font-size:13px;cursor:pointer;">
       ＋ Добавить ДСТ
     </button>
   `;
@@ -871,102 +867,68 @@ function updateTrPhone(i) {
 
 function printTransportRequest() {
   const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-
   const trRows = TRANSPORT_ROWS.map((r,i) => `
     <tr>
-      <td style="text-align:center;">${i+1}</td>
-      <td style="text-align:center;white-space:nowrap;">${r.time}</td>
+      <td>${i+1}</td>
+      <td>${r.time}</td>
       <td>${escapeHtml(r.from)}</td>
       <td>${escapeHtml(r.to)}</td>
-      <td style="font-weight:600;">${escapeHtml(r.vehicle)}</td>
+      <td>${escapeHtml(r.vehicle)}</td>
       <td>${escapeHtml(r.cargo)}</td>
       <td>${escapeHtml(r.resp)}</td>
-      <td style="white-space:nowrap;">${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
+      <td>${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
     </tr>
   `).join('');
-
   const dstRows = dstList.map((r,i) => `
     <tr>
-      <td style="text-align:center;">${i+1}</td>
-      <td style="text-align:center;white-space:nowrap;">${r.time}</td>
+      <td>${i+1}</td>
+      <td>${r.time}</td>
       <td>${escapeHtml(r.from)}</td>
-      <td style="font-weight:600;">${escapeHtml(r.type)}</td>
+      <td>${escapeHtml(r.type)}</td>
       <td>${escapeHtml(r.comment)}</td>
       <td>${escapeHtml(r.resp||'')}</td>
-      <td style="white-space:nowrap;">${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
+      <td>${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
     </tr>
   `).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Заявка на транспорт ${dateDisplay}</title>
   <style>
-    @page { size: A4 portrait; margin: 15mm 12mm 15mm 12mm; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; font-size: 9pt; margin: 0; }
-    .org { text-align:center; font-size:8pt; color:#555; margin-bottom:2px; }
-    .title { text-align:center; font-size:13pt; font-weight:700; margin:6px 0 2px; text-transform:uppercase; }
-    .subtitle { text-align:center; font-size:9pt; margin-bottom:4px; }
-    .meta { text-align:center; font-size:9pt; margin-bottom:10px; }
-    h3 { font-size:9pt; font-weight:700; margin:10px 0 4px; padding:3px 6px;
-         background:#f0f0f0; border-left:3px solid #333; }
-    table { width:100%; border-collapse:collapse; margin-bottom:6px; }
-    th { background:#e8e8e8; font-size:8pt; font-weight:700; padding:4px 5px;
-         border:1px solid #aaa; text-align:center; }
-    td { font-size:8pt; padding:4px 5px; border:1px solid #ccc; vertical-align:top; }
-    tr:nth-child(even) td { background:#fafafa; }
-    .sign-block { margin-top:14mm; display:flex; justify-content:space-between; }
-    .sign-item { width:46%; }
-    .sign-label { font-size:8pt; margin-bottom:8mm; }
-    .sign-line { border-top:1px solid #000; font-size:8pt; padding-top:2px; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    body{font-family:Arial,sans-serif;font-size:11pt;padding:20mm;}
+    h2{text-align:center;font-size:14pt;margin-bottom:4px;}
+    h3{font-size:11pt;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;}
+    .sub{text-align:center;font-size:10pt;color:#555;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+    th,td{border:1px solid #999;padding:5px 7px;font-size:10pt;}
+    th{background:#f0f0f0;font-weight:600;}
+    .sign{margin-top:40px;display:flex;justify-content:space-between;}
+    .sign-item{width:45%;}
+    .sign-line{border-top:1px solid #000;margin-top:30px;}
   </style>
   </head><body>
-  <div class="org">АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485</div>
-  <div class="org">121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3</div>
-  <div class="title">Заявка на транспорт и ДСТ</div>
-  <div class="subtitle">${dateDisplay}</div>
-  <div class="meta">РСУ-3, АУК №1</div>
+  <h2>АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"</h2>
+  <div class="sub">ЗАЯВКА на перевозку личного состава / техника ${dateDisplay}</div>
+  <div class="sub">Ответственный: <b>${escapeHtml(transportResp) || '_______________'}</b></div>
 
-  <h3>ТРАНСПОРТ</h3>
+  <h3>🚐 ТРАНСПОРТ</h3>
   <table>
-    <thead>
-      <tr>
-        <th style="width:20px;">№</th>
-        <th style="width:42px;">Время</th>
-        <th>Откуда</th>
-        <th>Куда</th>
-        <th>Транспорт</th>
-        <th>Груз / л/с</th>
-        <th>Ответственный</th>
-        <th style="width:90px;">Телефон</th>
-      </tr>
-    </thead>
+    <thead><tr><th>№</th><th>Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th><th>Телефон</th></tr></thead>
     <tbody>${trRows}</tbody>
   </table>
 
-  <h3>ДСТ</h3>
+  <h3>🚜 ДСТ</h3>
   <table>
-    <thead>
-      <tr>
-        <th style="width:20px;">№</th>
-        <th style="width:42px;">Время</th>
-        <th>Адрес подачи</th>
-        <th>Тип ДСТ</th>
-        <th>Комментарий</th>
-        <th>Ответственный</th>
-        <th style="width:90px;">Телефон</th>
-      </tr>
-    </thead>
+    <thead><tr><th>№</th><th>Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th><th>Телефон</th></tr></thead>
     <tbody>${dstRows}</tbody>
   </table>
 
-  <div class="sign-block">
+  <div class="sign">
     <div class="sign-item">
-      <div class="sign-label">Начальник участка АУК №1</div>
+      <div>Начальник участка АУК №1</div>
       <div class="sign-line">Петровский А.М.</div>
     </div>
     <div class="sign-item">
-      <div class="sign-label">Ответственный</div>
+      <div>Ответственный</div>
       <div class="sign-line">${escapeHtml(transportResp) || '_______________'}</div>
     </div>
   </div>
@@ -976,45 +938,6 @@ function printTransportRequest() {
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 600);
-}
-
-function exportTransportExcel() {
-  const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  // Собираем данные в CSV (Excel открывает .csv)
-  const BOM = '\uFEFF';
-  const sep = ';';
-
-  let rows = [];
-  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"']);
-  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay]);
-  rows.push(['РСУ-3, АУК №1']);
-  rows.push([]);
-  rows.push(['ТРАНСПОРТ']);
-  rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
-  TRANSPORT_ROWS.forEach((r,i) => {
-    const phone = (respList.find(p=>p.name===r.resp)||{phone:''}).phone;
-    rows.push([i+1, r.time, r.from, r.to, r.vehicle, r.cargo, r.resp, phone]);
-  });
-  rows.push([]);
-  rows.push(['ДСТ']);
-  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
-  dstList.forEach((r,i) => {
-    const phone = (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone;
-    rows.push([i+1, r.time, r.from, r.type, r.comment, r.resp||'', phone]);
-  });
-  rows.push([]);
-  rows.push(['Начальник участка АУК №1','','','Петровский А.М.']);
-  rows.push(['Ответственный','','',transportResp||'']);
-
-  const csv = BOM + rows.map(r => r.map(v => '"'+(String(v||'').replace(/"/g,'""'))+'"').join(sep)).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'Заявка_транспорт_' + transportDate + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 /* -------- Tech-only request form -------- */
