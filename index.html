@@ -392,6 +392,8 @@ function escapeHtml(s) {
 function clearChat() {
   const chat = document.getElementById('chat');
   chat.innerHTML = '';
+  const appEl = document.getElementById('app');
+  if (appEl) appEl.style.maxWidth = '';
 }
 
 /* ==================== Helpers ==================== */
@@ -660,6 +662,9 @@ function renderTransportRequest() {
   clearChat();
   history.push('transport');
   updateBack();
+  // Расширяем контейнер для таблицы транспорта
+  const appEl = document.getElementById('app');
+  if (appEl) appEl.style.maxWidth = '1200px';
 
   const dateVal = transportDate;
   const dateDisplay = new Date(dateVal + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -669,6 +674,8 @@ function renderTransportRequest() {
   headerCard.className = 'card';
   headerCard.innerHTML = `
     <div class="card-title">🚗 Заявка на транспорт и ДСТ</div>
+    <div style="font-size:22px;font-weight:700;color:var(--text);margin:6px 0 2px;">${dateDisplay}</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">РСУ-3, АУК №1</div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <div class="field" style="flex:1;min-width:140px;">
         <label>📅 Дата</label>
