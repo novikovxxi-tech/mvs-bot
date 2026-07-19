@@ -600,6 +600,17 @@ function renderMaterial() {
 
 /* -------- Transport Request -------- */
 // Транспорт — константный список, resp меняется через UI
+const TRANSPORT_DEFAULT_RESP = [
+  'Кушнерев Сергей Андреевич',
+  'Сорокин Александр Евгеньевич',
+  'Сорокин Александр Евгеньевич',
+  'Сорокин Александр Евгеньевич',
+  'Сорокин Александр Евгеньевич',
+  'Сорокин Александр Евгеньевич',
+  'Герц Сергей Андреевич',
+  'Герц Сергей Андреевич',
+  'Сорокин Александр Евгеньевич',
+];
 let TRANSPORT_ROWS = [
   { time: '07:00', from: 'Харьковский проезд 2б', to: 'Спец объект Че',                    vehicle: 'Газель ГП у955се',        cargo: 'люди / инструмент',    resp: 'Кушнерев Сергей Андреевич' },
   { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528мо',        cargo: '6 чел и инструменты',  resp: 'Сорокин Александр Евгеньевич' },
@@ -621,6 +632,30 @@ let dstList = [
 let transportDate = new Date().toISOString().split('T')[0];
 let transportResp = '';
 
+// Восстанавливаем из localStorage
+(function() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mvs_transport') || '{}');
+    if (saved.date) transportDate = saved.date;
+    if (saved.resp) transportResp = saved.resp;
+    if (Array.isArray(saved.trResp) && saved.trResp.length === TRANSPORT_ROWS.length) {
+      saved.trResp.forEach((r, i) => { if (r) TRANSPORT_ROWS[i].resp = r; });
+    }
+    if (Array.isArray(saved.dst)) dstList = saved.dst;
+  } catch(e) {}
+})();
+
+function saveTransport() {
+  try {
+    localStorage.setItem('mvs_transport', JSON.stringify({
+      date: transportDate,
+      resp: transportResp,
+      trResp: TRANSPORT_ROWS.map(r => r.resp),
+      dst: dstList,
+    }));
+  } catch(e) {}
+}
+
 function renderTransportRequest() {
   clearChat();
   history.push('transport');
@@ -639,7 +674,7 @@ function renderTransportRequest() {
         <label>📅 Дата</label>
         <input type="date" id="tr-date" class="field input" value="${dateVal}"
           style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;width:100%;"
-          onchange="transportDate=this.value;renderTransportRequest();">
+          onchange="transportDate=this.value;saveTransport();renderTransportRequest();">
       </div>
       <div class="field" style="flex:1;min-width:160px;position:relative;">
         <label>👤 Ответственный</label>
@@ -681,7 +716,7 @@ function renderTransportRequest() {
               <td style="padding:7px 8px;color:var(--text-dim);">${escapeHtml(r.cargo)}</td>
               <td style="padding:4px 6px;">
                 <select style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
-                  onchange="TRANSPORT_ROWS[${i}].resp=this.value">
+                  onchange="TRANSPORT_ROWS[${i}].resp=this.value;saveTransport();">
                   ${respList.map(p => '<option value="'+p.name+'" '+(p.name===r.resp?'selected':'')+'>'+p.name.split(' ').slice(0,2).join(' ')+'</option>').join('')}
                 </select>
               </td>
@@ -733,18 +768,18 @@ function renderDstTable(card) {
             <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
               <td style="padding:4px 6px;"><input type="time" value="${r.time}"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:80px;"
-                onchange="dstList[${i}].time=this.value"></td>
+                onchange="dstList[${i}].time=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:130px;"
-                onchange="dstList[${i}].from=this.value"></td>
+                onchange="dstList[${i}].from=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.type)}" placeholder="Тип"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
-                onchange="dstList[${i}].type=this.value"></td>
+                onchange="dstList[${i}].type=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
-                onchange="dstList[${i}].comment=this.value"></td>
+                onchange="dstList[${i}].comment=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;text-align:center;">
-                <button onclick="dstList.splice(${i},1);renderDstTable(document.getElementById('dst-card'));"
+                <button onclick="dstList.splice(${i},1);saveTransport();renderDstTable(document.getElementById('dst-card'));"
                   style="background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;">✕</button>
               </td>
             </tr>
@@ -752,7 +787,7 @@ function renderDstTable(card) {
         </tbody>
       </table>
     </div>
-    <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:''});renderDstTable(document.getElementById('dst-card'));"
+    <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:''});saveTransport();renderDstTable(document.getElementById('dst-card'));"
       style="margin-top:10px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px;font-size:13px;cursor:pointer;">
       ＋ Добавить ДСТ
     </button>
@@ -785,6 +820,7 @@ function pickTrResp(i) {
   if (inp) inp.value = transportResp;
   const drop = document.getElementById('tr-resp-drop');
   if (drop) drop.style.display = 'none';
+  saveTransport();
 }
 
 function printTransportRequest() {
