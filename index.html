@@ -682,7 +682,7 @@ function renderTransportRequest() {
               <td style="padding:4px 6px;">
                 <select style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:11px;font-family:inherit;width:100%;min-width:130px;"
                   onchange="TRANSPORT_ROWS[${i}].resp=this.value">
-                  ${respList.map(p => \`<option value="\${p.name}" \${p.name===r.resp?'selected':''}>\${p.name.split(' ').slice(0,2).join(' ')}</option>\`).join('')}
+                  ${respList.map(p => '<option value="'+p.name+'" '+(p.name===r.resp?'selected':'')+'>'+p.name.split(' ').slice(0,2).join(' ')+'</option>').join('')}
                 </select>
               </td>
             </tr>
