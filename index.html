@@ -729,11 +729,11 @@ function renderTransportRequest() {
                 onchange="TRANSPORT_ROWS[${i}].time=this.value;saveTransport();"></td>
               <td style="padding:4px 6px;"><textarea rows="1" placeholder="Откуда"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;min-width:180px;width:100%;resize:none;overflow:hidden;box-sizing:border-box;font-family:inherit;"
-                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';TRANSPORT_ROWS[${i}].from=this.value;saveTransport();"
+                data-tr-from="${i}" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';TRANSPORT_ROWS[${i}].from=this.value;saveTransport();"
                 >${escapeHtml(r.from)}</textarea></td>
               <td style="padding:4px 6px;"><textarea rows="1" placeholder="Куда"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;min-width:180px;width:100%;resize:none;overflow:hidden;box-sizing:border-box;font-family:inherit;"
-                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';TRANSPORT_ROWS[${i}].to=this.value;saveTransport();"
+                data-tr-to="${i}" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';TRANSPORT_ROWS[${i}].to=this.value;saveTransport();"
                 >${escapeHtml(r.to)}</textarea></td>
               <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.vehicle)}" placeholder="Марка"
                 style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-weight:600;color:#3f8cff;width:100%;min-width:160px;"
@@ -762,6 +762,13 @@ function renderTransportRequest() {
     document.querySelectorAll('textarea').forEach(ta=>{
       ta.style.height='auto';
       ta.style.height=ta.scrollHeight+'px';
+    });
+    // Инициализация autocomplete для Откуда/Куда
+    TRANSPORT_ROWS.forEach((r,i)=>{
+      const fromTa = document.querySelector(`textarea[data-tr-from="${i}"]`);
+      const toTa   = document.querySelector(`textarea[data-tr-to="${i}"]`);
+      if(fromTa) makeAcTextarea(fromTa, i, 'from');
+      if(toTa)   makeAcTextarea(toTa,   i, 'to');
     });
   }, 0);
 
@@ -980,7 +987,19 @@ function printTransportRequest(download) {
     .sign-lbl{font-size:7.5pt;margin-bottom:6mm}
     .sign-line{border-top:1px solid #000;font-size:7.5pt;padding-top:2px}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-  </style></head><body>
+  
+/* Кастомный autocomplete для textarea */
+.ac-dropdown {
+  position:absolute;z-index:9999;background:#1e2130;border:1px solid var(--border);
+  border-radius:8px;max-height:200px;overflow-y:auto;width:max-content;min-width:100%;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.ac-dropdown div {
+  padding:6px 10px;font-size:12px;cursor:pointer;color:var(--text);white-space:nowrap;
+}
+.ac-dropdown div:hover { background:rgba(255,255,255,.08); }
+.ac-wrap { position:relative; }
+</style></head><body>
   <div class="org">АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485</div>
   <div class="org">121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3 &nbsp;|&nbsp; РСУ-3, АУК №1</div>
   <div class="title">Заявка на транспорт и ДСТ</div>
@@ -2136,6 +2155,45 @@ window.addEventListener('load', () => {
   }
 </script>
 <div id="app-version" style="position:fixed;bottom:10px;right:14px;font-size:11px;color:rgba(255,255,255,.2);z-index:100;pointer-events:none;user-select:none;">v1.6</div>
-<script>fetch("https://api.github.com/repos/novikovxxi-tech/mvs-bot/commits/main").then(r=>r.json()).then(d=>{const dt=new Date(d.commit.author.date);const v='v'+dt.getDate().toString().padStart(2,'0')+'.'+((dt.getMonth()+1).toString().padStart(2,'0'))+'.'+dt.getFullYear().toString().slice(2);document.getElementById('app-version').textContent=v;}).catch(()=>{});</script>
+<script>fetch("https://api.github.com/repos/novikovxxi-tech/mvs-bot/commits/main").then(r=>r.json()).then(d=>{const dt=new Date(d.commit.author.date);const v='v'+dt.getDate().toString().padStart(2,'0')+'.'+((dt.getMonth()+1).toString().padStart(2,'0'))+'.'+dt.getFullYear().toString().slice(2);document.getElementById('app-version').textContent=v;}).catch(()=>{});
+function makeAcTextarea(ta, idx, field, listName) {
+  let dd = null;
+  function showDd(items) {
+    removeDd();
+    if (!items.length) return;
+    dd = document.createElement('div');
+    dd.className = 'ac-dropdown';
+    items.slice(0,15).forEach(s => {
+      const d = document.createElement('div');
+      d.textContent = s;
+      d.onmousedown = (e) => {
+        e.preventDefault();
+        ta.value = s;
+        ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
+        if (field==='from') TRANSPORT_ROWS[idx].from=s;
+        else TRANSPORT_ROWS[idx].to=s;
+        saveTransport();
+        removeDd();
+      };
+      dd.appendChild(d);
+    });
+    ta.parentNode.style.position='relative';
+    ta.parentNode.appendChild(dd);
+  }
+  function removeDd() { if(dd){dd.remove();dd=null;} }
+  ta.addEventListener('input', ()=>{
+    const v = ta.value.toLowerCase();
+    if(!v){removeDd();return;}
+    const matches = streetOptions.filter(s=>s.toLowerCase().includes(v));
+    showDd(matches);
+  });
+  ta.addEventListener('blur', ()=>setTimeout(removeDd,150));
+  ta.addEventListener('focus', ()=>{
+    const v = ta.value.toLowerCase();
+    if(v) { const m=streetOptions.filter(s=>s.toLowerCase().includes(v)); showDd(m); }
+  });
+}
+
+</script>
 </body>
 </html>
