@@ -756,7 +756,10 @@ function renderTransportRequest() {
   const btnWrap = document.createElement('div');
   btnWrap.className = 'btn-group';
   btnWrap.innerHTML = `
-    <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать / скачать</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать А4</button>
+      <button class="btn" style="background:rgba(52,199,89,.15);border-color:rgba(52,199,89,.3);color:#34c759;" onclick="exportTransportExcel()">📊 Excel</button>
+    </div>
     <button class="btn back" onclick="history.pop();go('home',false);">← Назад в меню</button>
   `;
   document.getElementById('chat').appendChild(btnWrap);
@@ -870,68 +873,102 @@ function updateTrPhone(i) {
 
 function printTransportRequest() {
   const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
   const trRows = TRANSPORT_ROWS.map((r,i) => `
     <tr>
-      <td>${i+1}</td>
-      <td>${r.time}</td>
+      <td style="text-align:center;">${i+1}</td>
+      <td style="text-align:center;white-space:nowrap;">${r.time}</td>
       <td>${escapeHtml(r.from)}</td>
       <td>${escapeHtml(r.to)}</td>
-      <td>${escapeHtml(r.vehicle)}</td>
+      <td style="font-weight:600;">${escapeHtml(r.vehicle)}</td>
       <td>${escapeHtml(r.cargo)}</td>
       <td>${escapeHtml(r.resp)}</td>
-      <td>${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
+      <td style="white-space:nowrap;">${(respList.find(p=>p.name===r.resp)||{phone:''}).phone}</td>
     </tr>
   `).join('');
+
   const dstRows = dstList.map((r,i) => `
     <tr>
-      <td>${i+1}</td>
-      <td>${r.time}</td>
+      <td style="text-align:center;">${i+1}</td>
+      <td style="text-align:center;white-space:nowrap;">${r.time}</td>
       <td>${escapeHtml(r.from)}</td>
-      <td>${escapeHtml(r.type)}</td>
+      <td style="font-weight:600;">${escapeHtml(r.type)}</td>
       <td>${escapeHtml(r.comment)}</td>
       <td>${escapeHtml(r.resp||'')}</td>
-      <td>${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
+      <td style="white-space:nowrap;">${(respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone}</td>
     </tr>
   `).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Заявка на транспорт ${dateDisplay}</title>
   <style>
-    body{font-family:Arial,sans-serif;font-size:11pt;padding:20mm;}
-    h2{text-align:center;font-size:14pt;margin-bottom:4px;}
-    h3{font-size:11pt;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;}
-    .sub{text-align:center;font-size:10pt;color:#555;margin-bottom:16px;}
-    table{width:100%;border-collapse:collapse;margin-bottom:10px;}
-    th,td{border:1px solid #999;padding:5px 7px;font-size:10pt;}
-    th{background:#f0f0f0;font-weight:600;}
-    .sign{margin-top:40px;display:flex;justify-content:space-between;}
-    .sign-item{width:45%;}
-    .sign-line{border-top:1px solid #000;margin-top:30px;}
+    @page { size: A4 portrait; margin: 15mm 12mm 15mm 12mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 9pt; margin: 0; }
+    .org { text-align:center; font-size:8pt; color:#555; margin-bottom:2px; }
+    .title { text-align:center; font-size:13pt; font-weight:700; margin:6px 0 2px; text-transform:uppercase; }
+    .subtitle { text-align:center; font-size:9pt; margin-bottom:4px; }
+    .meta { text-align:center; font-size:9pt; margin-bottom:10px; }
+    h3 { font-size:9pt; font-weight:700; margin:10px 0 4px; padding:3px 6px;
+         background:#f0f0f0; border-left:3px solid #333; }
+    table { width:100%; border-collapse:collapse; margin-bottom:6px; }
+    th { background:#e8e8e8; font-size:8pt; font-weight:700; padding:4px 5px;
+         border:1px solid #aaa; text-align:center; }
+    td { font-size:8pt; padding:4px 5px; border:1px solid #ccc; vertical-align:top; }
+    tr:nth-child(even) td { background:#fafafa; }
+    .sign-block { margin-top:14mm; display:flex; justify-content:space-between; }
+    .sign-item { width:46%; }
+    .sign-label { font-size:8pt; margin-bottom:8mm; }
+    .sign-line { border-top:1px solid #000; font-size:8pt; padding-top:2px; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   </style>
   </head><body>
-  <h2>АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"</h2>
-  <div class="sub">ЗАЯВКА на перевозку личного состава / техника ${dateDisplay}</div>
-  <div class="sub">Ответственный: <b>${escapeHtml(transportResp) || '_______________'}</b></div>
+  <div class="org">АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485</div>
+  <div class="org">121165, г. Москва, наб. Тараса Шевченко, д. 31, пом. 10, эт. 3</div>
+  <div class="title">Заявка на транспорт и ДСТ</div>
+  <div class="subtitle">${dateDisplay}</div>
+  <div class="meta">РСУ-3, АУК №1</div>
 
-  <h3>🚐 ТРАНСПОРТ</h3>
+  <h3>ТРАНСПОРТ</h3>
   <table>
-    <thead><tr><th>№</th><th>Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th><th>Телефон</th></tr></thead>
+    <thead>
+      <tr>
+        <th style="width:20px;">№</th>
+        <th style="width:42px;">Время</th>
+        <th>Откуда</th>
+        <th>Куда</th>
+        <th>Транспорт</th>
+        <th>Груз / л/с</th>
+        <th>Ответственный</th>
+        <th style="width:90px;">Телефон</th>
+      </tr>
+    </thead>
     <tbody>${trRows}</tbody>
   </table>
 
-  <h3>🚜 ДСТ</h3>
+  <h3>ДСТ</h3>
   <table>
-    <thead><tr><th>№</th><th>Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th><th>Телефон</th></tr></thead>
+    <thead>
+      <tr>
+        <th style="width:20px;">№</th>
+        <th style="width:42px;">Время</th>
+        <th>Адрес подачи</th>
+        <th>Тип ДСТ</th>
+        <th>Комментарий</th>
+        <th>Ответственный</th>
+        <th style="width:90px;">Телефон</th>
+      </tr>
+    </thead>
     <tbody>${dstRows}</tbody>
   </table>
 
-  <div class="sign">
+  <div class="sign-block">
     <div class="sign-item">
-      <div>Начальник участка АУК №1</div>
+      <div class="sign-label">Начальник участка АУК №1</div>
       <div class="sign-line">Петровский А.М.</div>
     </div>
     <div class="sign-item">
-      <div>Ответственный</div>
+      <div class="sign-label">Ответственный</div>
       <div class="sign-line">${escapeHtml(transportResp) || '_______________'}</div>
     </div>
   </div>
@@ -941,6 +978,45 @@ function printTransportRequest() {
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 600);
+}
+
+function exportTransportExcel() {
+  const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Собираем данные в CSV (Excel открывает .csv)
+  const BOM = '\uFEFF';
+  const sep = ';';
+
+  let rows = [];
+  rows.push(['АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"']);
+  rows.push(['ЗАЯВКА НА ТРАНСПОРТ И ДСТ — ' + dateDisplay]);
+  rows.push(['РСУ-3, АУК №1']);
+  rows.push([]);
+  rows.push(['ТРАНСПОРТ']);
+  rows.push(['№','Время','Откуда','Куда','Транспорт','Груз / л/с','Ответственный','Телефон']);
+  TRANSPORT_ROWS.forEach((r,i) => {
+    const phone = (respList.find(p=>p.name===r.resp)||{phone:''}).phone;
+    rows.push([i+1, r.time, r.from, r.to, r.vehicle, r.cargo, r.resp, phone]);
+  });
+  rows.push([]);
+  rows.push(['ДСТ']);
+  rows.push(['№','Время','Адрес подачи','Тип ДСТ','Комментарий','Ответственный','Телефон']);
+  dstList.forEach((r,i) => {
+    const phone = (respList.find(p=>p.name===(r.resp||''))||{phone:''}).phone;
+    rows.push([i+1, r.time, r.from, r.type, r.comment, r.resp||'', phone]);
+  });
+  rows.push([]);
+  rows.push(['Начальник участка АУК №1','','','Петровский А.М.']);
+  rows.push(['Ответственный','','',transportResp||'']);
+
+  const csv = BOM + rows.map(r => r.map(v => '"'+(String(v||'').replace(/"/g,'""'))+'"').join(sep)).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Заявка_транспорт_' + transportDate + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* -------- Tech-only request form -------- */
