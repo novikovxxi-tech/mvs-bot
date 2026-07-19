@@ -431,9 +431,10 @@ function go(screen, pushHistory = true) {
   if (pushHistory && history[history.length - 1] !== screen) history.push(screen);
   updateBack();
   switch (screen) {
-    case 'home':     return renderHome();
-    case 'tech':     return renderTech();
-    case 'techOnly': return renderTechOnlyForm();
+    case 'home':      return renderHome();
+    case 'tech':      return renderTech();
+    case 'transport': return renderTransportRequest();
+    case 'techOnly':  return renderTechOnlyForm();
     case 'techItem': return null;
     case 'material': return renderMaterial();
     case 'newReq':   return renderNewRequestForm();
@@ -463,7 +464,7 @@ function renderHome() {
   `);
   addBtnGroup([
     { html: '📦<br><span class="sub">Материал</span>', variant: 'big primary', onClick: () => go('material') },
-    { html: '🚜<br><span class="sub">Техника</span>',  variant: 'big',         onClick: () => go('techOnly') },
+    { html: '🚜<br><span class="sub">Техника</span>',  variant: 'big',         onClick: () => go('transport') },
   ], 'btn-group-2');
 }
 
@@ -596,6 +597,261 @@ function renderMaterial() {
 }
 
 /* -------- Request form: Step 1 -------- */
+
+/* -------- Transport Request -------- */
+const TRANSPORT_FIXED = [
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Спец объект Че',                    vehicle: 'Газель ГП у955се',       cargo: 'люди / инструмент' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528мо',       cargo: '6 чел и инструменты' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП р590со',       cargo: '6 чел и инструменты' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Школы',                              vehicle: 'Газель ГП у528',         cargo: '6 чел и инструменты' },
+  { time: '07:00', from: 'Харьковский проезд',    to: 'Школы',                              vehicle: 'Газель компрессор т590су', cargo: '6 чел и инструменты' },
+  { time: '07:00', from: 'Харьковский проезд',    to: 'Устранение замечаний',               vehicle: 'Газель ГП е057',         cargo: '6 чел и инструменты' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Варшавское шоссе 146',               vehicle: 'Газель ГП 315',          cargo: 'люди / инструмент' },
+  { time: '07:00', from: 'Харьковский проезд 2б', to: 'Варшавское шоссе 146',               vehicle: 'АВТОБУС 670',            cargo: 'люди' },
+  { time: '07:00', from: 'Повторное устранение замечаний ЦККБ', to: 'Повторное устранение замечаний ЦККБ', vehicle: 'Газель ГП', cargo: 'люди + инструмент' },
+];
+
+let dstList = [
+  { time: '08:00', from: 'Варшавское шоссе 146',  type: 'КДМ',            comment: '' },
+  { time: '08:00', from: 'Варшавское шоссе 126',  type: 'Самосвал пустой', comment: '' },
+  { time: '08:00', from: 'Варшавское шоссе 146',  type: 'Манипулятор',    comment: 'вывоз борткамня' },
+];
+
+let transportDate = new Date().toISOString().split('T')[0];
+let transportResp = '';
+
+function renderTransportRequest() {
+  clearChat();
+  history.push('transport');
+  updateBack();
+
+  const dateVal = transportDate;
+  const dateDisplay = new Date(dateVal + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Шапка
+  const headerCard = document.createElement('div');
+  headerCard.className = 'card';
+  headerCard.innerHTML = `
+    <div class="card-title">🚗 Заявка на транспорт и ДСТ</div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+      <div class="field" style="flex:1;min-width:140px;">
+        <label>📅 Дата</label>
+        <input type="date" id="tr-date" class="field input" value="${dateVal}"
+          style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;width:100%;"
+          onchange="transportDate=this.value;renderTransportRequest();">
+      </div>
+      <div class="field" style="flex:1;min-width:160px;position:relative;">
+        <label>👤 Ответственный</label>
+        <input type="text" id="tr-resp" placeholder="Выберите..."
+          style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:10px 38px 10px 12px;color:var(--text);font-size:15px;font-family:inherit;width:100%;cursor:pointer;"
+          value="${escapeHtml(transportResp)}" readonly onclick="toggleTrRespDrop()">
+        <span style="position:absolute;right:12px;bottom:12px;color:var(--text-dim);pointer-events:none;">▾</span>
+        <div id="tr-resp-drop" class="dropdown-list"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('chat').appendChild(headerCard);
+
+  // Раздел ТРАНСПОРТ
+  const trCard = document.createElement('div');
+  trCard.className = 'card';
+  trCard.innerHTML = `
+    <div class="card-title" style="margin-bottom:10px;">🚐 ТРАНСПОРТ</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">Список постоянный — меняется только дата и ответственный</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="color:var(--text-dim);text-align:left;">
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Время</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Откуда</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Куда</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Транспорт</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Груз / л/с</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${TRANSPORT_FIXED.map((r,i) => `
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+              <td style="padding:7px 8px;white-space:nowrap;">${r.time}</td>
+              <td style="padding:7px 8px;">${escapeHtml(r.from)}</td>
+              <td style="padding:7px 8px;">${escapeHtml(r.to)}</td>
+              <td style="padding:7px 8px;font-weight:600;color:var(--accent);">${escapeHtml(r.vehicle)}</td>
+              <td style="padding:7px 8px;color:var(--text-dim);">${escapeHtml(r.cargo)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('chat').appendChild(trCard);
+
+  // Раздел ДСТ
+  const dstCard = document.createElement('div');
+  dstCard.className = 'card';
+  dstCard.id = 'dst-card';
+  renderDstTable(dstCard);
+  document.getElementById('chat').appendChild(dstCard);
+
+  // Кнопки
+  const btnWrap = document.createElement('div');
+  btnWrap.className = 'btn-group';
+  btnWrap.innerHTML = `
+    <button class="btn primary" onclick="printTransportRequest()">🖨️ Печать / скачать</button>
+    <button class="btn back" onclick="history.pop();go('home',false);">← Назад в меню</button>
+  `;
+  document.getElementById('chat').appendChild(btnWrap);
+  scrollChat();
+
+  // Инициализация дропдауна ответственных
+  setTimeout(() => initTrRespDrop(), 0);
+}
+
+function renderDstTable(card) {
+  card.innerHTML = `
+    <div class="card-title" style="margin-bottom:10px;">🚜 ДСТ</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="color:var(--text-dim);text-align:left;">
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Время</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Адрес подачи</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Тип ДСТ</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);">Комментарий</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--border);"></th>
+          </tr>
+        </thead>
+        <tbody id="dst-tbody">
+          ${dstList.map((r,i) => `
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+              <td style="padding:4px 6px;"><input type="time" value="${r.time}"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;width:80px;"
+                onchange="dstList[${i}].time=this.value"></td>
+              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.from)}" placeholder="Адрес"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:130px;"
+                onchange="dstList[${i}].from=this.value"></td>
+              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.type)}" placeholder="Тип"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
+                onchange="dstList[${i}].type=this.value"></td>
+              <td style="padding:4px 6px;"><input type="text" value="${escapeHtml(r.comment)}" placeholder="Комментарий"
+                style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:100%;min-width:100px;"
+                onchange="dstList[${i}].comment=this.value"></td>
+              <td style="padding:4px 6px;text-align:center;">
+                <button onclick="dstList.splice(${i},1);renderDstTable(document.getElementById('dst-card'));"
+                  style="background:rgba(255,90,90,.15);border:none;color:#ff5a5a;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;">✕</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <button onclick="dstList.push({time:'08:00',from:'',type:'',comment:''});renderDstTable(document.getElementById('dst-card'));"
+      style="margin-top:10px;width:100%;background:none;border:1.5px dashed rgba(255,255,255,.2);color:var(--text-dim);border-radius:10px;padding:8px;font-size:13px;cursor:pointer;">
+      ＋ Добавить ДСТ
+    </button>
+  `;
+}
+
+function toggleTrRespDrop() {
+  const drop = document.getElementById('tr-resp-drop');
+  if (!drop) return;
+  if (drop.style.display === 'block') { drop.style.display = 'none'; return; }
+  drop.innerHTML = respList.map((p,i) => `
+    <div class="dropdown-option" onclick="pickTrResp(${i})">${p.name}</div>
+  `).join('');
+  drop.style.display = 'block';
+}
+
+function initTrRespDrop() {
+  document.addEventListener('click', function closeTrDrop(e) {
+    const drop = document.getElementById('tr-resp-drop');
+    const inp = document.getElementById('tr-resp');
+    if (drop && inp && !inp.contains(e.target) && !drop.contains(e.target)) {
+      drop.style.display = 'none';
+    }
+  });
+}
+
+function pickTrResp(i) {
+  transportResp = respList[i].name;
+  const inp = document.getElementById('tr-resp');
+  if (inp) inp.value = transportResp;
+  const drop = document.getElementById('tr-resp-drop');
+  if (drop) drop.style.display = 'none';
+}
+
+function printTransportRequest() {
+  const dateDisplay = new Date(transportDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const trRows = TRANSPORT_FIXED.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.time}</td>
+      <td>${escapeHtml(r.from)}</td>
+      <td>${escapeHtml(r.to)}</td>
+      <td>${escapeHtml(r.vehicle)}</td>
+      <td>${escapeHtml(r.cargo)}</td>
+      <td>${escapeHtml(transportResp)}</td>
+    </tr>
+  `).join('');
+  const dstRows = dstList.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.time}</td>
+      <td>${escapeHtml(r.from)}</td>
+      <td>${escapeHtml(r.type)}</td>
+      <td>${escapeHtml(r.comment)}</td>
+      <td>${escapeHtml(transportResp)}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Заявка на транспорт ${dateDisplay}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11pt;padding:20mm;}
+    h2{text-align:center;font-size:14pt;margin-bottom:4px;}
+    h3{font-size:11pt;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;}
+    .sub{text-align:center;font-size:10pt;color:#555;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+    th,td{border:1px solid #999;padding:5px 7px;font-size:10pt;}
+    th{background:#f0f0f0;font-weight:600;}
+    .sign{margin-top:40px;display:flex;justify-content:space-between;}
+    .sign-item{width:45%;}
+    .sign-line{border-top:1px solid #000;margin-top:30px;}
+  </style>
+  </head><body>
+  <h2>АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ"</h2>
+  <div class="sub">ЗАЯВКА на перевозку личного состава / техника ${dateDisplay}</div>
+  <div class="sub">Ответственный: <b>${escapeHtml(transportResp) || '_______________'}</b></div>
+
+  <h3>🚐 ТРАНСПОРТ</h3>
+  <table>
+    <thead><tr><th>№</th><th>Время</th><th>Откуда</th><th>Куда</th><th>Транспорт</th><th>Груз / л/с</th><th>Ответственный</th></tr></thead>
+    <tbody>${trRows}</tbody>
+  </table>
+
+  <h3>🚜 ДСТ</h3>
+  <table>
+    <thead><tr><th>№</th><th>Время</th><th>Адрес подачи</th><th>Тип ДСТ</th><th>Комментарий</th><th>Ответственный</th></tr></thead>
+    <tbody>${dstRows}</tbody>
+  </table>
+
+  <div class="sign">
+    <div class="sign-item">
+      <div>Начальник участка АУК №1</div>
+      <div class="sign-line">Петровский А.М.</div>
+    </div>
+    <div class="sign-item">
+      <div>Ответственный</div>
+      <div class="sign-line">${escapeHtml(transportResp) || '_______________'}</div>
+    </div>
+  </div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 600);
+}
+
 /* -------- Tech-only request form -------- */
 function renderTechOnlyForm() {
   const chat = document.getElementById('chat');
