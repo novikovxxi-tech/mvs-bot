@@ -757,6 +757,13 @@ function renderTransportRequest() {
     </div>
   `;
   document.getElementById('chat').appendChild(trCard);
+  // Автоподгон высоты textarea после рендера
+  setTimeout(()=>{
+    document.querySelectorAll('textarea').forEach(ta=>{
+      ta.style.height='auto';
+      ta.style.height=ta.scrollHeight+'px';
+    });
+  }, 0);
 
   // Раздел ДСТ
   let dlEl = document.getElementById('dst-streets-list');
