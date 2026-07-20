@@ -520,9 +520,6 @@ function renderTech() {
     ${listHtml}
   `);
 
-  addBtnGroup([
-    { label: '← Назад в меню', variant: 'back', onClick: () => { history.pop(); go('home', false); } },
-  ]);
 }
 
 /* -------- Tech detail -------- */
@@ -822,7 +819,6 @@ function renderTransportRequest() {
       <button class="btn" style="background:rgba(52,199,89,.15);border-color:rgba(52,199,89,.3);color:#34c759;" onclick="exportTransportExcel()">📊 Excel</button>
       <button class="btn" style="background:rgba(70,130,180,.15);border-color:rgba(70,130,180,.3);color:#4682b4;" onclick="exportTransportWord()">📝 Word</button>
     </div>
-    <button class="btn back" onclick="history.pop();go('home',false);">← Назад в меню</button>
   `;
   document.getElementById('chat').appendChild(btnWrap);
   scrollChat();
