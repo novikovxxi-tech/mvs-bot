@@ -634,7 +634,10 @@ let dstList = [
   { time: '08:00', from: 'Варшавское шоссе 146',  type: 'Манипулятор',    comment: 'вывоз борткамня', resp: 'Сорокин Александр Евгеньевич' },
 ];
 
-let transportDate = new Date().toISOString().split('T')[0];
+let today = new Date().toISOString().split('T')[0];
+let savedDate = localStorage.getItem('transportDate');
+let transportDate = (savedDate && savedDate >= today) ? savedDate : today;
+localStorage.setItem('transportDate', transportDate);
 let streetOptions = [];
 fetch('https://mvs-backend-denis3111.amvera.io/api/streets')
   .then(r=>r.json()).then(d=>{ streetOptions=d; })
