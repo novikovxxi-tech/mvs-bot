@@ -2220,21 +2220,23 @@ function makeAcTextarea(ta, idx, field, listName) {
 
 /* ── Swipe back (right swipe → go home) ── */
 (function() {
-  let startX = 0, startY = 0;
+  let startX = 0, startY = 0, tracking = false;
   document.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
+    tracking = startX < 30; // только от самого левого края
   }, { passive: true });
   document.addEventListener('touchend', e => {
+    if (!tracking) return;
     const dx = e.changedTouches[0].clientX - startX;
     const dy = Math.abs(e.changedTouches[0].clientY - startY);
-    if (dx > 60 && dy < 80 && startX < 40) {
-      // Свайп от левого края вправо
+    if (dx > 50 && dy < 100) {
       if (history.length > 1) {
         history.pop();
         go(history[history.length - 1], false);
       }
     }
+    tracking = false;
   }, { passive: true });
 })();
 </script>
