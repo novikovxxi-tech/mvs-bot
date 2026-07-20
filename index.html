@@ -476,12 +476,11 @@ function renderHome() {
     <div class="card-sub">ПРОРАБКА — выберите раздел</div>
   `);
   const homeContainer = document.createElement('div');
-  homeContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;';
+  homeContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;';
   const homeBtns = [
     { icon: '📦', label: 'Материал',  color: '#2563eb', action: () => go('material') },
     { icon: '🚜', label: 'Техника',   color: '#059669', action: () => go('transport') },
     { icon: '📊', label: 'Объёмы',    color: '#7c3aed', action: () => { window.location.href = '/mvs-bot/volumes/'; } },
-    { icon: '📋', label: 'История',   color: '#d97706', action: () => go('history') },
   ];
   homeBtns.forEach(b => {
     const btn = document.createElement('button');
