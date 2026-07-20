@@ -480,7 +480,7 @@ function renderHome() {
   const homeBtns = [
     { icon: '📦', label: 'Материал',  color: '#2563eb', action: () => go('material') },
     { icon: '🚜', label: 'Техника',   color: '#059669', action: () => go('transport') },
-    { icon: '📊', label: 'Объёмы',    color: '#7c3aed', action: () => { window.location.href = '/mvs-bot/volumes/'; } },
+    { icon: '📊', label: 'Объёмы',    color: '#7c3aed', action: () => { window.location.href = './volumes/'; } },
   ];
   homeBtns.forEach(b => {
     const btn = document.createElement('button');
