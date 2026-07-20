@@ -475,7 +475,8 @@ function renderHome() {
   addBtnGroup([
     { html: '📦<br><span class="sub">Материал</span>', variant: 'big primary', onClick: () => go('material') },
     { html: '🚜<br><span class="sub">Техника</span>',  variant: 'big',         onClick: () => go('transport') },
-  ], 'btn-group-2');
+    { html: '📊<br><span class="sub">Объёмы</span>',   variant: 'big',         onClick: () => { window.location.href = '/mvs-bot/volumes/'; } },
+  ], 'btn-group-3');
 }
 
 /* -------- Tech list -------- */
