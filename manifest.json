@@ -1,7 +1,7 @@
 {
-  "name": "МВС СТ АУК №1",
-  "short_name": "МВС АУК №1",
-  "description": "Заявки на материал, транспорт и объёмы",
+  "name": "ПРОРАБКА",
+  "short_name": "ПРОРАБКА",
+  "description": "Заявки, транспорт и объёмы",
   "start_url": "/mvs-bot/",
   "scope": "/mvs-bot/",
   "display": "standalone",

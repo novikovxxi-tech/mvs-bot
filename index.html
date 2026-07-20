@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>МВС СТ АУК №1</title>
+<title>ПРОРАБКА</title>
 <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="МВС АУК №1" />
+  <meta name="apple-mobile-web-app-title" content="ПРОРАБКА" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0f1318" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="МВС АУК" />
+<meta name="apple-mobile-web-app-title" content="ПРОРАБКА" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <style>
   :root {
@@ -38,7 +40,7 @@
     display: flex; align-items: center; gap: 10px;
     position: sticky; top: 0; z-index: 100;
   }
-  .header-title { font-size: 16px; font-weight: 700; }
+  .header-title { font-size: 19px; font-weight: 700; font-family: "Russo One", sans-serif; letter-spacing: 1px; }
   .back-btn {
     background: none; border: none; color: var(--accent);
     font-size: 28px; cursor: pointer; padding: 0 4px;
@@ -72,6 +74,7 @@
   /* ── Buttons ── */
   .btn-group { display: flex; flex-direction: column; gap: 8px; }
   .btn-group-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-group-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .btn {
     padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--bg-card); color: var(--text); font-size: 14px;
@@ -259,7 +262,7 @@
     border-radius: 18px; padding: 32px 28px; width: 90%; max-width: 340px;
     display: flex; flex-direction: column; gap: 18px; align-items: center;
   }
-  .pw-logo { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; text-align: center; }
+  .pw-logo { font-family: "Russo One", sans-serif; letter-spacing: 2px; font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; text-align: center; }
   .pw-sub { font-size: 13px; color: rgba(255,255,255,.45); text-align: center; }
   .pw-input {
     width: 100%; padding: 13px 16px; border-radius: 10px;
@@ -291,7 +294,7 @@
 <!-- ЭКРАН ВХОДА -->
 <div id="pw-screen">
   <div class="pw-card">
-    <div class="pw-logo">МВС СТ АУК №1</div>
+    <div class="pw-logo">ПРОРАБКА</div>
     <div class="pw-sub">Введите логин и пароль для доступа</div>
     <input class="pw-input" id="pw-login" type="text" placeholder="Логин"
       style="letter-spacing:normal;" autocomplete="username"
@@ -349,7 +352,7 @@
 <!-- HEADER -->
 <div class="header">
   <button class="back-btn" id="navBack" style="visibility:hidden">‹</button>
-  <div class="header-title">МВС СТ АУК №1</div>
+  <div class="header-title">ПРОРАБКА</div>
 </div>
 
 <!-- CONTENT -->
@@ -470,13 +473,26 @@ navBack.addEventListener('click', () => {
 function renderHome() {
   addCard(`
     <div class="card-title">👋 Добро пожаловать!</div>
-    <div class="card-sub">МВС СТ АУК №1 — выберите раздел</div>
+    <div class="card-sub">ПРОРАБКА — выберите раздел</div>
   `);
-  addBtnGroup([
-    { html: '📦<br><span class="sub">Материал</span>', variant: 'big primary', onClick: () => go('material') },
-    { html: '🚜<br><span class="sub">Техника</span>',  variant: 'big',         onClick: () => go('transport') },
-    { html: '📊<br><span class="sub">Объёмы</span>',   variant: 'big',         onClick: () => { window.location.href = '/mvs-bot/volumes/'; } },
-  ], 'btn-group-3');
+  const homeContainer = document.createElement('div');
+  homeContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;';
+  const homeBtns = [
+    { icon: '📦', label: 'Материал',  color: '#2563eb', action: () => go('material') },
+    { icon: '🚜', label: 'Техника',   color: '#059669', action: () => go('transport') },
+    { icon: '📊', label: 'Объёмы',    color: '#7c3aed', action: () => { window.location.href = '/mvs-bot/volumes/'; } },
+    { icon: '📋', label: 'История',   color: '#d97706', action: () => go('history') },
+  ];
+  homeBtns.forEach(b => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `background:${b.color}22;border:1.5px solid ${b.color}55;border-radius:16px;padding:20px 8px;cursor:pointer;color:var(--text);font-family:inherit;transition:all .2s;`;
+    btn.innerHTML = `<div style="font-size:32px;margin-bottom:8px;">${b.icon}</div><div style="font-size:13px;font-weight:700;letter-spacing:.5px;">${b.label}</div>`;
+    btn.onmousedown = () => btn.style.transform = 'scale(.96)';
+    btn.onmouseup = () => btn.style.transform = '';
+    btn.onclick = b.action;
+    homeContainer.appendChild(btn);
+  });
+  document.getElementById('chat').appendChild(homeContainer);
 }
 
 /* -------- Tech list -------- */
