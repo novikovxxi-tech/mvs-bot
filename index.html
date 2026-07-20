@@ -464,7 +464,7 @@ function go(screen, pushHistory = true) {
     case 'tech':      return renderTech();
     case 'transport': return renderTransportRequest();
     case 'techOnly':  return renderTechOnlyForm();
-    case 'techItem': return null;
+    case 'techItem': { const id = history[history.length-1].split(':')[1]; if(id) renderTechDetail(id); return; }
     case 'material': return renderMaterial();
     case 'newReq':   return renderNewRequestForm();
     case 'myReqs':   return renderMyRequests();
@@ -574,7 +574,7 @@ function renderTechDetail(id) {
 
   addBtnGroup([
     { label: '✏️ Изменить статус', variant: 'primary', onClick: () => openStatusPicker(e.id) },
-    { label: '← Назад',            variant: 'back',    onClick: () => { history.pop(); go('tech', false); } },
+
   ]);
 }
 
