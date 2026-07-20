@@ -576,7 +576,7 @@ function renderTechDetail(id) {
 
   addBtnGroup([
     { label: '✏️ Изменить статус', variant: 'primary', onClick: () => openStatusPicker(e.id) },
-
+    { label: '‹ Назад', variant: 'back', onClick: () => { history.pop(); go('tech', false); } },
   ]);
 }
 
