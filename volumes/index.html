@@ -356,8 +356,20 @@
             document.getElementById('pw-screen').classList.add('hidden');
             var nameTag = document.getElementById('user-name-tag');
             if (nameTag) nameTag.textContent = u.name || u.login;
-            // Если роль не сохранена — считать user (скрыть экспорт)
-            applyRoleUI(u.role || 'user');
+            if (u.role) {
+              applyRoleUI(u.role);
+            } else {
+              // Роль не сохранена — запросить у бэкенда
+              fetch(API_URL + '/api/auth/role?login=' + encodeURIComponent(u.login))
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                  var role = d.role || 'user';
+                  u.role = role;
+                  localStorage.setItem(KEY, JSON.stringify(u));
+                  applyRoleUI(role);
+                })
+                .catch(function(){ applyRoleUI('user'); });
+            }
           }
         } catch(e) {}
       }
