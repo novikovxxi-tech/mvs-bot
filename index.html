@@ -295,6 +295,7 @@
 <body>
 
 <!-- ЭКРАН ВХОДА -->
+<div id="swipe-zone" style="position:fixed;top:0;left:0;width:20px;height:100%;z-index:9999;"></div>
 <div id="pw-screen">
   <div class="pw-card">
     <div class="pw-logo">ПРОРАБКА</div>
@@ -2220,23 +2221,21 @@ function makeAcTextarea(ta, idx, field, listName) {
 
 /* ── Swipe back (right swipe → go home) ── */
 (function() {
-  let startX = 0, startY = 0, tracking = false;
-  document.addEventListener('touchstart', e => {
+  const zone = document.getElementById('swipe-zone');
+  let startX = 0, startY = 0;
+  zone.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    tracking = startX < 30; // только от самого левого края
   }, { passive: true });
-  document.addEventListener('touchend', e => {
-    if (!tracking) return;
+  zone.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - startX;
     const dy = Math.abs(e.changedTouches[0].clientY - startY);
-    if (dx > 50 && dy < 100) {
+    if (dx > 40 && dy < 120) {
       if (history.length > 1) {
         history.pop();
         go(history[history.length - 1], false);
       }
     }
-    tracking = false;
   }, { passive: true });
 })();
 </script>
