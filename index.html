@@ -364,6 +364,18 @@
   <!-- экраны рендерятся сюда -->
 </div>
 
+<!-- BOTTOM NAV -->
+<div id="bottom-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;
+  background:var(--bg-card);border-top:1px solid var(--border);
+  align-items:center;justify-content:flex-start;padding:0 16px;z-index:100;">
+  <button onclick="if(history.length>1){history.pop();go(history[history.length-1],false);}"
+    style="background:none;border:none;color:var(--text);font-size:15px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 12px;
+    border-radius:10px;background:rgba(255,255,255,.06);">
+    ‹ &nbsp;Назад
+  </button>
+</div>
+
 <script>
 /* ==================== Data ==================== */
 const equipment = [
@@ -461,7 +473,10 @@ function go(screen, pushHistory = true) {
 
 function updateBack() {
   const cur = history[history.length - 1];
-  navBack.style.visibility = (history.length > 1 && cur !== 'home') ? 'visible' : 'hidden';
+  const show = history.length > 1 && cur !== 'home';
+  navBack.style.visibility = 'hidden';
+  const bar = document.getElementById('bottom-bar');
+  if (bar) bar.style.display = show ? 'flex' : 'none';
 }
 
 navBack.addEventListener('click', () => {
