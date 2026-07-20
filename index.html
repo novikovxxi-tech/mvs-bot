@@ -1455,7 +1455,7 @@ async function goToTechPicker(btn) {
   // Для совместимости оставляем name/qty/unit/mat_time от первой позиции
   const { name, qty, unit, mat_time } = matItems[0];
   window._reqDraft = { name, qty, unit, mat_time, matItems, site, resp, phone, tech: [], req_date: reqDate };
-  renderTechPicker();
+  submitRequest(null);
 }
 
 /* -------- Request form: Step 2 -------- */
