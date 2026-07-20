@@ -476,7 +476,7 @@ function renderHome() {
     <div class="card-sub">ПРОРАБКА — выберите раздел</div>
   `);
   const homeContainer = document.createElement('div');
-  homeContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px;';
+  homeContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;';
   const homeBtns = [
     { icon: '📦', label: 'Материал',  color: '#2563eb', action: () => go('material') },
     { icon: '🚜', label: 'Техника',   color: '#059669', action: () => go('transport') },
@@ -489,6 +489,7 @@ function renderHome() {
     btn.onmousedown = () => btn.style.transform = 'scale(.96)';
     btn.onmouseup = () => btn.style.transform = '';
     btn.onclick = b.action;
+    if (i === 2) btn.style.gridColumn = '1 / -1';
     homeContainer.appendChild(btn);
   });
   document.getElementById('chat').appendChild(homeContainer);
