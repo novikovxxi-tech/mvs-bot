@@ -364,17 +364,7 @@
   <!-- экраны рендерятся сюда -->
 </div>
 
-<!-- BOTTOM NAV -->
-<div id="bottom-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;
-  background:var(--bg-card);border-top:1px solid var(--border);
-  align-items:center;justify-content:flex-start;padding:0 16px;z-index:100;">
-  <button id="bottom-back-btn"
-    style="background:rgba(255,255,255,.06);border:none;color:var(--text);font-size:15px;font-weight:600;
-    cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 12px;
-    border-radius:10px;">
-    ‹ &nbsp;Назад
-  </button>
-</div>
+
 
 <script>
 /* ==================== Data ==================== */
@@ -403,12 +393,7 @@ let myRequests = [];
 /* ==================== State / routing ==================== */
 const navBack = document.getElementById('navBack');
 const history = [];
-document.getElementById('bottom-back-btn').addEventListener('click', () => {
-  if (history.length > 1) {
-    history.pop();
-    go(history[history.length - 1], false);
-  }
-});
+
 
 function now() {
   const d = new Date();
@@ -458,6 +443,20 @@ function addBtnGroup(buttons, cls) {
   return group;
 }
 
+function addBackBtn(label) {
+  const cur = history[history.length - 1];
+  const prev = history.length > 1 ? history[history.length - 2] : 'home';
+  const el = document.createElement('div');
+  el.style.cssText = 'margin-top:16px;padding-bottom:8px;';
+  el.innerHTML = `<button onclick="history.pop();go('${prev}',false);" 
+    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+    color:var(--text-dim);font-size:14px;font-weight:600;cursor:pointer;
+    padding:10px 18px;border-radius:10px;font-family:inherit;">
+    ‹ Назад
+  </button>`;
+  document.getElementById('chat').appendChild(el);
+}
+
 function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s; return d.textContent.trim(); }
 
 /* ==================== Navigation ==================== */
@@ -479,10 +478,7 @@ function go(screen, pushHistory = true) {
 
 function updateBack() {
   const cur = history[history.length - 1];
-  const show = history.length > 1 && cur !== 'home';
-  navBack.style.visibility = 'hidden';
-  const bar = document.getElementById('bottom-bar');
-  if (bar) bar.style.display = show ? 'flex' : 'none';
+  navBack.style.visibility = (history.length > 1 && cur !== 'home') ? 'visible' : 'hidden';
 }
 
 navBack.addEventListener('click', () => {
