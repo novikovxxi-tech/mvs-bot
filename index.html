@@ -1138,7 +1138,7 @@ function renderTechOnlyForm() {
   window._toAcHi = -1;
 
   addBtnGroup([
-    { label: '➡️ Далее — выбрать технику', variant: 'primary', onClick: (btn) => goToTechPickerOnly(btn) },
+    { label: '✅ Отправить заявку', variant: 'primary', onClick: (btn) => goToTechPickerOnly(btn) },
     { label: '← Назад', variant: 'back', onClick: () => { history.pop(); go('home', false); } },
   ]);
 
@@ -1426,7 +1426,7 @@ function renderNewRequestForm() {
   setTimeout(initMatRows, 0);
 
   addBtnGroup([
-    { label: '➡️ Далее — выбрать технику', variant: 'primary', onClick: (btn) => goToTechPicker(btn) },
+    { label: '✅ Отправить заявку', variant: 'primary', onClick: (btn) => goToTechPicker(btn) },
     { label: '← Назад', variant: 'back', onClick: () => { history.pop(); go('material', false); } },
   ]);
 }
