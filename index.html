@@ -545,7 +545,7 @@ function renderTech() {
 /* -------- Tech detail -------- */
 function renderTechDetail(id) {
   clearChat();
-  history.push('techItem:' + id);
+  // history управляется через go()
   updateBack();
 
   const e = equipment.find(x => x.id === id);
@@ -704,7 +704,7 @@ function saveTransport() {
 
 function renderTransportRequest() {
   clearChat();
-  history.push('transport');
+  // history управляется через go()
   updateBack();
   // Расширяем контейнер для таблицы транспорта
   const chatEl = document.getElementById('chat');
