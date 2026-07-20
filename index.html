@@ -459,8 +459,7 @@ function go(screen, pushHistory = true) {
 }
 
 function updateBack() {
-  const cur = history[history.length - 1];
-  navBack.style.visibility = (history.length > 1 && cur !== 'home') ? 'visible' : 'hidden';
+  navBack.style.visibility = 'hidden';
 }
 
 navBack.addEventListener('click', () => {
