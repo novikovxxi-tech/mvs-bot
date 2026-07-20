@@ -482,7 +482,7 @@ function renderHome() {
     { icon: '🚜', label: 'Техника',   color: '#059669', action: () => go('transport') },
     { icon: '📊', label: 'Объёмы',    color: '#7c3aed', action: () => { window.location.href = './volumes/'; } },
   ];
-  homeBtns.forEach(b => {
+  homeBtns.forEach((b, i) => {
     const btn = document.createElement('button');
     btn.style.cssText = `background:${b.color}22;border:1.5px solid ${b.color}55;border-radius:16px;padding:20px 8px;cursor:pointer;color:var(--text);font-family:inherit;transition:all .2s;`;
     btn.innerHTML = `<div style="font-size:32px;margin-bottom:8px;">${b.icon}</div><div style="font-size:13px;font-weight:700;letter-spacing:.5px;">${b.label}</div>`;
