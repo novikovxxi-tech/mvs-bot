@@ -459,7 +459,9 @@ function go(screen, pushHistory = true) {
 }
 
 function updateBack() {
-  navBack.style.visibility = 'hidden';
+  const cur = history[history.length - 1];
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  navBack.style.visibility = (!isTouch && history.length > 1 && cur !== 'home') ? 'visible' : 'hidden';
 }
 
 navBack.addEventListener('click', () => {
