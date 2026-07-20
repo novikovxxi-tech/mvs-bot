@@ -607,12 +607,15 @@ function renderTechDetailKeyboardOnly(id) {
 
 /* -------- Material menu -------- */
 function renderMaterial() {
-  addCard(`<div class="card-title">📦 Материалы</div><div class="card-sub">Выберите действие</div>`);
-  addBtnGroup([
-    { label: '📝 Подать заявку', variant: 'primary', onClick: () => go('newReq') },
-    { label: '📋 Мои заявки',   onClick: () => go('myReqs') },
-    { label: '← Назад в меню',  variant: 'back', onClick: () => { history.pop(); go('home', false); } },
-  ]);
+  addCard(`
+    <div class="card-title">📦 Материалы</div>
+    <div class="card-sub">Свайп вправо — назад в меню</div>
+    <div style="margin-top:16px;">
+      <button class="btn big primary" style="width:100%;padding:18px;font-size:16px;border-radius:14px;" onclick="go('newReq')">
+        📝 Подать заявку
+      </button>
+    </div>
+  `);
 }
 
 /* -------- Request form: Step 1 -------- */
@@ -2216,6 +2219,26 @@ function makeAcTextarea(ta, idx, field, listName) {
   });
 }
 
+
+/* ── Swipe back (right swipe → go home) ── */
+(function() {
+  let startX = 0, startY = 0;
+  document.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    if (dx > 60 && dy < 80 && startX < 40) {
+      // Свайп от левого края вправо
+      if (history.length > 1) {
+        history.pop();
+        go(history[history.length - 1], false);
+      }
+    }
+  }, { passive: true });
+})();
 </script>
 </body>
 </html>
