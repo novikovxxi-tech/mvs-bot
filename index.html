@@ -75,6 +75,9 @@
   .btn-group { display: flex; flex-direction: column; gap: 8px; }
   .btn-group-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .btn-group-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .btn.home-blue   { background: #2563eb22; border-color: #2563eb55; }
+  .btn.home-green  { background: #05966922; border-color: #05966955; }
+  .btn.home-purple { background: #7c3aed22; border-color: #7c3aed55; width: 100%; }
   .btn {
     padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--bg-card); color: var(--text); font-size: 14px;
@@ -475,24 +478,13 @@ function renderHome() {
     <div class="card-title">👋 Добро пожаловать!</div>
     <div class="card-sub">ПРОРАБКА — выберите раздел</div>
   `);
-  const homeContainer = document.createElement('div');
-  homeContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;';
-  const homeBtns = [
-    { icon: '📦', label: 'Материал',  color: '#2563eb', action: () => go('material') },
-    { icon: '🚜', label: 'Техника',   color: '#059669', action: () => go('transport') },
-    { icon: '📊', label: 'Объёмы',    color: '#7c3aed', action: () => { window.location.href = './volumes/'; } },
-  ];
-  homeBtns.forEach((b, i) => {
-    const btn = document.createElement('button');
-    btn.style.cssText = `background:${b.color}22;border:1.5px solid ${b.color}55;border-radius:16px;padding:20px 8px;cursor:pointer;color:var(--text);font-family:inherit;transition:all .2s;`;
-    btn.innerHTML = `<div style="font-size:32px;margin-bottom:8px;">${b.icon}</div><div style="font-size:13px;font-weight:700;letter-spacing:.5px;">${b.label}</div>`;
-    btn.onmousedown = () => btn.style.transform = 'scale(.96)';
-    btn.onmouseup = () => btn.style.transform = '';
-    btn.onclick = b.action;
-    if (i === 2) btn.style.gridColumn = '1 / -1';
-    homeContainer.appendChild(btn);
-  });
-  document.getElementById('chat').appendChild(homeContainer);
+  addBtnGroup([
+    { html: '<div style="font-size:28px;margin-bottom:6px;">📦</div><div style="font-size:13px;font-weight:700;">Материал</div>',  variant: 'big home-blue',   onClick: () => go('material') },
+    { html: '<div style="font-size:28px;margin-bottom:6px;">🚜</div><div style="font-size:13px;font-weight:700;">Техника</div>',   variant: 'big home-green',  onClick: () => go('transport') },
+  ], 'btn-group-2');
+  addBtnGroup([
+    { html: '<div style="font-size:28px;margin-bottom:6px;">📊</div><div style="font-size:13px;font-weight:700;">Объёмы</div>',    variant: 'big home-purple', onClick: () => { window.location.href = './volumes/'; } },
+  ], 'btn-group');
 }
 
 /* -------- Tech list -------- */
