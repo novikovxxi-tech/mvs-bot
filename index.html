@@ -340,9 +340,16 @@
         if (u && u.token) {
           fetch(API_URL + '/api/auth/me', { headers: { 'X-Auth-Token': u.token } })
             .then(r => {
-              if (r.ok) { document.getElementById('pw-screen').classList.add('hidden'); }
-              else { localStorage.removeItem(KEY); }
-            }).catch(() => { document.getElementById('pw-screen').classList.add('hidden'); });
+              if (r.ok) {
+                document.getElementById('pw-screen').classList.add('hidden');
+              } else {
+                localStorage.removeItem(KEY);
+                document.getElementById('pw-screen').classList.remove('hidden');
+              }
+            }).catch(() => {
+              // Нет сети — пускаем без проверки (оффлайн режим)
+              document.getElementById('pw-screen').classList.add('hidden');
+            });
         } else if (u && u.login) {
           // старый формат без токена — выкидываем
           localStorage.removeItem(KEY);
