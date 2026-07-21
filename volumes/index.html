@@ -2597,7 +2597,7 @@
       }
       tnr(ws.getCell(r,1), rowNum, { align: 'center' });
       tnr(ws.getCell(r,2), '', { align: 'center' });
-      tnr(ws.getCell(r,3), type, { bold: true, align: 'left' });
+      tnr(ws.getCell(r,3), type + ' (асфальтобетонная смесь)', { bold: true, align: 'left' });
       tnr(ws.getCell(r,4), 'т', { align: 'center' });
       const normVal = Math.round(d.norm * 100) / 100;
       const factVal = Math.round(d.vol * 100) / 100;
