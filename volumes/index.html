@@ -360,7 +360,7 @@
               applyRoleUI(u.role);
             } else {
               // Роль не сохранена — запросить у бэкенда
-              fetch(API_URL + '/api/auth/role?login=' + encodeURIComponent(u.login))
+              authFetch(API_URL + '/api/auth/role?login=' + encodeURIComponent(u.login))
                 .then(function(r){ return r.json(); })
                 .then(function(d){
                   var role = d.role || 'user';
@@ -382,7 +382,7 @@
       var btn   = document.querySelector('.pw-btn');
       if (!login || !pass) { err.textContent = 'Заполните логин и пароль'; return; }
       btn.disabled = true; btn.textContent = '...';
-      fetch(API_URL + '/api/auth/login', {
+      authFetch(API_URL + '/api/auth/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({login: login, password: pass})
@@ -785,6 +785,19 @@
 
 <script>
   const API_URL = 'https://mvs-backend-denis3111.amvera.io';
+  const KEY = 'mvs_user';
+  function getToken() {
+    try { var u = JSON.parse(localStorage.getItem(KEY) || '{}'); return u.token || ''; } catch(e) { return ''; }
+  }
+  function authFetch(url, opts) {
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    opts.headers['X-Auth-Token'] = getToken();
+    return fetch(url, opts).then(function(r) {
+      if (r.status === 401) { localStorage.removeItem(KEY); location.href = '/mvs-bot/'; }
+      return r;
+    });
+  }
 
   let allStreets = [];  // все улицы с сервера
   let acHighlight = -1;
@@ -792,7 +805,7 @@
   // Загружаем улицы с сервера
   async function loadStreets() {
     try {
-      const res = await fetch(API_URL + '/api/streets');
+      const res = await authFetch(API_URL + '/api/streets');
       allStreets = await res.json();
     } catch(e) { console.warn('Не удалось загрузить улицы:', e); }
   }
@@ -929,7 +942,7 @@
     const name = inp.value.trim();
     if (!name) return;
     try {
-      await fetch(API_URL + '/api/streets', {
+      await authFetch(API_URL + '/api/streets', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({name})
@@ -980,7 +993,7 @@
   async function renderStats() {
     // Загружаем свежие данные с сервера
     try {
-      const res = await fetch(API_URL + '/api/entries');
+      const res = await authFetch(API_URL + '/api/entries');
       allEntries = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
     } catch(e) { console.warn('Ошибка загрузки:', e); }
 
@@ -1153,7 +1166,7 @@
   ];
 
   async function renderProgress() {
-    const res = await fetch(API_URL + '/api/entries');
+    const res = await authFetch(API_URL + '/api/entries');
     const entries = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
 
     // Считаем факт по каждому объекту
@@ -1292,7 +1305,7 @@
     btn.disabled = true;
 
     try {
-      const res = await fetch(API_URL + '/api/entries', {
+      const res = await authFetch(API_URL + '/api/entries', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ date, street, type: selectedType, vol, area, h, layer, shift, note, responsible, worktype })
@@ -1324,7 +1337,7 @@
     const list = document.getElementById('log-list');
     list.innerHTML = '<div class="empty">Загружаем...</div>';
     try {
-      const res = await fetch(API_URL + '/api/entries');
+      const res = await authFetch(API_URL + '/api/entries');
       allEntries = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
       entries = allEntries;
     } catch(e) { /* используем кэш */ }
@@ -1449,7 +1462,7 @@
     if (!date || !vol || vol <= 0) { alert('Заполните дату и объём'); return; }
     if (!h || h <= 0) { alert('Укажите толщину слоя h (м)'); document.getElementById('edit-h').focus(); return; }
     try {
-      await fetch(API_URL + '/api/entries/' + editingId, {
+      await authFetch(API_URL + '/api/entries/' + editingId, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ street, date, vol, area, h, layer, type, shift, note, responsible, worktype })
@@ -1464,7 +1477,7 @@
   async function deleteEntry(id) {
     if (!confirm('Удалить эту запись?')) return;
     try {
-      await fetch(API_URL + '/api/entries/' + id, { method: 'DELETE' });
+      await authFetch(API_URL + '/api/entries/' + id, { method: 'DELETE' });
       entries = entries.filter(e => e.id !== id);
       await renderLog();
       await renderStats();
@@ -2099,7 +2112,7 @@
   function loadUpdFiles(id) {
     const list = document.getElementById('upd-modal-list');
     list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Загрузка...</div>';
-    fetch(API + '/api/upd/' + id)
+    authFetch(API + '/api/upd/' + id)
       .then(r => r.json())
       .then(files => {
         if (!files.length) {
@@ -2119,7 +2132,7 @@
 
   function deleteUpd(fileId, entryId) {
     if (!confirm('Удалить файл?')) return;
-    fetch(API + '/api/upd/file/' + fileId, { method: 'DELETE' })
+    authFetch(API + '/api/upd/file/' + fileId, { method: 'DELETE' })
       .then(() => loadUpdFiles(entryId))
       .catch(() => alert('Ошибка удаления'));
   }
@@ -2134,7 +2147,7 @@
     sel.innerHTML = PLAN_DATA.map(o => `<option value="${escHtml(o.name)}">${escHtml(o.name)}</option>`).join('');
 
     // Заполняем месяцы из реальных записей
-    fetch(API_URL + '/api/entries')
+    authFetch(API_URL + '/api/entries')
       .then(r => r.json())
       .then(entries => {
         const months = [...new Set(entries.map(e => e.date ? e.date.slice(0,7) : null).filter(Boolean))].sort();
@@ -2161,7 +2174,7 @@
     const street = document.getElementById('m29-street').value;
     const period = document.getElementById('m29-period').value; // 'YYYY-MM' или 'all'
 
-    const res = await fetch(API_URL + '/api/entries');
+    const res = await authFetch(API_URL + '/api/entries');
     const all = (await res.json()).map(e => ({ ...e, type: normalizeType(e.type) }));
 
     // Фильтр
@@ -2714,7 +2727,7 @@
     files.forEach(file => {
       const fd = new FormData();
       fd.append('file', file);
-      fetch(API + '/api/upd/' + updEntryId, { method: 'POST', body: fd })
+      authFetch(API + '/api/upd/' + updEntryId, { method: 'POST', body: fd })
         .then(r => r.json())
         .then(() => {
           done++;
