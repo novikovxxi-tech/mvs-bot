@@ -2253,6 +2253,37 @@
 
     let r1 = 1;
 
+    // ── Шапка организации ──
+    ws1.getRow(r1).height = 24;
+    ws1.mergeCells(r1, 1, r1, 10);
+    const org1 = ws1.getCell(r1, 1);
+    org1.value = 'АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485, 121165, Город Москва, вн.тер. г. Муниципальный Округ Дорогомилово, наб Тараса Шевченко, дом 31, помещение 10, ЭТ. 3,';
+    org1.font = { name:'Times New Roman', size:10, color:{argb:'FF000000'} };
+    org1.alignment = { horizontal:'left', vertical:'middle', wrapText:true };
+    org1.border = { bottom:{style:'thin', color:{argb:'FF000000'}} };
+    r1++;
+    ws1.mergeCells(r1, 1, r1, 10);
+    const orgLbl1 = ws1.getCell(r1, 1);
+    orgLbl1.value = '(организация)';
+    orgLbl1.font = { name:'Times New Roman', size:8, italic:true, color:{argb:'FF666666'} };
+    orgLbl1.alignment = { horizontal:'center' };
+    r1++;
+
+    ws1.getRow(r1).height = 20;
+    ws1.mergeCells(r1, 1, r1, 10);
+    const dept1 = ws1.getCell(r1, 1);
+    dept1.value = 'РСУ-3, АУК№1';
+    dept1.font = { name:'Times New Roman', size:11, bold:true, color:{argb:'FF000000'} };
+    dept1.alignment = { horizontal:'left', vertical:'middle' };
+    dept1.border = { bottom:{style:'thin', color:{argb:'FF000000'}} };
+    r1++;
+    ws1.mergeCells(r1, 1, r1, 10);
+    const deptLbl1 = ws1.getCell(r1, 1);
+    deptLbl1.value = '(структурное подразделение)';
+    deptLbl1.font = { name:'Times New Roman', size:8, italic:true, color:{argb:'FF666666'} };
+    deptLbl1.alignment = { horizontal:'center' };
+    r1 += 2;
+
     // Согласовано — справа
     ws1.mergeCells(r1, 7, r1, 10);
     const agr1 = ws1.getCell(r1, 7);
