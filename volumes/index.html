@@ -2220,6 +2220,199 @@
     // ─── Создаём Excel ───────────────────────────────────
     const wb = new ExcelJS.Workbook();
     wb.creator = 'МВС СТ АУК №1';
+
+    // ══════════════════════════════════════════════════
+    // ЛИСТ 1 — Часть 1 (Раздел I — нормативная потребность)
+    // ══════════════════════════════════════════════════
+    const ws1 = wb.addWorksheet('Часть 1');
+    ws1.columns = [
+      { width: 8  },  // A — Код строки
+      { width: 44 },  // B — Наименование
+      { width: 10 },  // C — Код вида работ
+      { width: 10 },  // D — Ед. изм.
+      { width: 14 },  // E — Обоснование норм
+      { width: 14 },  // F — кол-во по проекту
+      { width: 10 },  // G — норма
+      { width: 16 },  // H — Объём работ на объект
+      { width: 16 },  // I — В том числе на начало периода
+      { width: 18 },  // J — По месяцам
+    ];
+
+    const tb1 = { style:'thin', color:{argb:'FF000000'} };
+    const ab1 = { top:tb1, left:tb1, bottom:tb1, right:tb1 };
+
+    function sc1(ws, r, c, val, opts={}) {
+      const cell = ws.getCell(r, c);
+      cell.value = val;
+      cell.font = { name: opts.font||'Times New Roman', size: opts.sz||10, bold:!!opts.bold, italic:!!opts.italic, color:{argb: opts.fg||'FF000000'} };
+      if (opts.bg) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:opts.bg} };
+      cell.alignment = { horizontal: opts.align||'center', vertical:'middle', wrapText:true };
+      if (opts.border!==false) cell.border = ab1;
+      if (opts.numFmt) cell.numFmt = opts.numFmt;
+    }
+
+    let r1 = 1;
+
+    // Согласовано — справа
+    ws1.mergeCells(r1, 7, r1, 10);
+    const agr1 = ws1.getCell(r1, 7);
+    agr1.value = 'СОГЛАСОВАНО';
+    agr1.font = { name:'Times New Roman', size:11, bold:true };
+    agr1.alignment = { horizontal:'center' };
+    r1++;
+    ws1.mergeCells(r1, 7, r1, 10);
+    const agr2 = ws1.getCell(r1, 7);
+    agr2.value = 'Руководитель, дир.проекта';
+    agr2.font = { name:'Times New Roman', size:10 };
+    agr2.alignment = { horizontal:'center' };
+    r1++;
+    ws1.mergeCells(r1, 7, r1, 10);
+    const agr3 = ws1.getCell(r1, 7);
+    agr3.value = '«_____»____________ ' + new Date().getFullYear() + 'г';
+    agr3.font = { name:'Times New Roman', size:10 };
+    agr3.alignment = { horizontal:'center' };
+    r1 += 2;
+
+    // Заголовок
+    ws1.mergeCells(r1, 1, r1, 10);
+    const h1 = ws1.getCell(r1, 1);
+    h1.value = 'ОТЧЕТ О РАСХОДЕ ОСНОВНЫХ МАТЕРИАЛОВ В СТРОИТЕЛЬСТВЕ';
+    h1.font = { name:'Times New Roman', size:12, bold:true };
+    h1.alignment = { horizontal:'center', vertical:'middle' };
+    ws1.getRow(r1).height = 22;
+    r1++;
+
+    ws1.mergeCells(r1, 1, r1, 10);
+    const h2 = ws1.getCell(r1, 1);
+    h2.value = 'В СОПОСТАВЛЕНИИ С РАСХОДОМ, ОПРЕДЕЛЕННЫМ ПО ПРОИЗВОДСТВЕННЫМ НОРМАМ';
+    h2.font = { name:'Times New Roman', size:11, bold:true };
+    h2.alignment = { horizontal:'center', vertical:'middle' };
+    r1++;
+
+    ws1.mergeCells(r1, 1, r1, 10);
+    const h3 = ws1.getCell(r1, 1);
+    h3.value = 'по объекту: "' + street + '"';
+    h3.font = { name:'Times New Roman', size:11 };
+    h3.alignment = { horizontal:'left', vertical:'middle' };
+    r1++;
+
+    // Отчётный период
+    ws1.mergeCells(r1, 4, r1, 6);
+    const per1 = ws1.getCell(r1, 4);
+    per1.value = 'отчетный период ' + (period !== 'all' ? periodLabel : new Date().getFullYear() + 'г.');
+    per1.font = { name:'Times New Roman', size:11, bold:true };
+    per1.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFF00'} };
+    per1.alignment = { horizontal:'center', vertical:'middle' };
+    r1 += 2;
+
+    // Шапка таблицы — строка 1
+    ws1.getRow(r1).height = 50;
+    sc1(ws1, r1, 1, 'Код
+строки', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 2, 'Наименование видов работ,
+конструктивных элементов и материалов', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 3, 'Код вида работ конструктив-
+ного элемента', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 4, 'Единица
+измерения', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 5, 'Обоснование произ-
+водственных норм
+расхода материалов', {bold:true, sz:9, bg:'FFD9D9D9'});
+    ws1.mergeCells(r1, 6, r1, 7);
+    sc1(ws1, r1, 6, 'Норма расхода материалов
+на единицу измерения работ
+(конструкт. элемента)', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 8, 'Объем работ и нормативная
+потребность материалов
+на объект', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 9, 'В том числе объем фактически
+выполненных работ
+на начало отчетного периода', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 10, 'Объем выполненных работ и
+нормативный расход
+материалов по месяцам ' + new Date().getFullYear(), {bold:true, sz:9, bg:'FFD9D9D9'});
+    r1++;
+
+    // Подзаголовок норм
+    ws1.getRow(r1).height = 20;
+    sc1(ws1, r1, 1, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 2, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 3, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 4, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 5, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 6, 'кол-во по проекту', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 7, 'норма', {bold:true, sz:9, bg:'FFD9D9D9'});
+    sc1(ws1, r1, 8, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 9, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 10, '', {bg:'FFD9D9D9'});
+    r1++;
+
+    // Номера колонок
+    ws1.getRow(r1).height = 16;
+    [1,2,3,4,5,6,7,8,9,10].forEach((n,i) => {
+      sc1(ws1, r1, i+1, n, {bold:true, sz:9, bg:'FFD9D9D9'});
+    });
+    r1++;
+
+    // Данные — группировка по типу смеси
+    let rowNum1 = 1;
+    Object.entries(byType).forEach(([type, data]) => {
+      ws1.getRow(r1).height = 18;
+      sc1(ws1, r1, 1, rowNum1, {sz:10});
+      ws1.mergeCells(r1, 2, r1, 10);
+      sc1(ws1, r1, 2, type + ' (асфальтобетонная смесь)', {bold:true, sz:10, align:'left', bg:'FFF2F2F2'});
+      r1++;
+
+      // Строка материала
+      ws1.getRow(r1).height = 18;
+      sc1(ws1, r1, 1, rowNum1 + '.1', {sz:9});
+      sc1(ws1, r1, 2, type, {sz:10, align:'left'});
+      sc1(ws1, r1, 3, '', {sz:9});
+      sc1(ws1, r1, 4, 'т', {sz:10});
+      sc1(ws1, r1, 5, 'ГЭСН', {sz:9});
+      sc1(ws1, r1, 6, data.norm > 0 ? Math.round(data.area) || '' : '', {sz:10, numFmt:'#,##0.00'});
+      sc1(ws1, r1, 7, data.norm > 0 && data.area > 0 ? Math.round((data.vol / data.area) * 100) / 100 : '', {sz:10, numFmt:'#,##0.000'});
+      sc1(ws1, r1, 8, Math.round(data.norm * 100) / 100, {sz:10, numFmt:'#,##0.00'});
+      sc1(ws1, r1, 9, Math.round(data.norm * 100) / 100, {sz:10, numFmt:'#,##0.00'});
+      sc1(ws1, r1, 10, Math.round(data.vol * 100) / 100, {sz:10, numFmt:'#,##0.00'});
+      r1++;
+      rowNum1++;
+    });
+
+    // Итого
+    ws1.getRow(r1).height = 20;
+    ws1.mergeCells(r1, 1, r1, 5);
+    sc1(ws1, r1, 1, 'ИТОГО', {bold:true, sz:10, align:'right', bg:'FFD9D9D9'});
+    const totNorm1 = Object.values(byType).reduce((s,d)=>s+d.norm, 0);
+    const totVol1  = Object.values(byType).reduce((s,d)=>s+d.vol, 0);
+    sc1(ws1, r1, 6, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 7, '', {bg:'FFD9D9D9'});
+    sc1(ws1, r1, 8, Math.round(totNorm1*100)/100, {bold:true, sz:10, numFmt:'#,##0.00', bg:'FFD9D9D9'});
+    sc1(ws1, r1, 9, Math.round(totNorm1*100)/100, {bold:true, sz:10, numFmt:'#,##0.00', bg:'FFD9D9D9'});
+    sc1(ws1, r1, 10, Math.round(totVol1*100)/100, {bold:true, sz:10, numFmt:'#,##0.00', bg:'FFD9D9D9'});
+    r1 += 2;
+
+    // Подписи
+    const sigs1 = [
+      'Бухгалтер ТМЦ', 'Сот.отд.охраны и режима', 'Руководитель сектора МР ЦТУ',
+      'Ведущий инженер по МР ЦТУ', 'Начальник участка АУК №1 — Петровский А.М.'
+    ];
+    sigs1.forEach(s => {
+      ws1.getRow(r1).height = 24;
+      ws1.mergeCells(r1, 1, r1, 4);
+      const sc = ws1.getCell(r1, 1);
+      sc.value = s;
+      sc.font = { name:'Times New Roman', size:11 };
+      sc.alignment = { horizontal:'left', vertical:'bottom' };
+      ws1.mergeCells(r1, 5, r1, 8);
+      const ln = ws1.getCell(r1, 5);
+      ln.border = { bottom:{style:'thin', color:{argb:'FF000000'}} };
+      r1 += 2;
+    });
+
+    // ══════════════════════════════════════════════════
+    // ЛИСТ 2 — М-29 (Раздел II — уже существующий)
+    // ══════════════════════════════════════════════════
     const ws = wb.addWorksheet('М-29');
 
     // Ширины столбцов
