@@ -2454,8 +2454,7 @@
       { width: 18 },  // E — По норме
       { width: 18 },  // F — Факт
       { width: 18 },  // G — Экономия/перерасход
-      { width: 18 },  // H — Списать
-      { width: 20 },  // I — Примечание
+      { width: 18 },  // H — Списать на себестоимость (факт)
     ];
 
     const thinBorder = { style: 'thin', color: { argb: 'FF999999' } };
@@ -2478,14 +2477,14 @@
 
     // ── Шапка организации ──
     ws.getRow(r).height = 28;
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const orgCell = ws.getCell(r, 1);
     orgCell.value = 'АНО ПО РАЗВИТИЮ ГОРОДСКОЙ СРЕДЫ "МВС СТ", ИНН 7730328485, 121165, Город Москва, вн.тер. г. Муниципальный Округ Дорогомилово, наб Тараса Шевченко, дом 31, помещение 10, ЭТ. 3,';
     orgCell.font = { name: 'Times New Roman', size: 10, bold: false, color: { argb: 'FF000000' } };
     orgCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
     orgCell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
     r++;
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const orgLbl = ws.getCell(r, 1);
     orgLbl.value = '(организация)';
     orgLbl.font = { name: 'Times New Roman', size: 8, italic: true, color: { argb: 'FF666666' } };
@@ -2493,14 +2492,14 @@
     r++;
 
     ws.getRow(r).height = 20;
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const deptCell = ws.getCell(r, 1);
     deptCell.value = 'РСУ-3, АУК№1';
     deptCell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FF000000' } };
     deptCell.alignment = { horizontal: 'left', vertical: 'middle' };
     deptCell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
     r++;
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const deptLbl = ws.getCell(r, 1);
     deptLbl.value = '(структурное подразделение)';
     deptLbl.font = { name: 'Times New Roman', size: 8, italic: true, color: { argb: 'FF666666' } };
@@ -2509,7 +2508,7 @@
     r++; // отступ
 
     // ── Заголовок формы ──
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const f1 = ws.getCell(r, 1);
     f1.value = 'Форма № М-29';
     f1.font = { name: 'Times New Roman', size: 11, bold: false, color: { argb: 'FF000000' } };
@@ -2517,14 +2516,14 @@
     r++;
 
     ws.getRow(r).height = 24;
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const f2 = ws.getCell(r, 1);
     f2.value = 'ОТЧЁТ О РАСХОДЕ ОСНОВНЫХ МАТЕРИАЛОВ В СТРОИТЕЛЬСТВЕ';
     f2.font = { name: 'Times New Roman', size: 13, bold: true, color: { argb: 'FF000000' } };
     f2.alignment = { horizontal: 'center', vertical: 'middle' };
     r++;
 
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const f3 = ws.getCell(r, 1);
     f3.value = 'Раздел II. Сопоставление фактического расхода основных материалов с расходом, определённым по производственным нормам';
     f3.font = { name: 'Times New Roman', size: 10, bold: false, color: { argb: 'FF000000' } };
@@ -2532,7 +2531,7 @@
     r++;
     r++;
 
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const f4 = ws.getCell(r, 1);
     f4.value = 'Объект: ' + street;
     f4.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FF000000' } };
@@ -2540,7 +2539,7 @@
     f4.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
     r++;
 
-    ws.mergeCells(r, 1, r, 9);
+    ws.mergeCells(r, 1, r, 8);
     const f5 = ws.getCell(r, 1);
     f5.value = 'Период: ' + periodLabel;
     f5.font = { name: 'Times New Roman', size: 10, color: { argb: 'FF444444' } };
@@ -2550,7 +2549,7 @@
 
     // Заголовки таблицы
     ws.getRow(r).height = 32;
-    const headers = ['№\nп.п.', 'Код\nматериала', 'Наименование материалов,\nконструкций и изделий', 'Ед.\nизм.', 'По производ-\nственным нормам', 'Факти-\nческий', 'Экономия /\nперерасход', 'Списать на\nсебестоимость', 'Приме-\nчание'];
+    const headers = ['№\nп.п.', 'Код\nматериала', 'Наименование материалов,\nконструкций и изделий', 'Ед.\nизм.', 'По производ-\nственным нормам', 'Факти-\nческий', 'Экономия /\nперерасход', 'Списать на\nсебестоимость'];
     headers.forEach((h, i) => {
       const hcell = ws.getCell(r, i+1);
       hcell.value = h;
@@ -2591,13 +2590,14 @@
       tnr(ws.getCell(r,3), type, { bold: true, align: 'left' });
       tnr(ws.getCell(r,4), 'т', { align: 'center' });
       const normVal = Math.round(d.norm * 100) / 100;
-      const ekonVal = normVal > 0 ? Math.round((d.vol - normVal) * 100) / 100 : null;
+      const factVal = Math.round(d.vol * 100) / 100;
+      // Экономия = норма - факт; перерасход = факт > норма → отрицательное значение
+      const diffVal = normVal > 0 ? Math.round((normVal - d.vol) * 100) / 100 : null;
+      const isOverrun = diffVal !== null && diffVal < 0;
       tnr(ws.getCell(r,5), normVal > 0 ? normVal : '', { align: 'right', numFmt: '#,##0.00' });
-      tnr(ws.getCell(r,6), Math.round(d.vol * 100) / 100, { align: 'right', numFmt: '#,##0.00' });
-      tnr(ws.getCell(r,7), ekonVal !== null ? ekonVal : '', { align: 'right', numFmt: '#,##0.00', fg: ekonVal > 0 ? 'FFCC0000' : (ekonVal < 0 ? 'FF006600' : 'FF000000') });
-      tnr(ws.getCell(r,8), ekonVal !== null && ekonVal > 0 ? ekonVal : '', { align: 'right', numFmt: '#,##0.00' });
-      const note = d.area > 0 ? Math.round(d.area) + ' м² / ' + m3.toFixed(1) + ' м³' : m3.toFixed(1) + ' м³';
-      tnr(ws.getCell(r,9), note, { align: 'left', fg: 'FF555555' });
+      tnr(ws.getCell(r,6), factVal, { align: 'right', numFmt: '#,##0.00' });
+      tnr(ws.getCell(r,7), diffVal !== null ? diffVal : '', { align: 'right', numFmt: '#,##0.00', fg: isOverrun ? 'FFCC0000' : 'FF006600' });
+      tnr(ws.getCell(r,8), factVal, { align: 'right', numFmt: '#,##0.00' });
       r++;
       rowNum++;
     });
@@ -2626,17 +2626,12 @@
       if (opts.numFmt) tc.numFmt = opts.numFmt;
       tc.border = allBorders;
     }
+    const totalDiff = totalNorm > 0 ? Math.round((totalNorm - totalVol) * 100) / 100 : null;
+    const totalOverrun = totalDiff !== null && totalDiff < 0;
     tcell(5, totalNorm > 0 ? Math.round(totalNorm * 100) / 100 : '', { numFmt: '#,##0.00' });
     tcell(6, Math.round(totalVol * 100) / 100, { numFmt: '#,##0.00' });
-    tcell(7, totalEkon !== null ? totalEkon : '', { numFmt: '#,##0.00', fg: totalEkon > 0 ? 'FFCC0000' : (totalEkon < 0 ? 'FF006600' : 'FF000000') });
-    tcell(8, totalEkon !== null && totalEkon > 0 ? totalEkon : '', { numFmt: '#,##0.00' });
-
-    const tc9 = ws.getCell(r, 9);
-    tc9.value = (totalArea > 0 ? Math.round(totalArea) + ' м² / ' : '') + totalM3.toFixed(1) + ' м³';
-    tc9.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-    tc9.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
-    tc9.alignment = { horizontal: 'left', vertical: 'middle' };
-    tc9.border = allBorders;
+    tcell(7, totalDiff !== null ? totalDiff : '', { numFmt: '#,##0.00', fg: totalOverrun ? 'FFCC0000' : 'FF006600' });
+    tcell(8, Math.round(totalVol * 100) / 100, { numFmt: '#,##0.00' });
     r += 2;
 
     // ── Подписи ──
@@ -2662,7 +2657,7 @@
       lineCell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
 
       // ФИО — правая колонка
-      ws.mergeCells(r, 7, r, 9);
+      ws.mergeCells(r, 7, r, 8);
       const nameCell = ws.getCell(r, 7);
       nameCell.value = s.name;
       nameCell.font = { name: 'Times New Roman', size: 11, color: { argb: 'FF000000' } };
