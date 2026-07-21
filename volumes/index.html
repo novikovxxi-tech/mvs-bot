@@ -2394,19 +2394,32 @@
 
     // Подписи
     const sigs1 = [
-      'Бухгалтер ТМЦ', 'Сот.отд.охраны и режима', 'Руководитель сектора МР ЦТУ',
-      'Ведущий инженер по МР ЦТУ', 'Начальник участка АУК №1 — Петровский А.М.'
+      { role: 'Начальник РСУ-3',          name: 'Грансон Я.Я.' },
+      { role: 'Руководитель проекта',      name: 'Митрофанов А.В.' },
+      { role: 'Начальник участка АУК №1', name: 'Петровский А.М.' },
+      { role: 'Ведущий бухгалтер',         name: 'Хакимзянова Н.И.' },
     ];
     sigs1.forEach(s => {
-      ws1.getRow(r1).height = 24;
-      ws1.mergeCells(r1, 1, r1, 4);
+      ws1.getRow(r1).height = 26;
+      ws1.mergeCells(r1, 1, r1, 3);
       const sc = ws1.getCell(r1, 1);
-      sc.value = s;
+      sc.value = s.role;
       sc.font = { name:'Times New Roman', size:11 };
       sc.alignment = { horizontal:'left', vertical:'bottom' };
-      ws1.mergeCells(r1, 5, r1, 8);
-      const ln = ws1.getCell(r1, 5);
+      ws1.mergeCells(r1, 4, r1, 7);
+      const ln = ws1.getCell(r1, 4);
       ln.border = { bottom:{style:'thin', color:{argb:'FF000000'}} };
+      ws1.mergeCells(r1, 8, r1, 10);
+      const nm = ws1.getCell(r1, 8);
+      nm.value = s.name;
+      nm.font = { name:'Times New Roman', size:11 };
+      nm.alignment = { horizontal:'right', vertical:'bottom' };
+      r1++;
+      ws1.mergeCells(r1, 4, r1, 7);
+      const lbl = ws1.getCell(r1, 4);
+      lbl.value = '(подпись, расшифровка подписи)';
+      lbl.font = { name:'Times New Roman', size:8, italic:true, color:{argb:'FF666666'} };
+      lbl.alignment = { horizontal:'center' };
       r1 += 2;
     });
 
