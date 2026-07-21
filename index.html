@@ -319,10 +319,35 @@
 <script>
   (function(){
     var API_URL = 'https://mvs-backend-denis3111.amvera.io';
+
+    function getToken() {
+      try { var u = JSON.parse(localStorage.getItem(KEY) || '{}'); return u.token || ''; } catch(e) { return ''; }
+    }
+    function authFetch(url, opts) {
+      opts = opts || {};
+      opts.headers = opts.headers || {};
+      opts.headers['X-Auth-Token'] = getToken();
+      return fetch(url, opts).then(function(r) {
+        if (r.status === 401) { localStorage.removeItem(KEY); location.reload(); }
+        return r;
+      });
+    }
     var KEY = 'mvs_user';
     var saved = localStorage.getItem(KEY);
     if (saved) {
-      try { var u = JSON.parse(saved); if (u && u.login) document.getElementById('pw-screen').classList.add('hidden'); } catch(e) {}
+      try {
+        var u = JSON.parse(saved);
+        if (u && u.token) {
+          fetch(API_URL + '/api/auth/me', { headers: { 'X-Auth-Token': u.token } })
+            .then(r => {
+              if (r.ok) { document.getElementById('pw-screen').classList.add('hidden'); }
+              else { localStorage.removeItem(KEY); }
+            }).catch(() => { document.getElementById('pw-screen').classList.add('hidden'); });
+        } else if (u && u.login) {
+          // старый формат без токена — выкидываем
+          localStorage.removeItem(KEY);
+        }
+      } catch(e) {}
     }
     window.checkPw = function(){
       var login = document.getElementById('pw-login').value.trim();
@@ -338,7 +363,7 @@
       }).then(function(r){ return r.json(); }).then(function(d){
         btn.disabled = false; btn.textContent = 'Войти';
         if (d.ok) {
-          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name}));
+          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name, token: d.token || ''}));
           document.getElementById('pw-screen').classList.add('hidden');
         } else {
           err.textContent = d.error || 'Ошибка входа';
@@ -353,6 +378,13 @@
       });
     };
   })();
+
+  function doLogout() {
+    var tok = getToken();
+    if (tok) fetch(API_URL + '/api/auth/logout', { method:'POST', headers:{'X-Auth-Token': tok} });
+    localStorage.removeItem(KEY);
+    location.reload();
+  }
 </script>
 
 <!-- HEADER -->
@@ -366,6 +398,10 @@
     </svg>
     ПРОРАБКА
   </div>
+  <button id="btnLogout" onclick="doLogout()" title="Выйти" style="background:none;border:none;cursor:pointer;padding:4px 8px;color:rgba(255,255,255,0.7);font-size:12px;display:flex;align-items:center;gap:4px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Выйти
+  </button>
 </div>
 
 <!-- CONTENT -->
