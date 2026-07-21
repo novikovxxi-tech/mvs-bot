@@ -140,6 +140,7 @@ async function loadUsers() {
         <span class="badge ${u.is_active ? 'active' : 'blocked'}" id="badge-${u.id}">${u.is_active ? 'Активен' : 'Заблокирован'}</span>
         <button class="btn-toggle" onclick="toggleUser(${u.id})" title="${u.is_active ? 'Заблокировать' : 'Разблокировать'}" id="tog-${u.id}">${u.is_active ? '🔒' : '✅'}</button>
         <button class="btn-icon" onclick="resetPassword(${u.id}, '${u.name}')" title="Сбросить пароль">🔑</button>
+        <button class="btn-icon" onclick="setPassword(${u.id}, '${u.name}')" title="Задать пароль">✏️</button>
         <button class="btn-icon" onclick="deleteUser(${u.id}, '${u.name}')" title="Удалить">🗑</button>
       </div>
     `).join('');
@@ -193,6 +194,40 @@ async function resetPassword(id, name) {
           row.querySelector('.user-info').appendChild(toast);
         }
         toast.innerHTML = `✅ Новый пароль: <b style="font-size:15px;letter-spacing:1px;">${d.password}</b>`;
+        toast.style.display = 'block';
+      }
+    } else {
+      alert('Ошибка: ' + (d.error || 'неизвестная'));
+    }
+  } catch(e) {
+    alert('Ошибка сети');
+  }
+}
+
+async function setPassword(id, name) {
+  const pw = prompt(`Введите новый пароль для "${name}":`, '');
+  if (!pw || !pw.trim()) return;
+  if (pw.trim().length < 4) { alert('Пароль должен быть не менее 4 символов'); return; }
+  try {
+    const r = await fetch(API + '/api/auth/users/' + id + '/set-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Password': ADMIN_PW },
+      body: JSON.stringify({ password: pw.trim() })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      const row = document.getElementById('row-' + id);
+      if (row) {
+        const loginEl = row.querySelector('.user-login');
+        if (loginEl) loginEl.innerHTML = `Логин: <b>${d.login}</b> &nbsp;·&nbsp; Пароль: <b style="color:#5ad17a;font-size:14px;">${d.password}</b>`;
+        let toast = row.querySelector('.pw-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.className = 'pw-toast';
+          toast.style.cssText = 'margin-top:6px;padding:8px 12px;background:rgba(90,209,122,.15);border:1px solid rgba(90,209,122,.3);border-radius:8px;font-size:13px;color:#5ad17a;';
+          row.querySelector('.user-info').appendChild(toast);
+        }
+        toast.innerHTML = `✅ Пароль установлен: <b style="font-size:15px;letter-spacing:1px;">${d.password}</b>`;
         toast.style.display = 'block';
       }
     } else {
