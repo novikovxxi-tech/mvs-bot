@@ -2440,6 +2440,16 @@
       r1 += 2;
     });
 
+    // ── Настройки печати Часть 1 ──
+    ws1.pageSetup.paperSize      = 9;           // A4
+    ws1.pageSetup.orientation    = 'landscape';
+    ws1.pageSetup.fitToPage      = true;
+    ws1.pageSetup.fitToWidth     = 1;
+    ws1.pageSetup.fitToHeight    = 0;           // авто по высоте
+    ws1.pageSetup.horizontalCentered = true;
+    ws1.pageSetup.margins = { left:0.5, right:0.5, top:0.75, bottom:0.75, header:0.3, footer:0.3 };
+    ws1.headerFooter.oddFooter = '&C&8Стр. &P из &N';
+
     // ══════════════════════════════════════════════════
     // ЛИСТ 2 — М-29 (Раздел II — уже существующий)
     // ══════════════════════════════════════════════════
@@ -2673,6 +2683,16 @@
       r++;
       r++; // отступ между подписями
     });
+
+    // ── Настройки печати М-29 ──
+    ws.pageSetup.paperSize       = 9;           // A4
+    ws.pageSetup.orientation     = 'landscape';
+    ws.pageSetup.fitToPage       = true;
+    ws.pageSetup.fitToWidth      = 1;
+    ws.pageSetup.fitToHeight     = 0;
+    ws.pageSetup.horizontalCentered = true;
+    ws.pageSetup.margins = { left:0.5, right:0.5, top:0.75, bottom:0.75, header:0.3, footer:0.3 };
+    ws.headerFooter.oddFooter = '&C&8Стр. &P из &N';
 
     // Скачать
     const buf = await wb.xlsx.writeBuffer();
