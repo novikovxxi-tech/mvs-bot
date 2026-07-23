@@ -338,18 +338,16 @@
       try {
         var u = JSON.parse(saved);
         if (u && u.token) {
+          // Сразу пускаем — как Facebook/почта
+          document.getElementById('pw-screen').classList.add('hidden');
+          // Фоновая проверка — только если удалён/заблокирован выкидываем
           fetch(API_URL + '/api/auth/me', { headers: { 'X-Auth-Token': u.token } })
             .then(r => {
-              if (r.ok) {
-                document.getElementById('pw-screen').classList.add('hidden');
-              } else {
+              if (r.status === 401 || r.status === 403) {
                 localStorage.removeItem(KEY);
-                document.getElementById('pw-screen').classList.remove('hidden');
+                location.reload();
               }
-            }).catch(() => {
-              // Нет сети — пускаем без проверки (оффлайн режим)
-              document.getElementById('pw-screen').classList.add('hidden');
-            });
+            }).catch(() => { /* нет сети — сидим дальше */ });
         } else if (u && u.login) {
           // старый формат без токена — выкидываем
           localStorage.removeItem(KEY);
