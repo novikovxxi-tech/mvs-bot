@@ -352,23 +352,20 @@
       if (saved) {
         try {
           var u = JSON.parse(saved);
-          if (u && u.login) {
+          if (u && (u.token || u.login)) {
             document.getElementById('pw-screen').classList.add('hidden');
             var nameTag = document.getElementById('user-name-tag');
             if (nameTag) nameTag.textContent = u.name || u.login;
-            if (u.role) {
-              applyRoleUI(u.role);
-            } else {
-              // Роль не сохранена — запросить у бэкенда
-              authFetch(API_URL + '/api/auth/role?login=' + encodeURIComponent(u.login))
-                .then(function(r){ return r.json(); })
-                .then(function(d){
-                  var role = d.role || 'user';
-                  u.role = role;
-                  localStorage.setItem(KEY, JSON.stringify(u));
-                  applyRoleUI(role);
-                })
-                .catch(function(){ applyRoleUI('user'); });
+            applyRoleUI(u.role || 'user');
+            // Фоновая проверка токена — только если удалён/заблокирован выкидываем
+            if (u.token) {
+              fetch(API_URL + '/api/auth/me', { headers: { 'X-Auth-Token': u.token } })
+                .then(function(r) {
+                  if (r.status === 401 || r.status === 403) {
+                    localStorage.removeItem(KEY);
+                    location.href = '/mvs-bot/';
+                  }
+                }).catch(function() { /* нет сети — сидим */ });
             }
           }
         } catch(e) {}
@@ -389,7 +386,7 @@
       }).then(function(r){ return r.json(); }).then(function(d){
         btn.disabled = false; btn.textContent = 'Войти';
         if (d.ok) {
-          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name, role: d.role || 'user'}));
+          localStorage.setItem(KEY, JSON.stringify({login: d.login, name: d.name, role: d.role || 'user', token: d.token || ''}));
           document.getElementById('pw-screen').classList.add('hidden');
           var nameTag = document.getElementById('user-name-tag');
           if (nameTag) nameTag.textContent = d.name || d.login;
