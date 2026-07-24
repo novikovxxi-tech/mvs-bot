@@ -105,6 +105,66 @@ def init_db():
         );
     ''')
 
+    # ── ЭТАП 0: РОЛИ И ОТДЕЛЫ (хотелка №1) ──
+    # Справочник отделов: МТО, ПТО, бухгалтерия, НУ, руководитель.
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS departments (
+            id SERIAL PRIMARY KEY,
+            code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL
+        );
+    ''')
+    for code, dname in [('MTO','МТО'),('PTO','ПТО'),('BUH','Бухгалтерия'),
+                        ('NU','Начальник участка'),('RUK','Руководитель')]:
+        cur.execute('INSERT INTO departments (code, name) VALUES (%s,%s) ON CONFLICT (code) DO NOTHING', (code, dname))
+    # Добавляем роль и отдел к пользователям (обратно совместимо).
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'executor';")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS department_code TEXT DEFAULT '';")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
+
+    # ── ЭТАП 0: ПЛАН/ФАКТ И СТАТУСЫ в entries (хотелки №2 и №6) ──
+    # Ключевой принцип AVTOBAN: план задаётся сверху, факт вводит исполнитель,
+    # отклонение = факт − план считается автоматически.
+    cur.execute("ALTER TABLE entries ADD COLUMN IF NOT EXISTS vol_plan REAL DEFAULT 0;")
+    cur.execute("ALTER TABLE entries ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';")
+    # deviation — вычисляемое поле (факт vol − план vol_plan).
+    cur.execute('''
+        DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name='entries' AND column_name='deviation') THEN
+                ALTER TABLE entries ADD COLUMN deviation REAL GENERATED ALWAYS AS (vol - vol_plan) STORED;
+            END IF;
+        END $$;
+    ''')
+
+    # ── ЭТАП 0: ФОТОФИКСАЦИЯ ──
+    # Привязка фото к любой сущности (entry / machine / repair). Файлы — в Yandex S3.
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS photos (
+            id SERIAL PRIMARY KEY,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            s3_key TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            uploaded_by TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+
+    # ── ЭТАП 0: ЗАЯВКИ НА РЕМОНТ ТЕХНИКИ (хотелка №4) ──
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS repair_requests (
+            id SERIAL PRIMARY KEY,
+            machine_name TEXT NOT NULL,
+            gov_number TEXT DEFAULT '',
+            description TEXT DEFAULT '',
+            status TEXT DEFAULT 'created',
+            created_by TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            closed_at TIMESTAMP
+        );
+    ''')
+
     # Таблица адресов заявок
     cur.execute('''
         CREATE TABLE IF NOT EXISTS order_sites (
@@ -181,10 +241,24 @@ def add_street():
 
 # ── Авторизация ────────────────────────────────────
 
-ADMIN_PASSWORD = 'z3d4xi2s'
+# ВАЖНО (этап 0, безопасность): пароль администратора больше не хранится в коде.
+# Задайте переменную окружения ADMIN_PASSWORD на хостинге (Amvera).
+# PWD_SALT — секретная соль для хеширования паролей пользователей.
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')
+PWD_SALT = os.environ.get('PWD_SALT', 'mvs-legacy-salt-change-me')
 
 def hash_pw(pw):
+    # Соль защищает от подбора по радужным таблицам. Старые (несолёные) хеши
+    # проверяются через hash_pw_legacy для обратной совместимости.
+    return hashlib.sha256((PWD_SALT + pw).encode()).hexdigest()
+
+def hash_pw_legacy(pw):
     return hashlib.sha256(pw.encode()).hexdigest()
+
+def check_admin(req):
+    # Единая проверка админ-доступа. Если ADMIN_PASSWORD не задан на сервере —
+    # доступ закрыт (безопасное поведение по умолчанию).
+    return bool(ADMIN_PASSWORD) and req.headers.get('X-Admin-Password') == ADMIN_PASSWORD
 
 def gen_password():
     return secrets.token_urlsafe(6)
@@ -198,43 +272,54 @@ def auth_login():
         return jsonify({'ok': False, 'error': 'Заполните все поля'}), 400
     conn = get_db()
     cur = conn.cursor()
-    cur.execute('SELECT id, name, is_active FROM users WHERE login=%s AND password_hash=%s', (login, hash_pw(password)))
+    # Поддерживаем новый (солёный) и старый формат хеша — чтобы существующие пользователи не потеряли доступ.
+    cur.execute('SELECT id, name, is_active, password_hash FROM users WHERE login=%s', (login,))
     row = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not row:
+    if not row or row[3] not in (hash_pw(password), hash_pw_legacy(password)):
+        cur.close(); conn.close()
         return jsonify({'ok': False, 'error': 'Неверный логин или пароль'}), 401
     if not row[2]:
+        cur.close(); conn.close()
         return jsonify({'ok': False, 'error': 'Доступ заблокирован'}), 403
+    # Мягкая миграция: если хеш старого формата — пересчитываем на солёный при входе.
+    if row[3] == hash_pw_legacy(password):
+        cur.execute('UPDATE users SET password_hash=%s WHERE id=%s', (hash_pw(password), row[0]))
+        conn.commit()
+    cur.close()
+    conn.close()
     return jsonify({'ok': True, 'name': row[1], 'login': login})
 
 @app.route('/api/auth/users', methods=['GET'])
 def auth_users():
-    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+    if not check_admin(request):
         return jsonify({'error': 'Forbidden'}), 403
     conn = get_db()
     cur = conn.cursor()
-    cur.execute('SELECT id, name, login, is_active, created_at FROM users ORDER BY id')
+    cur.execute('SELECT id, name, login, is_active, created_at, role, department_code, phone FROM users ORDER BY id')
     rows = cur.fetchall()
     cur.close()
     conn.close()
-    return jsonify([{'id': r[0], 'name': r[1], 'login': r[2], 'is_active': r[3], 'created_at': str(r[4])} for r in rows])
+    return jsonify([{'id': r[0], 'name': r[1], 'login': r[2], 'is_active': r[3], 'created_at': str(r[4]),
+                     'role': r[5], 'department_code': r[6], 'phone': r[7]} for r in rows])
 
 @app.route('/api/auth/users', methods=['POST'])
 def auth_create_user():
-    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+    if not check_admin(request):
         return jsonify({'error': 'Forbidden'}), 403
     data = request.json or {}
     name = data.get('name', '').strip()
     login = data.get('login', '').strip().lower()
     if not name or not login:
         return jsonify({'error': 'name and login required'}), 400
+    role = data.get('role', 'executor').strip() or 'executor'
+    department_code = data.get('department_code', '').strip()
+    phone = data.get('phone', '').strip()
     password = gen_password()
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute('INSERT INTO users (name, login, password_hash) VALUES (%s, %s, %s)',
-                    (name, login, hash_pw(password)))
+        cur.execute('INSERT INTO users (name, login, password_hash, role, department_code, phone) VALUES (%s, %s, %s, %s, %s, %s)',
+                    (name, login, hash_pw(password), role, department_code, phone))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -247,7 +332,7 @@ def auth_create_user():
 
 @app.route('/api/auth/users/<int:uid>', methods=['DELETE'])
 def auth_delete_user(uid):
-    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+    if not check_admin(request):
         return jsonify({'error': 'Forbidden'}), 403
     conn = get_db()
     cur = conn.cursor()
@@ -259,7 +344,7 @@ def auth_delete_user(uid):
 
 @app.route('/api/auth/users/<int:uid>/toggle', methods=['POST'])
 def auth_toggle_user(uid):
-    if request.headers.get('X-Admin-Password') != ADMIN_PASSWORD:
+    if not check_admin(request):
         return jsonify({'error': 'Forbidden'}), 403
     conn = get_db()
     cur = conn.cursor()
@@ -430,9 +515,10 @@ def add_entry():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        'INSERT INTO entries (date, street, type, vol, shift, note, responsible, worktype) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id',
+        'INSERT INTO entries (date, street, type, vol, shift, note, responsible, worktype, vol_plan, status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id',
         (d['date'], d['street'], d['type'], float(d['vol']),
-         d.get('shift', 'День'), d.get('note', ''), d.get('responsible', ''), d.get('worktype', ''))
+         d.get('shift', 'День'), d.get('note', ''), d.get('responsible', ''), d.get('worktype', ''),
+         float(d.get('vol_plan', 0) or 0), d.get('status', 'draft'))
     )
     entry_id = cur.fetchone()[0]
     conn.commit()
@@ -448,9 +534,10 @@ def update_entry(entry_id):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        'UPDATE entries SET date=%s, vol=%s, type=%s, shift=%s, note=%s, responsible=%s, worktype=%s WHERE id=%s',
+        'UPDATE entries SET date=%s, vol=%s, type=%s, shift=%s, note=%s, responsible=%s, worktype=%s, vol_plan=%s, status=%s WHERE id=%s',
         (d['date'], float(d['vol']), d.get('type', 'МЗВ'),
-         d.get('shift', 'День'), d.get('note', ''), d.get('responsible', ''), d.get('worktype', ''), entry_id)
+         d.get('shift', 'День'), d.get('note', ''), d.get('responsible', ''), d.get('worktype', ''),
+         float(d.get('vol_plan', 0) or 0), d.get('status', 'draft'), entry_id)
     )
     conn.commit()
     cur.close()
@@ -466,6 +553,141 @@ def delete_entry(entry_id):
     cur.close()
     conn.close()
     return jsonify({'ok': True})
+
+# ── ЭТАП 0: Отделы ──────────────────────────────
+
+@app.route('/api/departments', methods=['GET'])
+def get_departments():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT code, name FROM departments ORDER BY id')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([{'code': r[0], 'name': r[1]} for r in rows])
+
+# ── ЭТАП 0: Заявки на ремонт техники (хотелка №4) ──
+
+@app.route('/api/repair-requests', methods=['GET'])
+def get_repair_requests():
+    status = request.args.get('status')
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    if status:
+        cur.execute('SELECT * FROM repair_requests WHERE status=%s ORDER BY id DESC', (status,))
+    else:
+        cur.execute('SELECT * FROM repair_requests ORDER BY id DESC')
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(rows)
+
+@app.route('/api/repair-requests', methods=['POST'])
+def add_repair_request():
+    d = request.json or {}
+    if not d.get('machine_name'):
+        return jsonify({'error': 'machine_name required'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO repair_requests (machine_name, gov_number, description, status, created_by) VALUES (%s,%s,%s,%s,%s) RETURNING id',
+        (d['machine_name'], d.get('gov_number', ''), d.get('description', ''),
+         d.get('status', 'created'), d.get('created_by', ''))
+    )
+    new_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'id': new_id}), 201
+
+@app.route('/api/repair-requests/<int:rid>', methods=['PATCH'])
+def update_repair_request(rid):
+    d = request.json or {}
+    status = d.get('status')
+    if status not in ('created', 'in_progress', 'done'):
+        return jsonify({'error': 'bad status'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    if status == 'done':
+        cur.execute("UPDATE repair_requests SET status=%s, closed_at=CURRENT_TIMESTAMP WHERE id=%s", (status, rid))
+    else:
+        cur.execute("UPDATE repair_requests SET status=%s, closed_at=NULL WHERE id=%s", (status, rid))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True})
+
+# ── ЭТАП 0: Фотофиксация (универсальная) ──
+
+@app.route('/api/photos/<entity_type>/<int:entity_id>', methods=['GET'])
+def get_photos(entity_type, entity_id):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute('SELECT id, s3_key, file_name, uploaded_by, created_at FROM photos WHERE entity_type=%s AND entity_id=%s ORDER BY created_at',
+                (entity_type, entity_id))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    result = []
+    for r in rows:
+        dd = dict(r)
+        try:
+            dd['url'] = S3.generate_presigned_url('get_object', Params={'Bucket': S3_BUCKET, 'Key': dd['s3_key']}, ExpiresIn=86400)
+        except Exception:
+            pass
+        result.append(dd)
+    return jsonify(result)
+
+@app.route('/api/photos/<entity_type>/<int:entity_id>', methods=['POST'])
+def upload_photo(entity_type, entity_id):
+    if 'file' not in request.files:
+        return jsonify({'error': 'no file'}), 400
+    f = request.files['file']
+    import uuid
+    ext = f.filename.rsplit('.', 1)[-1] if '.' in f.filename else 'jpg'
+    key = f'photos/{entity_type}/{entity_id}/{uuid.uuid4().hex}.{ext}'
+    try:
+        S3.upload_fileobj(f, S3_BUCKET, key, ExtraArgs={'ContentType': f.content_type or 'image/jpeg'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO photos (entity_type, entity_id, s3_key, file_name, uploaded_by) VALUES (%s,%s,%s,%s,%s) RETURNING id',
+                (entity_type, entity_id, key, f.filename, (request.form.get('uploaded_by', ''))))
+    new_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    url = S3.generate_presigned_url('get_object', Params={'Bucket': S3_BUCKET, 'Key': key}, ExpiresIn=86400)
+    return jsonify({'ok': True, 'id': new_id, 'url': url}), 201
+
+# ── ЭТАП 0: Дашборд отклонений (план/факт) ──
+
+@app.route('/api/dashboard', methods=['GET'])
+def get_dashboard():
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute('SELECT street, type, vol, vol_plan, deviation, status FROM entries')
+    rows = [dict(r) for r in cur.fetchall()]
+    # Открытые заявки на ремонт
+    cur.execute("SELECT COUNT(*) FROM repair_requests WHERE status <> 'done'")
+    open_repairs = cur.fetchone()['count'] if cur.rowcount else 0
+    cur.close()
+    conn.close()
+    total_plan = round(sum((e['vol_plan'] or 0) for e in rows), 2)
+    total_fact = round(sum((e['vol'] or 0) for e in rows), 2)
+    total_dev = round(total_fact - total_plan, 2)
+    # Экономия (факт < план) / перерасход (факт > план)
+    economy = round(sum(-(e['deviation'] or 0) for e in rows if (e['deviation'] or 0) < 0), 2)
+    overrun = round(sum((e['deviation'] or 0) for e in rows if (e['deviation'] or 0) > 0), 2)
+    return jsonify({
+        'total_plan': total_plan,
+        'total_fact': total_fact,
+        'total_deviation': total_dev,
+        'economy': economy,
+        'overrun': overrun,
+        'open_repairs': open_repairs,
+    })
 
 # ── Статистика ─────────────────────────────────────
 
